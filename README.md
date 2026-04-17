@@ -1,255 +1,185 @@
 # Airbnb Finance Assistant
 
-A Node.js + Express API that reconciles Airbnb payout exports (CSV/PDF) against
-BBVA bank statements (PDF), cross-matches transactions by amount and date,
-generates Excel and PDF reports, and maintains a per-user, per-property monthly
-history with AI-powered analysis via Claude (Anthropic).
+App web full stack para reconciliar automáticamente reportes de Airbnb contra estados de cuenta BBVA México. Soporta múltiples propiedades, genera reportes Excel y PDF, y opcionalmente integra análisis IA con Claude (Anthropic).
+
+🔗 **Demo en vivo:** https://airbnb-finance-assistant-production.up.railway.app
+> Credenciales de demo: `demo@practice.com` / `Demo1234!`
 
 ---
 
-## Prerequisites
+## Stack
 
-| Requirement | Version |
-|-------------|---------|
-| Node.js | ≥ 18.x |
-| npm | ≥ 9.x |
-| SQLite | Built-in — no separate install needed (`better-sqlite3`) |
+| Capa | Tecnología |
+|------|------------|
+| Runtime | Node.js 20 |
+| Framework | Express 4 |
+| Base de datos | PostgreSQL (via `pg`) |
+| Auth | JWT en httpOnly cookie |
+| Archivos | Multer — PDF y CSV |
+| Reportes | ExcelJS, PDFKit |
+| IA (opcional) | Claude API — Anthropic |
+| Tests | Jest + Supertest — 69 tests |
+| Deploy | Railway (backend + PostgreSQL) |
 
 ---
 
-## Installation
+## Características
+
+- **Reconciliación automática** de reportes Airbnb (CSV/PDF) contra estados de cuenta BBVA (PDF)
+- **Soporte multi-propiedad** — gestiona varias propiedades por usuario
+- **Historial mensual** de reportes guardados con filtros por tipo
+- **Dashboard anual** con métricas agregadas (Chart.js)
+- **Exportación** a Excel (.xlsx) y PDF ejecutivo
+- **Análisis IA** con Claude — resumen financiero inteligente por mes (requiere `ANTHROPIC_API_KEY`)
+- **Swagger UI** en `/api/docs` — documentación interactiva de todos los endpoints
+- **69 tests** — unitarios y de integración con PostgreSQL en memoria (`pg-mem`)
+
+---
+
+## Instalación local
+
+**Requisitos previos:**
+- Node.js ≥ 18.x
+- PostgreSQL 14+ (local o via Docker)
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-org/airbnb-finance-assistant.git
+# 1. Clonar el repositorio
+git clone https://github.com/Alfredosullivan/airbnb-finance-assistant.git
 cd airbnb-finance-assistant
 
-# 2. Install dependencies
+# 2. Instalar dependencias
 npm install
 
-# 3. Create your local environment file
+# 3. Crear archivo de entorno
 cp .env.example .env
+# Edita .env con tus valores
 
-# 4. Edit .env and set your values (see Environment Variables below)
-```
-
----
-
-## Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|:--------:|
-| `PORT` | HTTP port the server listens on | No (default: `3000`) |
-| `JWT_SECRET` | Secret key used to sign JWT session tokens. Use a long random string in production. | **Yes** |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins | No (default: `http://localhost:3000`) |
-| `ANTHROPIC_API_KEY` | API key for Claude AI (monthly analysis feature). If omitted, AI analysis endpoints return an error but all other endpoints work normally. | No |
-
-> **Security note:** Never commit `.env` to version control. The `.gitignore` already excludes it.
-
----
-
-## Running the Project
-
-```bash
-# Development — auto-restarts on file changes (nodemon)
+# 4. Iniciar en desarrollo
 npm run dev
-
-# Production
-npm start
-
-# Run all tests (Jest + Supertest, in-memory SQLite)
-npm test
 ```
 
-Open the browser at `http://localhost:3000`
+Abre `http://localhost:3000` en el navegador.
 
 ---
 
-## API Documentation
+## Instalación con Docker
 
-Interactive Swagger UI is available at:
+El proyecto incluye `docker-compose.yml` que levanta la app y PostgreSQL con un solo comando:
 
-```
-http://localhost:3000/api/docs
-```
+```bash
+cp .env.example .env
+# En .env cambia el host de DATABASE_URL a "db":
+# DATABASE_URL=postgresql://postgres:password@db:5432/finance_db
 
-All endpoints, request schemas, response schemas, and authentication requirements
-are documented there. The spec is generated from `@swagger` JSDoc blocks in
-`src/routes/*.js` via `swagger-jsdoc`.
-
----
-
-## Architecture
-
-The application follows **Clean Architecture** with strict layer separation:
-
-```
-HTTP Request
-    ↓
-Routes (src/routes/)
-    ↓
-Middleware (src/middleware/)   — JWT auth, rate limiting, error handler
-    ↓
-Controllers (src/controllers/) — HTTP request/response only, no business logic
-    ↓
-Services (src/services/)       — Business logic: parsing, comparison, Excel/PDF generation, AI analysis
-    ↓
-Repositories (src/repositories/) — All SQLite queries, no business logic
-    ↓
-Database (src/database/)       — better-sqlite3 connection + schema init
+docker compose up -d
+docker compose logs -f app
 ```
 
-### Layer responsibilities
-
-| Layer | Path | Responsibility |
-|-------|------|----------------|
-| **Routes** | `src/routes/` | Define URL patterns, apply middleware per route |
-| **Middleware** | `src/middleware/` | `requireAuth` (JWT cookie), `errorHandler` (centralized) |
-| **Controllers** | `src/controllers/` | Parse request, call services, send response |
-| **Services** | `src/services/` | CSV/PDF parsing, transaction comparison, Excel/PDF/AI generation |
-| **Repositories** | `src/repositories/` | Prepared-statement CRUD for `users`, `properties`, `reports` |
-| **Database** | `src/database/` | Single `better-sqlite3` connection; `schema.js` runs migrations on startup |
-| **Config** | `src/config/`, `config.js` | Port, paths, Swagger spec |
-| **Utils** | `src/utils/` | `formatter.js` (report shaping), `validator.js` (input validation) |
-
----
-
-## API Overview
-
-### Auth — `/api/auth`
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|:----:|-------------|
-| `POST` | `/api/auth/register` | ✗ | Create account; returns httpOnly JWT cookie |
-| `POST` | `/api/auth/login` | ✗ | Sign in; returns httpOnly JWT cookie |
-| `POST` | `/api/auth/logout` | ✗ | Clear session cookie |
-| `GET` | `/api/auth/me` | ✓ | Return current user + `needsPropertyName` flag |
-
-### Properties — `/api/properties`
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|:----:|-------------|
-| `GET` | `/api/properties` | ✓ | List user's properties |
-| `POST` | `/api/properties` | ✓ | Create a new property |
-| `PUT` | `/api/properties/:id` | ✓ | Rename a property |
-| `DELETE` | `/api/properties/:id` | ✓ | Delete a property (requires ≥ 2 properties) |
-| `GET` | `/api/properties/combined/:year` | ✓ | Annual combined report across all properties |
-
-### Reports — `/api/reports`
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|:----:|-------------|
-| `POST` | `/api/reports/save` | ✓ | Save or overwrite a monthly reconciliation report |
-| `GET` | `/api/reports/list` | ✓ | List saved reports (metadata + totals) |
-| `GET` | `/api/reports/:month` | ✓ | Full JSON for a given month (`2026-02`) |
-| `DELETE` | `/api/reports/:month` | ✓ | Delete a month's report |
-| `GET` | `/api/reports/annual/:year` | ✓ | Download annual Excel workbook |
-| `GET` | `/api/reports/dashboard/:year` | ✓ | Annual dashboard metrics |
-| `GET` | `/api/reports/executive-pdf/:year` | ✓ | Download executive PDF summary |
-| `POST` | `/api/reports/:month/analysis` | ✓ | Generate Claude AI analysis for a saved month |
-| `POST` | `/api/reports/:month/analysis/pdf` | ✓ | Download AI analysis as PDF |
-| `POST` | `/api/reports/update-prev-year-ref` | ✓ | Inject prior-year data into a report |
-
-### Finance (upload + compare) — `/api`
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|:----:|-------------|
-| `POST` | `/api/upload/airbnb` | ✗ | Upload Airbnb CSV or PDF (`field: pdf`) |
-| `POST` | `/api/upload/bank` | ✗ | Upload 1–2 BBVA bank PDFs (`field: bankPdf`) |
-| `GET` | `/api/report` | ✗ | Get the current in-memory reconciliation report |
-| `GET` | `/api/report/excel` | ✓ | Download the current report as `.xlsx` |
-| `POST` | `/api/analysis/monthly` | ✓ | AI analysis of the current in-memory report |
-| `POST` | `/api/analysis/monthly/pdf` | ✓ | Download AI analysis of current report as PDF |
-| `POST` | `/api/reset` | ✗ | Clear the in-memory report state |
-
-### System
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|:----:|-------------|
-| `GET` | `/health` | ✗ | Liveness probe — returns `{ status, uptime, timestamp }` |
-| `GET` | `/api/docs` | ✗ | Swagger UI — interactive API reference |
-
----
-
-## Project Structure
-
-```
-airbnb-finance-assistant/
-├── index.js                    # Entry point — Express setup, route mounting
-├── config.js                   # Port, upload limits, allowed MIME types
-├── .env.example                # Environment variable template
-├── public/                     # Static frontend (HTML / CSS / JS)
-├── uploads/                    # Temporary PDF/CSV uploads (gitignored)
-├── data/                       # SQLite database file (gitignored)
-├── src/
-│   ├── config/
-│   │   └── swagger.js          # OpenAPI 3.0 spec (swagger-jsdoc)
-│   ├── controllers/
-│   │   ├── auth.controller.js
-│   │   ├── properties.controller.js
-│   │   ├── report.controller.js    # In-memory report (upload flow)
-│   │   ├── reports.controller.js   # Saved report history
-│   │   └── upload.controller.js
-│   ├── database/
-│   │   ├── db.js               # better-sqlite3 connection (supports DB_PATH env override)
-│   │   └── schema.js           # CREATE TABLE / migration logic (idempotent)
-│   ├── middleware/
-│   │   ├── auth.middleware.js  # requireAuth — validates JWT cookie
-│   │   └── errorHandler.js     # Centralized error handler
-│   ├── repositories/
-│   │   ├── UserRepository.js
-│   │   ├── PropertyRepository.js
-│   │   └── ReportRepository.js
-│   ├── routes/
-│   │   ├── auth.routes.js
-│   │   ├── finance.routes.js
-│   │   ├── properties.routes.js
-│   │   └── reports.routes.js
-│   ├── services/
-│   │   ├── analysisGenerator.js    # Claude AI prompt + response handling
-│   │   ├── annualExcelGenerator.js # Multi-sheet annual Excel workbook
-│   │   ├── comparator.js           # Core matching algorithm (Airbnb ↔ bank)
-│   │   ├── csvParser.js            # Parse Airbnb CSV export
-│   │   ├── excelGenerator.js       # Monthly Excel report
-│   │   └── pdfParser.js            # Parse Airbnb PDF and BBVA PDF exports
-│   └── utils/
-│       ├── formatter.js            # Shape compareTransactions() output into API JSON
-│       └── validator.js            # Input validation helpers
-└── tests/
-    ├── helpers/
-    │   ├── setup.js               # Jest setupFile — sets DB_PATH=:memory:
-    │   └── testApp.js             # Express app for integration tests (no listen)
-    ├── integration/
-    │   ├── auth.test.js           # 17 integration tests — auth endpoints
-    │   └── properties.test.js     # 13 integration tests — properties endpoints
-    ├── unit/
-    │   ├── comparator.test.js     # 22 unit tests — compareTransactions()
-    │   └── formatter.test.js      # 17 unit tests — formatReport()
-    └── integration.test.js        # Original 39 node-based tests (run with: node tests/integration.test.js)
+Para detener:
+```bash
+docker compose down      # detiene contenedores, conserva datos
+docker compose down -v   # detiene Y borra el volumen de PostgreSQL
 ```
 
 ---
 
-## Testing
+## Variables de entorno
+
+| Variable | Descripción | Requerida |
+|----------|-------------|-----------|
+| `PORT` | Puerto del servidor | No (default: `3000`) |
+| `DATABASE_URL` | Connection string de PostgreSQL | **Sí** |
+| `JWT_SECRET` | Clave para firmar tokens JWT | **Sí** |
+| `ALLOWED_ORIGINS` | Orígenes CORS permitidos (separados por coma) | No (default: `http://localhost:3000`) |
+| `MAX_FILE_SIZE_MB` | Tamaño máximo de archivos subidos en MB | No (default: `10`) |
+| `ANTHROPIC_API_KEY` | API key de Claude para análisis IA | No |
+
+> Si `ANTHROPIC_API_KEY` no está definida, la app funciona normalmente — solo los botones de análisis IA quedan deshabilitados.
+
+---
+
+## Tests
 
 ```bash
 npm test
 ```
 
-| Suite | File | Tests |
-|-------|------|------:|
+| Suite | Archivo | Tests |
+|-------|---------|------:|
 | Integration — Auth | `tests/integration/auth.test.js` | 17 |
 | Integration — Properties | `tests/integration/properties.test.js` | 13 |
 | Unit — Comparator | `tests/unit/comparator.test.js` | 22 |
 | Unit — Formatter | `tests/unit/formatter.test.js` | 17 |
 | **Total** | | **69** |
 
-All tests run against an in-memory SQLite database (`DB_PATH=:memory:`) injected
-via `tests/helpers/setup.js`. The real `data/finance.db` is never touched during
-test runs.
+Los tests corren contra PostgreSQL en memoria (`pg-mem`) — no tocan la base de datos real.
 
-The original pipeline smoke-test (no external framework) is still available:
+---
 
-```bash
-node tests/integration.test.js   # 39/39 assertions
-```
+## Arquitectura
+
+El proyecto sigue **Clean Architecture** con separación estricta de capas:
+HTTP Request
+↓
+Routes (src/routes/)
+↓
+Middleware (src/middleware/)      — JWT auth, rate limiting, error handler
+↓
+Controllers (src/controllers/)   — HTTP request/response, sin lógica de negocio
+↓
+Services (src/services/)         — Parseo CSV/PDF, comparación, Excel/PDF/IA
+↓
+Repositories (src/repositories/) — Queries PostgreSQL con pg pool
+↓
+Database (src/database/)         — Pool de conexiones + schema init async
+
+| Capa | Ruta | Responsabilidad |
+|------|------|-----------------|
+| Routes | `src/routes/` | Definir URLs, aplicar middleware por ruta |
+| Middleware | `src/middleware/` | `requireAuth` (JWT cookie), `errorHandler` centralizado |
+| Controllers | `src/controllers/` | Parsear request, llamar services, enviar response |
+| Services | `src/services/` | Parseo CSV/PDF, comparación, generación Excel/PDF/IA |
+| Repositories | `src/repositories/` | CRUD async via `pg` pool para `users`, `properties`, `reports` |
+| Database | `src/database/` | Pool `pg` (`client.js`) + `schema.js` crea tablas al arrancar |
+
+---
+
+## API
+
+Documentación interactiva completa en `/api/docs` (Swagger UI).
+
+### Auth — `/api/auth`
+| Método | Endpoint | Auth | Descripción |
+|--------|----------|:----:|-------------|
+| POST | `/api/auth/register` | ✗ | Registro — devuelve httpOnly JWT cookie |
+| POST | `/api/auth/login` | ✗ | Login — devuelve httpOnly JWT cookie |
+| POST | `/api/auth/logout` | ✗ | Cerrar sesión |
+| GET | `/api/auth/me` | ✓ | Perfil del usuario actual |
+
+### Propiedades — `/api/properties`
+| Método | Endpoint | Auth | Descripción |
+|--------|----------|:----:|-------------|
+| GET | `/api/properties` | ✓ | Listar propiedades del usuario |
+| POST | `/api/properties` | ✓ | Crear propiedad |
+| PUT | `/api/properties/:id` | ✓ | Renombrar propiedad |
+| DELETE | `/api/properties/:id` | ✓ | Eliminar propiedad (requiere ≥ 2) |
+| GET | `/api/properties/combined/:year` | ✓ | Reporte anual combinado |
+
+### Reportes — `/api/reports`
+| Método | Endpoint | Auth | Descripción |
+|--------|----------|:----:|-------------|
+| POST | `/api/reports/save` | ✓ | Guardar o sobreescribir reporte mensual |
+| GET | `/api/reports/list` | ✓ | Listar reportes guardados |
+| GET | `/api/reports/:month` | ✓ | Reporte completo de un mes (`2026-02`) |
+| DELETE | `/api/reports/:month` | ✓ | Eliminar reporte de un mes |
+| GET | `/api/reports/annual/:year` | ✓ | Descargar Excel anual |
+| GET | `/api/reports/dashboard/:year` | ✓ | Métricas del dashboard |
+| GET | `/api/reports/executive-pdf/:year` | ✓ | PDF ejecutivo anual |
+| POST | `/api/reports/:month/analysis` | ✓ | Análisis IA del mes con Claude |
+| POST | `/api/reports/:month/analysis/pdf` | ✓ | Descargar análisis IA como PDF |
+
+### Sistema
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/health` | Liveness probe — `{ status, uptime, timestamp }` |
+| GET | `/api/docs` | Swagger UI — referencia interactiva |
