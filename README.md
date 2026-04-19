@@ -119,19 +119,22 @@ Los tests corren contra PostgreSQL en memoria (`pg-mem`) — no tocan la base de
 ## Arquitectura
 
 El proyecto sigue **Clean Architecture** con separación estricta de capas:
+
+```
 HTTP Request
-↓
+    ↓
 Routes (src/routes/)
-↓
+    ↓
 Middleware (src/middleware/)      — JWT auth, rate limiting, error handler
-↓
+    ↓
 Controllers (src/controllers/)   — HTTP request/response, sin lógica de negocio
-↓
+    ↓
 Services (src/services/)         — Parseo CSV/PDF, comparación, Excel/PDF/IA
-↓
+    ↓
 Repositories (src/repositories/) — Queries PostgreSQL con pg pool
-↓
+    ↓
 Database (src/database/)         — Pool de conexiones + schema init async
+```
 
 | Capa | Ruta | Responsabilidad |
 |------|------|-----------------|
