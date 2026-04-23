@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "Comparador de ingresos Airbnb vs estado de cuenta bancario",
   "main": "index.js",
+  "bin": {
+    "airbnb-cli": "./bin/airbnb-cli.js"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "jest"
+    "test": "jest",
+    "cli": "node bin/airbnb-cli.js"
   },
   "jest": {
     "testEnvironment": "node",

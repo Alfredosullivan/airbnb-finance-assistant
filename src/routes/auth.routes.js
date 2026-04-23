@@ -157,10 +157,11 @@
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 
-const express                         = require('express');
-const router                          = express.Router();
-const rateLimit                       = require('express-rate-limit');
-const { register, login, logout, me } = require('../controllers/auth.controller');
+const express                                   = require('express');
+const router                                    = express.Router();
+const rateLimit                                 = require('express-rate-limit');
+const { register, login, logout, me, getToken } = require('../controllers/auth.controller');
+const { requireAuth }                           = require('../middleware/auth.middleware');
 
 // Límite de intentos en endpoints de autenticación (protección anti-fuerza-bruta)
 const authLimiter = rateLimit({
@@ -179,6 +180,11 @@ router.post('/login', authLimiter, login);
 
 // POST /api/auth/logout    → Cierra sesión limpiando la cookie
 router.post('/logout', logout);
+
+// GET  /api/auth/me/token  → Devuelve el JWT en el body para uso programático (CLI)
+// requireAuth acepta cookie O Bearer — este endpoint es el puente entre ambos modos
+// IMPORTANTE: registrado antes de /me para que Express lo evalúe primero (rutas más específicas primero)
+router.get('/me/token', requireAuth, getToken);
 
 // GET  /api/auth/me        → Devuelve el usuario actual (si hay sesión activa)
 router.get('/me', me);

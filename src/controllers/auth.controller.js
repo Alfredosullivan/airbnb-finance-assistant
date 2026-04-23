@@ -175,4 +175,35 @@ async function me(req, res) {
   }
 }
 
-module.exports = { register, login, logout, me };
+/**
+ * getToken — Devuelve el JWT en el body para uso programático (CLI, scripts)
+ * GET /api/auth/me/token — requiere autenticación (cookie o Bearer)
+ *
+ * ¿Por qué existe este endpoint?
+ * El browser puede recibir el JWT como cookie httpOnly (seguro contra XSS).
+ * Pero un CLI de Node.js no tiene jar de cookies — no puede enviar la cookie
+ * en requests posteriores. Este endpoint permite al usuario autenticado en el
+ * browser obtener el token como texto plano para configurar el CLI.
+ *
+ * Flujo esperado:
+ *   1. Usuario inicia sesión en el browser → cookie seteada
+ *   2. Usuario visita GET /api/auth/me/token → recibe { token: "eyJ..." }
+ *   3. Usuario corre: airbnb-cli set-token eyJ...
+ *   4. El CLI incluye ese token como Authorization: Bearer en requests futuros
+ *
+ * ¿Por qué re-firmar en lugar de devolver la cookie directamente?
+ * La cookie es httpOnly — el servidor no puede leer su valor desde la respuesta
+ * anterior y devolverlo. Solo puede generar un JWT nuevo con el mismo payload.
+ * Generamos con expiración de 7 días, igual que la cookie de sesión.
+ */
+function getToken(req, res) {
+  // req.user ya fue poblado por requireAuth — contiene userId y username
+  const token = jwt.sign(
+    { userId: req.user.userId, username: req.user.username },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  return res.json({ token });
+}
+
+module.exports = { register, login, logout, me, getToken };
