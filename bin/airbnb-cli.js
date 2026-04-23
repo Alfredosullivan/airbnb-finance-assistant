@@ -366,6 +366,77 @@ const cmdJobs = () => {
 };
 
 /**
+ * cmdMarket — Analiza el mercado de rentas en Mérida con crawl + Claude
+ * Uso: airbnb-cli market [--property="Mi casa en Mérida"] [--rate=1500]
+ *
+ * Flujo:
+ *   1. POST /api/crawler/analyze → encola el job (202)
+ *   2. Polling GET /api/jobs/:jobId cada 3s hasta completed/failed
+ *   3. Muestra resultado o instrucciones para descargar el análisis completo
+ */
+const cmdMarket = async (args) => {
+  const propertyArg = args.find(a => a.startsWith('--property='));
+  const rateArg     = args.find(a => a.startsWith('--rate='));
+
+  const propertyName = propertyArg ? propertyArg.split('=')[1] : null;
+  const currentRate  = rateArg     ? Number(rateArg.split('=')[1]) : null;
+
+  console.log(c.bold('\n🕷️  Analizando mercado de rentas en Mérida...\n'));
+  if (propertyName) console.log(c.dim(`  Propiedad: ${propertyName}`));
+  if (currentRate)  console.log(c.dim(`  Tarifa actual: $${currentRate} MXN/noche`));
+  if (propertyName || currentRate) console.log();
+
+  const res = await apiRequest('POST', '/api/crawler/analyze', {
+    propertyName,
+    currentRate,
+  });
+
+  if (res.status === 401) {
+    console.log(c.red('❌ No autenticado. Corre: airbnb-cli set-token <token>'));
+    process.exit(1);
+  }
+
+  if (res.status !== 202) {
+    console.log(c.red(`❌ Error al encolar el análisis: ${res.body?.error || res.status}`));
+    process.exit(1);
+  }
+
+  const { jobId } = res.body;
+  console.log(c.dim(`  Job ID: ${jobId}`));
+  console.log(c.dim('  Scrapeando precios del mercado + análisis Claude...\n'));
+
+  // Polling hasta que el job termine (completed o failed)
+  // ¿Por qué 3000ms entre ticks?
+  // El crawl tarda ~3s y Claude ~10s → total ~13s.
+  // Con 3s de intervalo hacemos ~4-5 requests de polling en lugar de 13+.
+  let done = false;
+  while (!done) {
+    await new Promise(r => setTimeout(r, 3000));
+    const statusRes = await apiRequest('GET', `/api/jobs/${jobId}`);
+    const { status } = statusRes.body;
+
+    if (status === 'completed') {
+      done = true;
+      console.log(c.green('\n✅ Análisis de mercado completado\n'));
+      // Mostrar stats del crawl si están disponibles en el resultado
+      const result = statusRes.body;
+      if (result.filename) {
+        console.log(`  Archivo: ${c.cyan(result.filename)}`);
+      }
+      console.log(c.dim('  Descarga el análisis completo con:'));
+      console.log(c.cyan(`  node bin/airbnb-cli.js jobs`));
+      console.log(c.dim(`  GET /api/jobs/${jobId}/download\n`));
+    } else if (status === 'failed') {
+      done = true;
+      console.log(c.red(`\n❌ Error en el análisis: ${statusRes.body.error || 'desconocido'}`));
+    } else {
+      // 'pending' o 'active' — seguir esperando
+      process.stdout.write(c.dim('.'));
+    }
+  }
+};
+
+/**
  * cmdHelp — Muestra la ayuda de uso
  */
 const cmdHelp = () => {
@@ -376,13 +447,14 @@ ${c.bold('Uso:')}
   airbnb-cli <comando> [opciones]
 
 ${c.bold('Comandos:')}
-  ${c.cyan('login')}                     Configurar la URL del servidor y obtener instrucciones
-  ${c.cyan('set-token')} <token>         Guardar el Bearer token para autenticación
-  ${c.cyan('stats')} --month=YYYY-MM    Estadísticas de un mes específico
-  ${c.cyan('stats')} --year=YYYY        Resumen financiero de un año completo
-  ${c.cyan('properties')}               Listar propiedades del usuario
-  ${c.cyan('jobs')}                     Información sobre jobs en background
-  ${c.cyan('help')}                     Mostrar esta ayuda
+  ${c.cyan('login')}                          Configurar la URL del servidor y obtener instrucciones
+  ${c.cyan('set-token')} <token>              Guardar el Bearer token para autenticación
+  ${c.cyan('stats')} --month=YYYY-MM         Estadísticas de un mes específico
+  ${c.cyan('stats')} --year=YYYY             Resumen financiero de un año completo
+  ${c.cyan('properties')}                    Listar propiedades del usuario
+  ${c.cyan('market')} [--property=] [--rate=] Análisis de mercado de rentas en Mérida
+  ${c.cyan('jobs')}                           Información sobre jobs en background
+  ${c.cyan('help')}                           Mostrar esta ayuda
 
 ${c.bold('Ejemplos:')}
   ${c.dim('# Primer uso:')}
@@ -393,6 +465,10 @@ ${c.bold('Ejemplos:')}
   airbnb-cli stats --month=2026-01
   airbnb-cli stats --year=2025
   airbnb-cli properties
+
+  ${c.dim('# Análisis de mercado:')}
+  airbnb-cli market
+  airbnb-cli market --property="Mi casa en Mérida" --rate=1500
 
 ${c.bold('Config guardada en:')} ${path.join(os.homedir(), '.airbnb-cli.json')}
 `);
@@ -439,6 +515,7 @@ switch (cmd) {
   case 'set-token':  cmdSetToken(args);          break;  // síncrono — no necesita run()
   case 'stats':      run(cmdStats, args);        break;
   case 'properties': run(cmdProperties);         break;
+  case 'market':     run(cmdMarket, args);       break;
   case 'jobs':       cmdJobs();                  break;  // síncrono — no necesita run()
   case 'help':
   case '--help':

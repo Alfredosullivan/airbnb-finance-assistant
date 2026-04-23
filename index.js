@@ -20,6 +20,7 @@ const { errorHandler }  = require('./src/middleware/errorHandler');
 const { initScheduler } = require('./src/scheduler');
 const { initQueue }     = require('./src/queue');
 const jobsRoutes        = require('./src/routes/jobs.routes');
+const crawlerRoutes     = require('./src/routes/crawler.routes');
 
 const app = express();
 
@@ -84,6 +85,9 @@ app.use('/api/jobs', jobsRoutes);
 
 // Rutas de gestión de propiedades
 app.use('/api/properties', propertiesRoutes);
+
+// Rutas del crawler de precios de rentas en Mérida
+app.use('/api/crawler', crawlerRoutes);
 
 // GET /api/docs — Swagger UI (interactive API reference, no auth required)
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

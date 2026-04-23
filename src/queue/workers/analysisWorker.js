@@ -79,9 +79,68 @@ function buildAnalysisPayload(airbnbData, compareResult, label) {
   };
 }
 
+// ── Procesador de job: análisis de mercado (crawler) ─────────────────────
+
+/**
+ * processMarketAnalysisJob — Procesa jobs de tipo 'market_analysis'.
+ * Flujo: crawl de Inmuebles24 → análisis de precios con Claude → resultado como texto.
+ *
+ * ¿Por qué está aquí y no en crawlerService?
+ * El worker necesita acceso directo a queue.updateJob para marcar el job como 'active'.
+ * Centralizar la lógica aquí mantiene la responsabilidad de gestión de estado del job
+ * en el worker — crawlerService solo se encarga del crawl y el análisis.
+ *
+ * El resultado se devuelve como buffer de texto (UTF-8) para que jobs.controller
+ * pueda servirlo con el mismo endpoint GET /api/jobs/:jobId/download sin cambios.
+ *
+ * @param {Object} job - Job de tipo 'market_analysis' de la cola
+ * @returns {Promise<Object>} { filename, buffer (base64), contentType, analysisText, crawlStats }
+ */
+async function processMarketAnalysisJob(job) {
+  queue.updateJob(job.id, { status: 'active' });
+
+  const { userId, propertyName, currentRate } = job.data;
+
+  // Require dinámico — evita cargar el crawler al inicio si no hay jobs de este tipo
+  const { crawlMeridaRentals, analyzePricesWithClaude } = require('../../services/crawler/crawlerService');
+
+  // Paso 1: Crawl de precios del mercado
+  const crawlResults = await crawlMeridaRentals();
+
+  // Paso 2: Análisis con Claude (usa generatePriceAnalysis internamente)
+  const analysisText = await analyzePricesWithClaude(crawlResults, {
+    name:        propertyName || undefined,
+    currentRate: currentRate  || undefined,
+  });
+
+  // Paso 3: Empacar como buffer de texto descargable
+  // Usamos base64 igual que los jobs de Excel para compatibilidad con jobs.controller
+  const buffer   = Buffer.from(analysisText, 'utf-8');
+  const datePart = new Date().toISOString().substring(0, 10);
+
+  return {
+    filename:     `Analisis_Mercado_Merida_${datePart}.txt`,
+    buffer:       buffer.toString('base64'),
+    contentType:  'text/plain; charset=utf-8',
+    // Campos extra para que el cliente tenga contexto sin descargar el archivo
+    analysisText,
+    crawlStats:   crawlResults.stats,
+  };
+}
+
 // ── Procesador de un job individual ──────────────────────────────────────
 
 async function processJob(job) {
+  // Dispatch por tipo de job — el worker puede manejar múltiples tipos de trabajo
+  // ¿Por qué dispatch aquí y no tener workers separados?
+  // Con pocos tipos de job (2), un solo worker con dispatch es más simple que
+  // múltiples workers compitiendo por la misma cola. Si creciera a 5+ tipos,
+  // habría que refactorizar a un sistema de registro de handlers.
+  if (job.type === 'market_analysis') {
+    return processMarketAnalysisJob(job);
+  }
+
+  // Tipo por defecto: 'excel_generation' (comportamiento original)
   // Marcar como activo antes de empezar — el cliente ve 'active' en el polling
   queue.updateJob(job.id, { status: 'active' });
 
