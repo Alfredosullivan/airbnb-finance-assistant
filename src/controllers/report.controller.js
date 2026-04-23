@@ -9,6 +9,7 @@ const { formatReport }                         = require('../utils/formatter');
 const { generateMonthlyReport }                = require('../services/excelGenerator');
 const { generateMonthlyAnalysis }              = require('../services/analysisGenerator');
 const ReportRepo                               = require('../repositories/ReportRepository');
+const queue                                    = require('../queue/MemoryQueue');
 
 // ── Helper privado ─────────────────────────────────────────────
 
@@ -307,4 +308,67 @@ async function getMonthlyAnalysisPDF(req, res) {
   }
 }
 
-module.exports = { getReport, generateExcel, getMonthlyAnalysis, getMonthlyAnalysisPDF };
+/**
+ * queueExcelGeneration — Encola la generación del Excel en background.
+ * POST /api/excel/queue
+ *
+ * ¿Por qué capturamos airbnbData y compareResult del store aquí?
+ * El worker necesita estos objetos para llamar a generateMonthlyReport()
+ * con la firma correcta: (airbnbData, compareResult, previousYearReport, analysisText).
+ * Estos datos solo existen en memoria durante la sesión del usuario — no se
+ * persisten completos en la DB. Al incluirlos en el payload del job en el momento
+ * del encolado, el worker los tiene disponibles sin depender del store
+ * (que podría cambiar si el usuario sube otros archivos antes de que el worker termine).
+ *
+ * Responde con 202 Accepted inmediatamente — sin esperar a Claude ni a ExcelJS.
+ */
+async function queueExcelGeneration(req, res) {
+  try {
+    const { airbnbData, compareResult } = store;
+
+    // Verificar que el usuario ya generó la comparativa
+    if (!airbnbData || !compareResult) {
+      return res.status(400).json({
+        error: 'Genera primero la comparativa (GET /api/report) antes de encolar el Excel',
+      });
+    }
+
+    const userId     = req.user.userId;
+    const propertyId = req.body.propertyId || null;
+
+    // month y label pueden venir del body o inferirse del store
+    const month = req.body.month || compareResult.reportMonth || airbnbData.reportMonth || null;
+    const label = req.body.label || compareResult.reportLabel || airbnbData.reportLabel || month;
+
+    if (!month) {
+      return res.status(400).json({
+        error: 'El campo month es requerido (formato YYYY-MM) o asegúrate de haber generado el reporte primero',
+      });
+    }
+
+    // Encolar el job — incluye snapshot de los datos del store para que el
+    // worker sea autosuficiente incluso si el store cambia después
+    const job = queue.addJob('excel_generation', {
+      userId,
+      propertyId,
+      month,
+      label,
+      // Snapshot de los datos necesarios para generateMonthlyReport
+      airbnbData:    airbnbData,
+      compareResult: compareResult,
+    });
+
+    // 202 Accepted: la request fue aceptada pero el procesamiento no terminó aún.
+    // Es el status HTTP correcto para operaciones asíncronas en background.
+    res.status(202).json({
+      jobId:   job.id,
+      status:  job.status,
+      message: `Excel encolado para ${label}. Consulta el estado en GET /api/jobs/${job.id}`,
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+module.exports = { getReport, generateExcel, getMonthlyAnalysis, getMonthlyAnalysisPDF, queueExcelGeneration };
