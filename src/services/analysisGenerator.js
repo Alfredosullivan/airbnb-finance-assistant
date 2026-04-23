@@ -200,4 +200,34 @@ Cada punto en 1-2 líneas. Sin texto de relleno.]
   return response.content[0].text;
 }
 
-module.exports = { generateMonthlyAnalysis, generateAnnualAnalysis };
+/**
+ * generatePriceAnalysis — Genera un análisis de precios del mercado a partir de un prompt libre.
+ * Usado por el crawler de precios para analizar datos de Inmuebles24 con Claude.
+ *
+ * ¿Por qué acepta un prompt crudo en lugar de un objeto estructurado?
+ * El crawler necesita flexibilidad para describir el mercado de Mérida con sus propios
+ * datos. A diferencia de generateMonthlyAnalysis (que tiene un formato fijo de conciliación),
+ * cada análisis de mercado tiene un contexto diferente según la propiedad y la fecha.
+ * Un prompt libre permite que crawlerService construya el contexto relevante.
+ *
+ * @param {string} prompt - Prompt completo para Claude (incluye datos del mercado)
+ * @returns {Promise<string>} Texto del análisis generado por Claude
+ */
+async function generatePriceAnalysis(prompt) {
+  // Llamamos getClient() aquí — igual que generateMonthlyAnalysis y generateAnnualAnalysis.
+  // ¿Por qué no `client` a nivel de módulo?
+  // Porque ANTHROPIC_API_KEY puede no estar disponible cuando el módulo se importa
+  // (ej: en tests). getClient() valida la key solo cuando se llama la función,
+  // no al cargar el archivo — permite importar el módulo sin la key configurada.
+  const client = getClient();
+
+  const response = await client.messages.create({
+    model:      MODEL, // constante definida en este archivo: 'claude-opus-4-6'
+    max_tokens: 1000,
+    messages:   [{ role: 'user', content: prompt }],
+  });
+
+  return response.content[0]?.text || '';
+}
+
+module.exports = { generateMonthlyAnalysis, generateAnnualAnalysis, generatePriceAnalysis };
