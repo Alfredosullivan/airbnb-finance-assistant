@@ -18,6 +18,8 @@ const reportsRoutes     = require('./src/routes/reports.routes');
 const propertiesRoutes  = require('./src/routes/properties.routes');
 const { errorHandler }  = require('./src/middleware/errorHandler');
 const { initScheduler } = require('./src/scheduler');
+const { initQueue }     = require('./src/queue');
+const jobsRoutes        = require('./src/routes/jobs.routes');
 
 const app = express();
 
@@ -77,6 +79,9 @@ app.use('/api/auth', authRoutes);
 // Rutas del historial de reportes guardados
 app.use('/api/reports', reportsRoutes);
 
+// Rutas de consulta y descarga de jobs en background
+app.use('/api/jobs', jobsRoutes);
+
 // Rutas de gestión de propiedades
 app.use('/api/properties', propertiesRoutes);
 
@@ -109,10 +114,11 @@ initSchema()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en http://localhost:${PORT}`);
-      // Iniciamos el scheduler después de que el servidor esté listo y la
+      // Iniciamos scheduler y queue después de que el servidor esté listo y la
       // base de datos inicializada — así los jobs tienen pool disponible
       // desde el primer disparo.
       initScheduler();
+      initQueue();
     });
   })
   .catch(err => {

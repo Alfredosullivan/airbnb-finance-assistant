@@ -6,7 +6,7 @@ const multer   = require('multer');
 const path     = require('path');
 const { UPLOADS_DIR, MAX_FILE_SIZE_BYTES } = require('../../config');
 const { uploadAirbnb, uploadBank, resetReport }                   = require('../controllers/upload.controller');
-const { getReport, generateExcel, getMonthlyAnalysis, getMonthlyAnalysisPDF } = require('../controllers/report.controller');
+const { getReport, generateExcel, getMonthlyAnalysis, getMonthlyAnalysisPDF, queueExcelGeneration } = require('../controllers/report.controller');
 const { requireAuth }                           = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -83,6 +83,10 @@ router.post('/analysis/monthly',     requireAuth, getMonthlyAnalysis);
 
 // POST /api/analysis/monthly/pdf — Descarga el análisis como PDF (requiere auth)
 router.post('/analysis/monthly/pdf', requireAuth, getMonthlyAnalysisPDF);
+
+// POST /api/excel/queue — Encola la generación del Excel en background (requiere auth)
+// Responde 202 inmediatamente con jobId; el cliente hace polling a GET /api/jobs/:jobId
+router.post('/excel/queue',          requireAuth, queueExcelGeneration);
 
 // Manejo de errores de multer (tamaño o tipo de archivo)
 router.use((err, _req, res, _next) => {
