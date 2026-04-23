@@ -4,7 +4,20 @@
 const express  = require('express');
 const multer   = require('multer');
 const path     = require('path');
+const fs       = require('fs');
 const { UPLOADS_DIR, MAX_FILE_SIZE_BYTES } = require('../../config');
+
+// Crear el directorio de uploads si no existe — crítico para Railway y Docker.
+// En un contenedor nuevo el sistema de archivos está vacío: el directorio /app/uploads
+// no existe hasta que lo creamos explícitamente. Sin esto, multer lanza ENOENT
+// al intentar guardar el primer archivo.
+// ¿Por qué { recursive: true }?
+// mkdirSync sin recursive lanzaría error si el directorio padre tampoco existe.
+// Con recursive: true, crea toda la cadena de directorios necesaria sin error.
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
 const { uploadAirbnb, uploadBank, resetReport }                   = require('../controllers/upload.controller');
 const { getReport, generateExcel, getMonthlyAnalysis, getMonthlyAnalysisPDF, queueExcelGeneration } = require('../controllers/report.controller');
 const { requireAuth }                           = require('../middleware/auth.middleware');
