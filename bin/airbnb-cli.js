@@ -136,32 +136,20 @@ const ask = (question) => {
 const cmdLogin = async () => {
   console.log(c.bold('\n🏠 Airbnb Finance Assistant — Configuración del CLI\n'));
 
-  const rawUrl   = await ask(`URL del servidor (Enter para http://localhost:3000): `);
-  const baseUrl  = rawUrl.trim() || 'http://localhost:3000';
+  const baseUrl = (await ask('URL del servidor (Enter para http://localhost:3000): ')).trim()
+    || 'http://localhost:3000';
 
-  // Verificar que el servidor responde antes de guardar
-  try {
-    const res = await apiRequest('GET', '/health');
-    if (res.status !== 200) {
-      console.log(c.red(`\n❌ El servidor en ${baseUrl} respondió ${res.status}`));
-      process.exit(1);
-    }
-    console.log(c.green(`\n✅ Servidor conectado: ${baseUrl}`));
-  } catch (err) {
-    console.log(c.red(`\n❌ No se pudo conectar a ${baseUrl}: ${err.message}`));
-    process.exit(1);
-  }
-
+  // Guardar config sin verificar — el token validará la conexión al primer comando real.
+  // ¿Por qué no verificar con /health?
+  // 1. apiRequest usa config.baseUrl, que aún no existe en el primer login
+  //    → siempre conectaba a localhost en vez de a la URL recién ingresada.
+  // 2. Algunos entornos (Railway, Docker) exponen solo /api/* — /health puede no responder.
+  // El flujo correcto es: guardar URL → obtener token → el primer apiRequest real verifica.
   saveConfig({ baseUrl });
 
-  // Instrucciones para obtener el Bearer token
-  console.log(c.bold('\n📋 Pasos para completar la configuración:\n'));
-  console.log(`  1. Abre el browser y ve a ${c.cyan(baseUrl)}`);
-  console.log(`  2. Inicia sesión con tus credenciales`);
-  console.log(`  3. Visita: ${c.cyan(baseUrl + '/api/auth/me/token')}`);
-  console.log(`     (o usa Swagger en ${c.cyan(baseUrl + '/api/docs')})`);
-  console.log(`  4. Copia el valor del campo ${c.yellow('"token"')}`);
-  console.log(`  5. Corre: ${c.bold('airbnb-cli set-token <token-copiado>')}\n`);
+  console.log(c.green('\n✅ URL guardada: ' + baseUrl));
+  console.log(c.dim('\nAhora obtén tu token desde Swagger (/api/docs) → GET /api/auth/me/token'));
+  console.log(c.dim('Luego corre: airbnb-cli set-token <token>\n'));
 };
 
 /**
