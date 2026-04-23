@@ -17,6 +17,7 @@ const authRoutes        = require('./src/routes/auth.routes');
 const reportsRoutes     = require('./src/routes/reports.routes');
 const propertiesRoutes  = require('./src/routes/properties.routes');
 const { errorHandler }  = require('./src/middleware/errorHandler');
+const { initScheduler } = require('./src/scheduler');
 
 const app = express();
 
@@ -108,6 +109,10 @@ initSchema()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en http://localhost:${PORT}`);
+      // Iniciamos el scheduler después de que el servidor esté listo y la
+      // base de datos inicializada — así los jobs tienen pool disponible
+      // desde el primer disparo.
+      initScheduler();
     });
   })
   .catch(err => {
