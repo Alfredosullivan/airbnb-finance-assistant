@@ -52,18 +52,25 @@ function actualizarNavbar() {
   const navName    = document.getElementById('nav-username');
   const propBar    = document.getElementById('property-bar');
 
+  // Sección de mercado de rentas — solo visible con sesión activa
+  const marketSection = document.getElementById('market-section');
+
   if (Auth.user) {
     navGuest.hidden     = true;
     navUser.hidden      = false;
     navName.textContent = Auth.user.username;
     // Mostrar barra de propiedad solo cuando hay propiedades cargadas
     if (propBar) propBar.hidden = (properties.length === 0);
+    // Revelar la sección de mercado al autenticarse
+    if (marketSection) marketSection.hidden = false;
   } else {
     navGuest.hidden = false;
     navUser.hidden  = true;
     if (propBar) propBar.hidden = true;
     const dashboardSection = document.getElementById('dashboard-section');
     if (dashboardSection) dashboardSection.hidden = true;
+    // Ocultar la sección de mercado al cerrar sesión
+    if (marketSection) marketSection.hidden = true;
   }
   // Sincronizar botón de guardar con el estado actual del reporte
   actualizarBotonGuardar();
@@ -1236,6 +1243,193 @@ async function loadSavedReport(month) {
     alert(`Error al cargar el reporte: ${e.message}`);
   }
 }
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO DE MERCADO DE RENTAS — Lamudi crawler
+// Llama a GET /api/crawler/listings y renderiza cards de listings
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * loadMarketListings — Dispara el crawl y renderiza los resultados en el DOM
+ *
+ * ¿Por qué está en scope global y no dentro del IIFE de abajo?
+ * El botón en el HTML usa onclick="loadMarketListings()", que requiere
+ * que la función esté en el scope global (window). El IIFE encapsula
+ * el módulo de uploads/reporte para evitar colisiones de variables,
+ * pero las funciones de UI general viven aquí, en scope global.
+ *
+ * ¿Por qué no encolamos el crawl como el análisis?
+ * GET /api/crawler/listings es síncrono y tarda 3-6 segundos —
+ * acceptable para un request HTTP. POST /api/crawler/analyze encola
+ * porque suma el crawl + Claude API (hasta 21 segundos en total).
+ */
+async function loadMarketListings() {
+  const loaderEl   = document.getElementById('market-loader');
+  const gridEl     = document.getElementById('market-grid');
+  const statsEl    = document.getElementById('market-stats');
+  const messageEl  = document.getElementById('market-message');
+  const updatedEl  = document.getElementById('market-updated');
+  const refreshBtn = document.getElementById('market-refresh-btn');
+
+  // Mostrar loader y limpiar estado anterior
+  loaderEl.hidden   = false;
+  gridEl.innerHTML  = '';
+  statsEl.hidden    = true;
+  messageEl.hidden  = true;
+  if (refreshBtn) refreshBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/crawler/listings', { credentials: 'include' });
+
+    // 401 — endpoint protegido, sesión expirada
+    if (res.status === 401) {
+      messageEl.textContent = 'Tu sesión expiró. Inicia sesión de nuevo para ver el mercado.';
+      messageEl.hidden      = false;
+      return;
+    }
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al obtener los listings');
+
+    // data tiene forma: { status, listings, summary, errors, scrapedAt }
+    const listings = data.listings || [];
+
+    if (listings.length === 0) {
+      messageEl.textContent = 'No se encontraron listings disponibles en este momento. Intenta de nuevo en unos minutos.';
+      messageEl.hidden      = false;
+      return;
+    }
+
+    // Renderizar estadísticas y cards
+    renderMarketStats(listings, statsEl);
+    renderMarketCards(listings, gridEl);
+
+    // Actualizar la línea de timestamp bajo el título
+    const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    updatedEl.textContent = `Última actualización: hoy a las ${hora} · ${listings.length} listings de Lamudi`;
+
+  } catch (err) {
+    messageEl.textContent = `Error al obtener el mercado: ${err.message}. Intenta de nuevo.`;
+    messageEl.hidden      = false;
+  } finally {
+    // Siempre ocultar el loader al terminar, con éxito o con error
+    loaderEl.hidden = true;
+    if (refreshBtn) refreshBtn.disabled = false;
+  }
+}
+
+/**
+ * renderMarketStats — Calcula y pinta las 4 tarjetas de estadísticas
+ *
+ * @param {Array}   listings  - Array de listings normalizados
+ * @param {Element} container - El elemento .market-stats del DOM
+ */
+function renderMarketStats(listings, container) {
+  // Solo los listings que tienen precio válido participan en las estadísticas
+  const prices = listings.map(l => l.price).filter(p => typeof p === 'number' && p > 0);
+  if (prices.length === 0) return;
+
+  const sum = prices.reduce((acc, p) => acc + p, 0);
+  const avg = sum / prices.length;
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+
+  // Formateador de moneda MXN sin decimales (más legible en precios de renta)
+  const fmt = n => new Intl.NumberFormat('es-MX', {
+    style:                'currency',
+    currency:             'MXN',
+    maximumFractionDigits: 0,
+  }).format(n);
+
+  document.getElementById('market-stat-total').textContent = listings.length;
+  document.getElementById('market-stat-avg').textContent   = fmt(avg);
+  document.getElementById('market-stat-min').textContent   = fmt(min);
+  document.getElementById('market-stat-max').textContent   = fmt(max);
+
+  container.hidden = false;
+}
+
+/**
+ * renderMarketCards — Genera una card de listing por cada elemento del array
+ *
+ * Usa template literals y escapeHtml para evitar XSS: los datos
+ * vienen de un sitio externo (Lamudi) y podrían contener HTML malicioso.
+ *
+ * @param {Array}   listings - Array de listings normalizados
+ * @param {Element} grid     - El elemento .market-grid del DOM
+ */
+function renderMarketCards(listings, grid) {
+  const fmt = n => new Intl.NumberFormat('es-MX', {
+    style:                'currency',
+    currency:             'MXN',
+    maximumFractionDigits: 0,
+  }).format(n);
+
+  grid.innerHTML = listings.map(l => `
+    <div class="market-card">
+      <div class="market-card__top">
+        <span class="market-card__price">
+          ${fmt(l.price)}
+          <span class="market-card__per-month">/mes</span>
+        </span>
+        <span class="market-card__source">${escapeHtml(l.source)}</span>
+      </div>
+
+      <p class="market-card__title">${escapeHtml(l.title)}</p>
+
+      <p class="market-card__location">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        ${escapeHtml(l.location)}
+      </p>
+
+      ${l.features
+        ? `<p class="market-card__features">${escapeHtml(l.features)}</p>`
+        : ''}
+
+      ${l.url
+        ? `<a class="market-card__link"
+              href="${escapeHtml(l.url)}"
+              target="_blank"
+              rel="noopener noreferrer">Ver en Lamudi →</a>`
+        : ''}
+    </div>
+  `).join('');
+}
+
+/**
+ * escapeHtml — Sanitiza un string antes de insertarlo como innerHTML
+ *
+ * ¿Por qué es crítico aquí?
+ * Los títulos y ubicaciones vienen de Lamudi (fuente externa). Si un
+ * listing tuviera "<script>alert('xss')</script>" en el título y lo
+ * insertamos directamente con innerHTML, ese script se ejecutaría en el
+ * navegador del usuario. Este helper convierte los caracteres especiales
+ * a entidades HTML seguras antes de la inserción.
+ *
+ * Alternativa descartada: usar textContent en vez de innerHTML. Pero
+ * necesitamos innerHTML para poder generar la estructura de la card
+ * completa con template literals. Por eso sanitizamos manualmente cada
+ * campo que viene del exterior.
+ *
+ * @param {string} str - String a sanitizar
+ * @returns {string} String con caracteres HTML escapados
+ */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Exponer al scope global para que el onclick del HTML pueda llamarla
+window.loadMarketListings = loadMarketListings;
 
 // Arrancar verificación de sesión al cargar el DOM
 document.addEventListener('DOMContentLoaded', initAuth);

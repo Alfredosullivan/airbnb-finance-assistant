@@ -110,6 +110,7 @@
         <span class="chip">Excel mensual</span>
         <span class="chip">Análisis IA</span>
         <span class="chip">Multi-propiedad</span>
+        <span class="chip">Mercado Mérida</span>
       </div>
     </div>
   </div>
@@ -450,6 +451,62 @@
           </table>
         </div>
       </div>
+
+    </section>
+
+    <!-- ── Sección de mercado de rentas (visible solo autenticado) ─ -->
+    <section class="market-section" id="market-section" hidden>
+
+      <div class="market-header">
+        <div>
+          <h2 class="section-title">Mercado de Rentas — Mérida</h2>
+          <p class="market-subtitle" id="market-updated">
+            Pulsa "Actualizar" para ver los listings actuales de Lamudi
+          </p>
+        </div>
+        <button class="btn btn--secondary" id="market-refresh-btn"
+                onclick="loadMarketListings()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-4.51"/>
+          </svg>
+          Actualizar
+        </button>
+      </div>
+
+      <!-- Estadísticas: total, promedio, mínimo, máximo -->
+      <div class="market-stats" id="market-stats" hidden>
+        <div class="market-stat">
+          <span class="market-stat__label">Listings encontrados</span>
+          <span class="market-stat__value" id="market-stat-total">—</span>
+        </div>
+        <div class="market-stat">
+          <span class="market-stat__label">Precio promedio</span>
+          <span class="market-stat__value market-stat__value--coral"
+                id="market-stat-avg">—</span>
+        </div>
+        <div class="market-stat">
+          <span class="market-stat__label">Precio mínimo</span>
+          <span class="market-stat__value" id="market-stat-min">—</span>
+        </div>
+        <div class="market-stat">
+          <span class="market-stat__label">Precio máximo</span>
+          <span class="market-stat__value" id="market-stat-max">—</span>
+        </div>
+      </div>
+
+      <!-- Estado: scrapeando -->
+      <div id="market-loader" class="market-loader" hidden>
+        <div class="loader__spinner"></div>
+        <p class="market-loader__text">Scrapeando Lamudi… puede tardar 5–8 segundos</p>
+      </div>
+
+      <!-- Estado: vacío o error -->
+      <p id="market-message" class="market-message" hidden></p>
+
+      <!-- Grid de cards de listings -->
+      <div class="market-grid" id="market-grid"></div>
 
     </section>
 
