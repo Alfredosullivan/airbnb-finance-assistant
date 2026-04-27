@@ -42,7 +42,8 @@ const getJobStatus = (req, res) => {
     error:     job.error || null,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
-    filename:  job.result?.filename || null,
+    filename:     job.result?.filename     || null,
+    analysisText: job.result?.analysisText || null,
   });
 };
 

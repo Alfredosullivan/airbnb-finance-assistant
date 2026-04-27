@@ -1398,6 +1398,10 @@ function renderMarketCards(listings, grid) {
         : ''}
     </div>
   `).join('');
+
+  // Revelar el botón de análisis IA ahora que tenemos listings con precios
+  const analyzeRow = document.getElementById('market-analyze-row');
+  if (analyzeRow) analyzeRow.hidden = false;
 }
 
 /**
@@ -1428,8 +1432,199 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-// Exponer al scope global para que el onclick del HTML pueda llamarla
+/**
+ * analyzeMarketUI — Dispara el análisis de mercado con Claude y renderiza el resultado.
+ *
+ * Flujo:
+ *   1. Lee el precio promedio actual del DOM (ya calculado por renderMarketStats)
+ *   2. POST /api/crawler/analyze con { currentRate: promedio }
+ *   3. Polling a GET /api/jobs/:jobId cada 3s, máximo 20 intentos (60s timeout)
+ *   4. Cuando status === "completed": renderiza job.result.analysis como HTML
+ *   5. Cuando status === "failed" o timeout: muestra error claro
+ *
+ * ¿Por qué leer el promedio del DOM en lugar de recalcularlo?
+ * renderMarketStats ya filtró los precios válidos y calculó el promedio.
+ * Releer ese valor evita duplicar la lógica de filtrado (DRY).
+ * El texto del span puede tener formato "$12,500", así que limpiamos
+ * los caracteres no numéricos antes de parsearlo.
+ */
+async function analyzeMarketUI() {
+  const btn         = document.getElementById('market-analyze-btn');
+  const container   = document.getElementById('market-analysis-container');
+  const POLL_MS     = 3000; // intervalo entre intentos de polling
+  const MAX_POLLS   = 20;   // 20 × 3s = 60 segundos máximo
+
+  // Deshabilitar el botón durante todo el proceso para evitar doble disparo
+  btn.disabled    = true;
+  btn.textContent = 'Analizando…';
+
+  // Mostrar el contenedor vacío con un mensaje de espera mientras se encola y procesa
+  container.hidden    = false;
+  container.innerHTML = `
+    <div class="market-analysis__loading">
+      <div class="loader__spinner"></div>
+      <p>Claude está analizando el mercado de rentas en Mérida…<br>
+         <small>Esto puede tomar hasta 60 segundos.</small></p>
+    </div>`;
+
+  try {
+    // Paso 1 — Encolar el job de análisis en el backend (responde 202 inmediatamente)
+    const postRes = await fetch('/api/crawler/analyze', {
+      method:      'POST',
+      credentials: 'include',
+      headers:     { 'Content-Type': 'application/json' },
+      body:        JSON.stringify({}),
+    });
+
+    if (!postRes.ok) {
+      const err = await postRes.json().catch(() => ({}));
+      throw new Error(err.error || `Error ${postRes.status} al iniciar el análisis`);
+    }
+
+    const { jobId } = await postRes.json();
+
+    // Paso 2 — Polling hasta que el job termine o se agote el tiempo
+    let attempts = 0;
+    while (attempts < MAX_POLLS) {
+      await new Promise(resolve => setTimeout(resolve, POLL_MS));
+      attempts++;
+
+      const pollRes = await fetch(`/api/jobs/${jobId}`, { credentials: 'include' });
+
+      if (!pollRes.ok) {
+        throw new Error(`Error ${pollRes.status} al consultar el estado del job`);
+      }
+
+      const job = await pollRes.json();
+
+      if (job.status === 'completed') {
+        // Paso 3a — Renderizar el análisis de Claude
+        // markdownToHtml convierte los encabezados y listas del texto de Claude
+        // a HTML legible sin necesidad de una librería externa
+        container.innerHTML = `
+          <div class="market-analysis__header">
+            <span class="market-analysis__badge">✦ Análisis IA</span>
+            <span class="market-analysis__meta">Generado con Claude · ${new Date().toLocaleTimeString('es-MX')}</span>
+          </div>
+          <div class="market-analysis__body">
+            ${markdownToHtml(job.analysisText || 'Sin contenido en el resultado.')}
+          </div>`;
+        return; // salir del loop — trabajo terminado
+      }
+
+      if (job.status === 'failed') {
+        throw new Error(job.error || 'El análisis falló en el servidor');
+      }
+      // Si status === 'pending' o 'processing', seguir esperando
+    }
+
+    // Se agotaron los 20 intentos sin respuesta
+    throw new Error('Tiempo de espera agotado (60 s). El servidor tardó demasiado. Intenta de nuevo.');
+
+  } catch (err) {
+    container.innerHTML = `
+      <div class="market-analysis__error">
+        <strong>No se pudo completar el análisis</strong>
+        <p>${escapeHtml(err.message)}</p>
+      </div>`;
+  } finally {
+    // Siempre rehabilitar el botón, sin importar si hubo éxito o error
+    btn.disabled    = false;
+    btn.textContent = '✦ Analizar con IA';
+  }
+}
+
+function markdownToHtml(text) {
+  if (!text) return '';
+
+  const lines = text.split('\n');
+  let html = '';
+  let inList = false;
+  let inTable = false;
+  let tableRows = [];
+
+  const flushTable = () => {
+    if (tableRows.length < 2) { html += tableRows.map(r => `<p>${r}</p>`).join(''); tableRows = []; inTable = false; return; }
+    const headers = tableRows[0].split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
+    const body = tableRows.slice(2).map(row => {
+      const cells = row.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+    html += `<table class="market-analysis__table"><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>`;
+    tableRows = [];
+    inTable = false;
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    const isTableRow = line.startsWith('|') && line.endsWith('|');
+    const isSeparator = /^\|[\s\-|]+\|$/.test(line);
+
+    if (isTableRow) {
+      if (inList) { html += '</ul>'; inList = false; }
+      if (!isSeparator) tableRows.push(line);
+      else tableRows.push(line);
+      inTable = true;
+      continue;
+    }
+
+    if (inTable) flushTable();
+
+    if (!line) {
+      if (inList) { html += '</ul>'; inList = false; }
+      continue;
+    }
+
+    if (/^#{1,2}\s/.test(line)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<h2 class="market-analysis__heading">${line.replace(/^#{1,2}\s/, '')}</h2>`;
+      continue;
+    }
+
+    if (/^#{3,}\s/.test(line)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<h3 class="market-analysis__subheading">${line.replace(/^#{3,}\s/, '')}</h3>`;
+      continue;
+    }
+
+    if (/^[-*]\s/.test(line)) {
+      if (!inList) { html += '<ul class="market-analysis__list">'; inList = true; }
+      html += `<li>${formatInline(line.replace(/^[-*]\s/, ''))}</li>`;
+      continue;
+    }
+
+    if (/^>/.test(line)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<blockquote class="market-analysis__quote">${formatInline(line.replace(/^>\s?/, ''))}</blockquote>`;
+      continue;
+    }
+
+    if (line === '---' || line === '***') {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += '<hr class="market-analysis__divider">';
+      continue;
+    }
+
+    if (inList) { html += '</ul>'; inList = false; }
+    html += `<p>${formatInline(line)}</p>`;
+  }
+
+  if (inList) html += '</ul>';
+  if (inTable) flushTable();
+
+  return html;
+}
+
+function formatInline(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+}
+
+// Exponer al scope global para que el onclick del HTML pueda llamarlas
 window.loadMarketListings = loadMarketListings;
+window.analyzeMarketUI    = analyzeMarketUI;
 
 // Arrancar verificación de sesión al cargar el DOM
 document.addEventListener('DOMContentLoaded', initAuth);
