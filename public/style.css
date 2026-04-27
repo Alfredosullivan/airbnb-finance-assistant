@@ -2428,6 +2428,145 @@ nav {
 
 .market-card__link:hover { text-decoration: underline; }
 
+/* ── Fila del botón "Analizar con IA" ─────────────────────── */
+.market-analyze-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ink-20);
+}
+.market-analyze-row[hidden] { display: none !important; }
+
+.market-analyze-hint {
+  font-size: 0.875rem;
+  color: var(--ink-60);
+  margin: 0;
+}
+
+/* ── Contenedor del análisis de mercado (Claude) ──────────── */
+.market-analysis {
+  margin-top: 1.5rem;
+  border: 1px solid var(--ink-20);
+  border-radius: 10px;
+  overflow: visible;
+}
+.market-analysis[hidden] { display: none !important; }
+
+.market-analysis__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: var(--ink);
+  color: #fff;
+}
+
+.market-analysis__badge {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--coral);
+  font-family: 'DM Mono', monospace;
+}
+
+.market-analysis__meta {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+  font-family: 'DM Mono', monospace;
+}
+
+.market-analysis__body {
+  padding: 1.5rem 1.75rem;
+  background: #fff;
+  line-height: 1.7;
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+.market-analysis__heading {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.5rem;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+.market-analysis__heading:first-child { margin-top: 0; }
+
+.market-analysis__body p  { margin: 0 0 0.75rem; }
+.market-analysis__body strong { color: var(--ink); }
+
+.market-analysis__list {
+  padding-left: 1.25rem;
+  margin: 0.25rem 0 1rem;
+}
+.market-analysis__list li {
+  margin-bottom: 0.4rem;
+}
+
+.market-analysis__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+.market-analysis__table th {
+  background: var(--ink);
+  color: #fff;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+}
+.market-analysis__table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--ink-20);
+}
+.market-analysis__table tr:nth-child(even) td {
+  background: var(--paper-d);
+}
+.market-analysis__subheading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 1rem 0 0.5rem;
+}
+.market-analysis__quote {
+  border-left: 3px solid var(--coral);
+  padding: 0.5rem 1rem;
+  margin: 0.75rem 0;
+  color: var(--ink-60);
+  font-style: italic;
+}
+.market-analysis__divider {
+  border: none;
+  border-top: 1px solid var(--ink-20);
+  margin: 1rem 0;
+}
+
+/* Spinner de carga dentro del contenedor de análisis */
+.market-analysis__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2.5rem;
+  text-align: center;
+  color: var(--ink-60);
+  font-size: 0.9375rem;
+  background: #fff;
+}
+.market-analysis__loading small { color: var(--ink-60); }
+
+/* Caja de error dentro del contenedor de análisis */
+.market-analysis__error {
+  padding: 1.5rem 1.75rem;
+  background: #fff5f5;
+  color: #b91c1c;
+}
+.market-analysis__error strong { display: block; margin-bottom: 0.25rem; }
+.market-analysis__error p { margin: 0; font-size: 0.9rem; }
+
 /* ── Responsive ────────────────────────────────────────────── */
 @media (max-width: 860px) {
   .market-grid  { grid-template-columns: repeat(2, 1fr); }
@@ -2435,8 +2574,10 @@ nav {
 }
 
 @media (max-width: 520px) {
-  .market-grid        { grid-template-columns: 1fr; }
-  .market-stats       { grid-template-columns: repeat(2, 1fr); }
-  .market-header      { flex-direction: column; align-items: stretch; }
-  .market-header .btn { width: 100%; justify-content: center; }
+  .market-grid           { grid-template-columns: 1fr; }
+  .market-stats          { grid-template-columns: repeat(2, 1fr); }
+  .market-header         { flex-direction: column; align-items: stretch; }
+  .market-header .btn    { width: 100%; justify-content: center; }
+  .market-analyze-row    { flex-direction: column; align-items: stretch; }
+  .market-analyze-row .btn { width: 100%; justify-content: center; }
 }

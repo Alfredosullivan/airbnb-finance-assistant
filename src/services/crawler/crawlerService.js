@@ -113,28 +113,36 @@ const analyzePricesWithClaude = async (crawlResults, propertyContext = {}) => {
   // Require dinámico — carga en tiempo de ejecución, no al importar el módulo
   const { generatePriceAnalysis } = require('../analysisGenerator');
 
+  const listings = crawlResults.listings.slice(0, 10)
+    .map(l => `- ${l.title}: $${l.price} MXN (${l.location})`)
+    .join('\n');
+
   const prompt = `
-Eres un experto en el mercado de rentas vacacionales de Mérida, Yucatán.
+Eres un experto en rentas vacacionales de Mérida, Yucatán con conocimiento profundo del mercado local.
 
-Datos del mercado actual (${crawlResults.crawledAt}):
-- Total de propiedades analizadas: ${crawlResults.stats.total}
-- Precio promedio: $${crawlResults.stats.avgPrice} MXN/mes
-- Rango de precios: $${crawlResults.stats.minPrice} - $${crawlResults.stats.maxPrice} MXN/mes
+DATOS DEL MERCADO (scrapeados de portales de renta a largo plazo):
+- Fecha: ${crawlResults.crawledAt}
+- Propiedades analizadas: ${crawlResults.stats.total}
+- Precio promedio mensual: $${crawlResults.stats.avgPrice} MXN/mes
+- Rango: $${crawlResults.stats.minPrice} - $${crawlResults.stats.maxPrice} MXN/mes
 
-${propertyContext.name ? `Propiedad del usuario: ${propertyContext.name}` : ''}
-${propertyContext.currentRate ? `Tarifa actual: $${propertyContext.currentRate} MXN/noche` : ''}
+IMPORTANTE: Estos precios son rentas mensuales de arrendamiento tradicional (no Airbnb). El usuario opera en renta vacacional por noche. Usa estos datos solo como referencia del valor del inmueble en el mercado local.
 
-Muestra de precios del mercado (primeras 10 propiedades encontradas):
-${crawlResults.listings.slice(0, 10).map(l =>
-  `- ${l.title}: $${l.price} MXN (${l.location})`
-).join('\n')}
+Muestra de propiedades del mercado:
+${listings}
 
-Basándote en estos datos:
-1. ¿Cómo está posicionado el mercado de rentas en Mérida actualmente?
-2. ¿Qué tarifa por noche sería competitiva para una propiedad en Mérida?
-3. ¿Qué factores del mercado debería considerar el propietario?
+Responde en español con estas 3 secciones exactas:
 
-Responde en español, de forma concisa y práctica.
+## 1. Posicionamiento actual del mercado
+Analiza la segmentación del mercado de rentas en Mérida. ¿Qué zonas dominan cada segmento? ¿Cómo está distribuida la oferta?
+
+## 2. Tarifa competitiva por noche para Airbnb
+Convierte los precios mensuales del mercado a tarifas nocturnas competitivas para Airbnb. Usa el estándar: renta mensual / (días disponibles × tasa de ocupación esperada). Da rangos concretos por segmento (económico, medio, premium).
+
+## 3. Factores clave para el propietario
+Menciona estacionalidad de Mérida, zonas de mayor demanda turística, amenidades que justifican precio premium, y una recomendación de tarifa base concreta.
+
+Sé directo y práctico. Evita repetir los datos crudos — interprétalos.
 `;
 
   return generatePriceAnalysis(prompt);

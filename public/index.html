@@ -508,6 +508,20 @@
       <!-- Grid de cards de listings -->
       <div class="market-grid" id="market-grid"></div>
 
+      <!-- Botón de análisis IA — visible solo después de cargar listings -->
+      <div class="market-analyze-row" id="market-analyze-row" hidden>
+        <button class="btn btn--primary" id="market-analyze-btn"
+                onclick="analyzeMarketUI()">
+          ✦ Analizar con IA
+        </button>
+        <p class="market-analyze-hint">
+          Claude analizará los precios del mercado y los comparará con tu tarifa actual.
+        </p>
+      </div>
+
+      <!-- Resultado del análisis de mercado generado por Claude -->
+      <div id="market-analysis-container" class="market-analysis" hidden></div>
+
     </section>
 
     <!-- Estado de carga global -->
