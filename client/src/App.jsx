@@ -1,9 +1,11 @@
 // App.jsx — Componente raíz de la migración React
 // Maneja el estado global de autenticación y renderiza el navbar + modal.
-// Esta es la fase inicial: solo auth. El dashboard se migrará en pasos siguientes.
+// AppProvider envuelve todo el árbol para compartir user y properties via Context.
 
 import { useState } from 'react'
+import { AppProvider } from './context/AppContext'
 import AuthModal from './components/AuthModal'
+import PropertyBar from './components/PropertyBar'
 
 function App() {
   // Estado global de autenticación
@@ -22,8 +24,6 @@ function App() {
   // Callback de éxito — guarda el usuario en estado y cierra el modal
   const handleAuthSuccess = (loggedUser) => {
     setUser(loggedUser)
-    // AuthModal ya llama onClose() internamente al hacer onSuccess,
-    // pero lo cerramos aquí también por si el orden de llamadas cambia
     closeAuth()
   }
 
@@ -38,58 +38,62 @@ function App() {
   }
 
   return (
-    // min-h-screen + flex-col de Tailwind — no existe en legacy.css
-    <div className="min-h-screen flex flex-col">
+    // AppProvider envuelve todo — user y onLogout se pasan como props
+    // para que AppContext los exponga sin prop drilling a los hijos
+    <AppProvider user={user} onLogout={handleLogout}>
+      <div className="min-h-screen flex flex-col">
 
-      {/* ── Navbar — usa clases de legacy.css directamente ── */}
-      <nav>
-        <span className="brand">✦ Airbnb Finance</span>
+        {/* ── Navbar — usa clases de legacy.css directamente ── */}
+        <nav>
+          <span className="brand">✦ Airbnb Finance</span>
 
-        {user ? (
-          // Estado autenticado — muestra bienvenida y botón de salida
-          <div id="nav-user" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <span className="nav-welcome">
-              Hola, <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{user.username}</strong>
-            </span>
-            <button className="nav-link nav-link--coral" onClick={handleLogout}>
-              Salir
-            </button>
-          </div>
-        ) : (
-          // Estado sin sesión — muestra botones de auth
-          <div id="nav-guest" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <button className="nav-link" onClick={() => openAuth('login')}>
-              Iniciar sesión
-            </button>
-            <button className="nav-link nav-link--coral" onClick={() => openAuth('register')}>
-              Registrarse
-            </button>
-          </div>
-        )}
-      </nav>
+          {user ? (
+            <div id="nav-user" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <span className="nav-welcome">
+                Hola, <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{user.username}</strong>
+              </span>
+              <button className="nav-link nav-link--coral" onClick={handleLogout}>
+                Salir
+              </button>
+            </div>
+          ) : (
+            <div id="nav-guest" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <button className="nav-link" onClick={() => openAuth('login')}>
+                Iniciar sesión
+              </button>
+              <button className="nav-link nav-link--coral" onClick={() => openAuth('register')}>
+                Registrarse
+              </button>
+            </div>
+          )}
+        </nav>
 
-      {/* ── Contenido principal — placeholder hasta migrar el dashboard ── */}
-      <main className="flex-1 flex items-center justify-center">
-        {user ? (
-          <p className="text-gray-500 text-sm font-mono">
-            Sesión activa como <strong>{user.username}</strong> — dashboard próximamente
-          </p>
-        ) : (
-          <p className="text-gray-400 text-sm font-mono">
-            Inicia sesión para acceder a tus reportes
-          </p>
-        )}
-      </main>
+        {/* ── Barra de propiedades — visible cuando hay sesión y propiedades ── */}
+        <PropertyBar />
 
-      {/* ── Modal de autenticación — renderizado condicional interno ── */}
-      <AuthModal
-        isOpen={authModal.open}
-        onClose={closeAuth}
-        onSuccess={handleAuthSuccess}
-        initialMode={authModal.mode}
-      />
+        {/* ── Contenido principal — placeholder hasta migrar el dashboard ── */}
+        <main className="flex-1 flex items-center justify-center">
+          {user ? (
+            <p className="text-gray-500 text-sm font-mono">
+              Sesión activa como <strong>{user.username}</strong> — dashboard próximamente
+            </p>
+          ) : (
+            <p className="text-gray-400 text-sm font-mono">
+              Inicia sesión para acceder a tus reportes
+            </p>
+          )}
+        </main>
 
-    </div>
+        {/* ── Modal de autenticación — renderizado condicional interno ── */}
+        <AuthModal
+          isOpen={authModal.open}
+          onClose={closeAuth}
+          onSuccess={handleAuthSuccess}
+          initialMode={authModal.mode}
+        />
+
+      </div>
+    </AppProvider>
   )
 }
 
