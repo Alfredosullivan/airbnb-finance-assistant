@@ -8,6 +8,7 @@ import { useAppContext } from '../context/AppContext'
 import PropertyBar from './PropertyBar'
 import Dashboard from './Dashboard'
 import HistoryDrawer from './HistoryDrawer'
+import AnalysisModal from './AnalysisModal'
 import UploadSection from './UploadSection'
 import ReportResults from './ReportResults'
 import MarketSection from './MarketSection'
@@ -18,7 +19,8 @@ export default function AppShell({ user, onLogout, onOpenAuth }) {
   // Estado del drawer de historial — vive aquí y no en App.jsx porque
   // handleViewReport necesita setCurrentReport del Context, que solo
   // está disponible dentro del Provider
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyOpen,   setHistoryOpen]   = useState(false)
+  const [analysisModal, setAnalysisModal] = useState({ open: false, month: null, label: null })
 
   // Cierra el drawer y carga el reporte guardado en el Context
   // para que ReportResults lo renderice automáticamente
@@ -36,8 +38,7 @@ export default function AppShell({ user, onLogout, onOpenAuth }) {
   }
 
   const handleViewAnalysis = (month, label) => {
-    // TODO: abrir modal de análisis IA con el contenido del mes guardado
-    console.log('TODO: análisis IA de', month, label)
+    setAnalysisModal({ open: true, month, label })
     setHistoryOpen(false)
   }
 
@@ -97,6 +98,14 @@ export default function AppShell({ user, onLogout, onOpenAuth }) {
         onClose={() => setHistoryOpen(false)}
         onViewReport={handleViewReport}
         onViewAnalysis={handleViewAnalysis}
+      />
+
+      {/* ── Modal de análisis IA ── */}
+      <AnalysisModal
+        isOpen={analysisModal.open}
+        month={analysisModal.month}
+        label={analysisModal.label}
+        onClose={() => setAnalysisModal({ open: false, month: null, label: null })}
       />
 
     </div>
