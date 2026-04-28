@@ -27,6 +27,25 @@ function formatMXN(n) {
 export default function HistoryDrawer({ isOpen, onClose, onViewReport, onViewAnalysis }) {
   const { currentProperty } = useAppContext()
 
+  const downloadBlob = async (url, filename) => {
+    try {
+      const res = await fetch(url, { credentials: 'include' })
+      if (res.status === 404) { alert('No hay reportes guardados para este año'); return }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Error al descargar'); return }
+      const blob      = await res.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const a         = document.createElement('a')
+      a.href          = objectUrl
+      a.download      = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(objectUrl)
+    } catch (err) {
+      alert(`Error al descargar: ${err.message}`)
+    }
+  }
+
   const [reports,       setReports]       = useState([])
   const [loading,       setLoading]       = useState(false)
   const [expandedYears, setExpandedYears] = useState(new Set())
@@ -168,7 +187,10 @@ export default function HistoryDrawer({ isOpen, onClose, onViewReport, onViewAna
 
                 <button
                   className="btn--annual-inline"
-                  onClick={() => console.log('TODO: Excel anual', year)}
+                  onClick={() => downloadBlob(
+                    `/api/reports/annual/${year}?propertyId=${currentProperty?.id}`,
+                    `Reporte_Anual_${year}.xlsx`
+                  )}
                   title={`Descargar reporte anual ${year}`}
                 >
                   ↓ Excel {year}
@@ -176,7 +198,10 @@ export default function HistoryDrawer({ isOpen, onClose, onViewReport, onViewAna
 
                 <button
                   className="btn--annual-inline btn--annual-pdf"
-                  onClick={() => console.log('TODO: PDF anual', year)}
+                  onClick={() => downloadBlob(
+                    `/api/reports/executive-pdf/${year}`,
+                    `Reporte_Ejecutivo_${year}.pdf`
+                  )}
                   title={`Reporte ejecutivo PDF ${year}`}
                 >
                   ↓ PDF {year}
