@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { AppProvider } from './context/AppContext'
 import AuthModal from './components/AuthModal'
 import PropertyBar from './components/PropertyBar'
+import Dashboard from './components/Dashboard'
 
 function App() {
   // Estado global de autenticación
@@ -70,6 +71,9 @@ function App() {
 
         {/* ── Barra de propiedades — visible cuando hay sesión y propiedades ── */}
         <PropertyBar />
+
+        {/* ── Dashboard de métricas anuales ── */}
+        <Dashboard />
 
         {/* ── Contenido principal — placeholder hasta migrar el dashboard ── */}
         <main className="flex-1 flex items-center justify-center">
