@@ -8,6 +8,8 @@ import AuthModal from './components/AuthModal'
 import PropertyBar from './components/PropertyBar'
 import Dashboard from './components/Dashboard'
 import HistoryDrawer from './components/HistoryDrawer'
+import UploadSection from './components/UploadSection'
+import ReportResults from './components/ReportResults'
 
 function App() {
   // Estado global de autenticación
@@ -83,17 +85,10 @@ function App() {
         {/* ── Dashboard de métricas anuales ── */}
         <Dashboard />
 
-        {/* ── Contenido principal — placeholder hasta migrar el dashboard ── */}
-        <main className="flex-1 flex items-center justify-center">
-          {user ? (
-            <p className="text-gray-500 text-sm font-mono">
-              Sesión activa como <strong>{user.username}</strong> — dashboard próximamente
-            </p>
-          ) : (
-            <p className="text-gray-400 text-sm font-mono">
-              Inicia sesión para acceder a tus reportes
-            </p>
-          )}
+        {/* ── Contenido principal ── */}
+        <main className="main">
+          <UploadSection />
+          <ReportResults />
         </main>
 
         {/* ── Modal de autenticación — renderizado condicional interno ── */}
