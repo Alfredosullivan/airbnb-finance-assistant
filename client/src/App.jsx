@@ -7,6 +7,7 @@ import { AppProvider } from './context/AppContext'
 import AuthModal from './components/AuthModal'
 import PropertyBar from './components/PropertyBar'
 import Dashboard from './components/Dashboard'
+import HistoryDrawer from './components/HistoryDrawer'
 
 function App() {
   // Estado global de autenticación
@@ -15,6 +16,9 @@ function App() {
 
   // Estado del modal: open controla visibilidad, mode el tab inicial
   const [authModal, setAuthModal] = useState({ open: false, mode: 'login' })
+
+  // Estado del drawer de historial
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   // Abrir modal en modo login o register
   const openAuth = (mode = 'login') => setAuthModal({ open: true, mode })
@@ -28,13 +32,14 @@ function App() {
     closeAuth()
   }
 
-  // Logout — limpia el usuario del estado
+  // Logout — limpia el usuario del estado y cierra el drawer si está abierto
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
     } catch (_) {
       // Si el request falla, igualmente limpiamos el estado local
     }
+    setHistoryOpen(false)
     setUser(null)
   }
 
@@ -53,6 +58,9 @@ function App() {
               <span className="nav-welcome">
                 Hola, <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{user.username}</strong>
               </span>
+              <button className="nav-link" onClick={() => setHistoryOpen(true)}>
+                Historial
+              </button>
               <button className="nav-link nav-link--coral" onClick={handleLogout}>
                 Salir
               </button>
@@ -94,6 +102,14 @@ function App() {
           onClose={closeAuth}
           onSuccess={handleAuthSuccess}
           initialMode={authModal.mode}
+        />
+
+        {/* ── Drawer de historial de reportes ── */}
+        <HistoryDrawer
+          isOpen={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          onViewReport={(month) => console.log('TODO: ver reporte', month)}
+          onViewAnalysis={(month, label) => console.log('TODO: análisis IA', month, label)}
         />
 
       </div>
