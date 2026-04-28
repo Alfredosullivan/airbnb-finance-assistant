@@ -11,6 +11,7 @@ export function AppProvider({ children, user, onLogout }) {
   const [properties, setProperties]               = useState([])
   const [currentProperty, setCurrentProperty]     = useState(null)
   const [loadingProperties, setLoadingProperties] = useState(false)
+  const [currentReport, setCurrentReport]         = useState(null)
 
   // Cargar propiedades cuando hay usuario autenticado.
   // ¿Por qué user como dependencia? Cuando user cambia de null a un objeto
@@ -52,6 +53,8 @@ export function AppProvider({ children, user, onLogout }) {
     currentProperty,
     setCurrentProperty,
     loadingProperties,
+    currentReport,
+    setCurrentReport,
     user,
     onLogout,
   }
