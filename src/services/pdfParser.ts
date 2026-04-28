@@ -1,11 +1,19 @@
-// pdfParser.js — Parsers de PDFs bancarios y de Airbnb
+// pdfParser.ts — Parsers de PDFs bancarios y de Airbnb
 // Implementación real para BBVA México; stub para PDF de Airbnb
+
+import type {
+  BankDeposit,
+  BankParseResult,
+  AirbnbParseResult,
+  Reservation,
+  DateRange,
+} from '../types';
 
 const fs       = require('fs');
 const pdfParse = require('pdf-parse');
 
 // ── Mapa de meses abreviados en español (BBVA usa estas abreviaturas) ──
-const MES_MAP = {
+const MES_MAP: Record<string, string> = {
   ENE: '01', FEB: '02', MAR: '03', ABR: '04',
   MAY: '05', JUN: '06', JUL: '07', AGO: '08',
   SEP: '09', OCT: '10', NOV: '11', DIC: '12',
@@ -32,14 +40,26 @@ const MES_MAP = {
 //
 // ──────────────────────────────────────────────────────────────
 
+// Tipo local para los metadatos internos del encabezado BBVA.
+// yearPeriodo y monthStart no forman parte de BankParseResult —
+// son datos de trabajo que solo usa extractBBVAMovements para
+// resolver el año de cada movimiento (incluyendo cruce de año).
+type BBVAMeta = {
+  period:         DateRange | null;
+  yearPeriodo:    number;
+  monthStart:     number;
+  accountNumber:  string;
+  openingBalance: number;
+  closingBalance: number;
+};
+
 /**
  * parseBankPDF — Extrae movimientos del estado de cuenta BBVA México
  * Puede ser llamada múltiples veces (una por cada PDF bancario subido).
- * @param {string} filePath - Ruta absoluta al PDF en disco
- * @returns {Promise<Object>} Objeto con metadatos y arrays de depósitos,
- *                            o { error: true, message } si falla el parseo
+ * @param filePath - Ruta absoluta al PDF en disco
+ * @returns Objeto con metadatos y arrays de depósitos, o { error: true, message } si falla
  */
-async function parseBankPDF(filePath) {
+async function parseBankPDF(filePath: string): Promise<BankParseResult | { error: true; message: string }> {
   try {
     const buffer   = fs.readFileSync(filePath);
     const { text } = await pdfParse(buffer);
@@ -90,23 +110,22 @@ async function parseBankPDF(filePath) {
       source:         'bbva_pdf',
     };
 
-  } catch (err) {
-    console.error('[BBVA Parser] Error al parsear PDF BBVA:', err.message);
-    return { error: true, message: `Error al parsear PDF bancario: ${err.message}` };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[BBVA Parser] Error al parsear PDF BBVA:', message);
+    return { error: true, message: `Error al parsear PDF bancario: ${message}` };
   }
 }
 
 /**
  * extractBBVAMetadata — Extrae período, número de cuenta y saldos del encabezado
  * El encabezado real tiene palabras pegadas: "PeriodoDEL", "No. de Cuenta1599624208"
- * @param {string} text
- * @returns {Object}
  */
-function extractBBVAMetadata(text) {
+function extractBBVAMetadata(text: string): BBVAMeta {
   // "PeriodoDEL 13/01/2026 AL 12/02/2026" — sin espacio entre Periodo y DEL
   const periodoMatch = text.match(/PeriodoDEL\s+(\d{2}\/\d{2}\/\d{4})\s+AL\s+(\d{2}\/\d{2}\/\d{4})/);
 
-  let period      = null;
+  let period: DateRange | null = null;
   let yearPeriodo = new Date().getFullYear();
   let monthStart  = 1;
 
@@ -145,16 +164,12 @@ function extractBBVAMetadata(text) {
  *   Línea 2: DESCRIPCION         ← texto, ej: "SPEI RECIBIDOARCUS FI"
  *   Línea 3: MONTO(S)            ← números pegados, ej: "8,378.2835,541.30"
  *   Línea 4+: referencia/detalle ← "Referencia 0167769794 706"
- *
- * @param {string} text
- * @param {Object} meta - Resultado de extractBBVAMetadata
- * @returns {Array<Object>}
  */
-function extractBBVAMovements(text, meta) {
+function extractBBVAMovements(text: string, meta: BBVAMeta): BankDeposit[] {
   const lines       = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const year        = meta.yearPeriodo || new Date().getFullYear();
   const monthStart  = meta.monthStart  || 1;
-  const movimientos = [];
+  const movimientos: BankDeposit[] = [];
 
   // Regex para la línea de fecha: EXACTAMENTE dos "DD/MES" concatenados, sin nada más
   // Ejemplos válidos: "13/ENE13/ENE", "24/ENE26/ENE", "01/FEB03/FEB"
@@ -244,11 +259,10 @@ function extractBBVAMovements(text, meta) {
 
 /**
  * convertBBVADate — Convierte "DD/MES" al formato "YYYY-MM-DD"
- * @param {string} ddMes - "13/ENE"
- * @param {number} year  - Año ya resuelto (con manejo de cruce de año)
- * @returns {string} "YYYY-MM-DD"
+ * @param ddMes - "13/ENE"
+ * @param year  - Año ya resuelto (con manejo de cruce de año)
  */
-function convertBBVADate(ddMes, year) {
+function convertBBVADate(ddMes: string, year: number): string {
   if (!ddMes) return '';
   const [dd, mes] = ddMes.split('/');
   const mm = MES_MAP[mes && mes.toUpperCase()];
@@ -259,7 +273,7 @@ function convertBBVADate(ddMes, year) {
 /**
  * parseDateDMY — Convierte "DD/MM/YYYY" a "YYYY-MM-DD"
  */
-function parseDateDMY(str) {
+function parseDateDMY(str: string): string {
   const parts = str.split('/');
   if (parts.length !== 3) return str;
   return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
@@ -269,7 +283,7 @@ function parseDateDMY(str) {
  * parseAmount — Convierte string con comas a número flotante
  * Ejemplos: "5,325.55" → 5325.55 | "25,823.57" → 25823.57
  */
-function parseAmount(str) {
+function parseAmount(str: string | null | undefined): number {
   if (!str) return 0;
   const val = parseFloat(str.replace(/,/g, ''));
   return isNaN(val) ? 0 : val;
@@ -286,41 +300,66 @@ function parseAmount(str) {
  * se identifique la estructura exacta del PDF de reporte de Airbnb.
  * Por ahora usar el CSV que es más confiable y estructurado.
  * (El CSV se descarga desde: Airbnb → Perfil → Pagos → Historial de transacciones → Exportar CSV)
- *
- * @param {string} filePath - Ruta absoluta al PDF en disco
- * @returns {Promise<Object>}
  */
-async function parseAirbnbPDF(filePath) {
+async function parseAirbnbPDF(filePath: string): Promise<AirbnbParseResult> {
   console.log('[pdfParser] AVISO: parseAirbnbPDF usa datos de ejemplo. Usa el CSV para datos reales.');
 
-  // Retornar estructura compatible con parseAirbnbCSV para no romper el pipeline
+  // Retornar estructura compatible con parseAirbnbCSV para no romper el pipeline.
+  // Los campos faltantes de Reservation se completan con valores vacíos de stub.
+  const stubReservations: Reservation[] = [
+    {
+      confirmationCode: 'HMX12345',
+      guest:            'Rodrigo García',
+      property:         '',
+      checkIn:          null,
+      checkOut:         null,
+      nights:           3,
+      grossAmount:      2850.00,
+      serviceFee:       0,
+      cleaningFee:      0,
+      netAmount:        2850.00,
+    },
+    {
+      confirmationCode: 'HMX12346',
+      guest:            'Ana Martínez',
+      property:         '',
+      checkIn:          null,
+      checkOut:         null,
+      nights:           2,
+      grossAmount:      1950.50,
+      serviceFee:       0,
+      cleaningFee:      0,
+      netAmount:        1950.50,
+    },
+  ];
+
   return {
     payouts: [
       {
-        date:        '2024-11-01',
-        amount:      2850.00,
-        currency:    'MXN',
-        referenceCode: 'STUB_REF_001',
-        reservations: [
-          { confirmationCode: 'HMX12345', guest: 'Rodrigo García', nights: 3, netAmount: 2850.00 }
-        ],
-        taxWithholdings: { isr: 0, iva: 0, hostTax: 0 },
-        source: 'airbnb_pdf_stub',
+        date:                '2024-11-01',
+        expectedDepositDate: null,
+        amount:              2850.00,
+        currency:            'MXN',
+        referenceCode:       'STUB_REF_001',
+        reservations:        [stubReservations[0]],
+        taxWithholdings:     { isr: 0, iva: 0, hostTax: 0 },
+        source:              'airbnb_pdf_stub',
       },
       {
-        date:        '2024-11-08',
-        amount:      1950.50,
-        currency:    'MXN',
-        referenceCode: 'STUB_REF_002',
-        reservations: [
-          { confirmationCode: 'HMX12346', guest: 'Ana Martínez', nights: 2, netAmount: 1950.50 }
-        ],
-        taxWithholdings: { isr: 0, iva: 0, hostTax: 0 },
-        source: 'airbnb_pdf_stub',
+        date:                '2024-11-08',
+        expectedDepositDate: null,
+        amount:              1950.50,
+        currency:            'MXN',
+        referenceCode:       'STUB_REF_002',
+        reservations:        [stubReservations[1]],
+        taxWithholdings:     { isr: 0, iva: 0, hostTax: 0 },
+        source:              'airbnb_pdf_stub',
       },
     ],
     period:      { from: '2024-11-01', to: '2024-11-08' },
     totalAmount: 4800.50,
+    reportMonth: '2024-11',
+    reportLabel: 'Noviembre 2024',
     source:      'airbnb_pdf_stub',
   };
 }
