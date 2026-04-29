@@ -7,8 +7,9 @@
     "airbnb-cli": "./bin/airbnb-cli.js"
   },
   "scripts": {
-    "start": "node index.js",
+    "start": "node dist/index.js",
     "dev": "nodemon index.js",
+    "build": "tsc && cd client && npm install && npm run build",
     "test": "jest",
     "cli": "node bin/airbnb-cli.js"
   },
