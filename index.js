@@ -67,7 +67,7 @@ app.use(cookieParser());
 app.use(express.json());
 
 // Servir archivos estáticos del frontend (HTML, CSS, JS del cliente)
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
 
 // ── Rutas de la API ────────────────────────────────────────────
 
@@ -106,6 +106,12 @@ app.get('/health', (_req, res) => {
 // Manejo de rutas no encontradas en la API
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
+});
+
+// Catch-all para React Router — sirve index.html para cualquier ruta no-API
+// Si se agrega React Router en el futuro, las rutas del cliente funcionarán sin 404
+app.get('/{*path}', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
 });
 
 // Middleware centralizado de errores — debe ir DESPUÉS de todas las rutas

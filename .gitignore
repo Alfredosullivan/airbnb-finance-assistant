@@ -3,3 +3,5 @@ uploads/
 data/
 .env
 *.log
+dist/
+client/dist/
