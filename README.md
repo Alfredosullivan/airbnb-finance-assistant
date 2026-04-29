@@ -1,6 +1,6 @@
 # Airbnb Finance Assistant
 
-App web full stack para reconciliar automáticamente reportes de Airbnb contra estados de cuenta BBVA México. Soporta múltiples propiedades, genera reportes Excel y PDF, y opcionalmente integra análisis IA con Claude (Anthropic).
+App web full stack para reconciliar automáticamente reportes de Airbnb contra estados de cuenta BBVA México. Soporta múltiples propiedades, genera reportes Excel y PDF, incluye dashboard con gráficas, análisis IA con Claude y frontend React con Vite.
 
 🔗 **Demo en vivo:** https://airbnb-finance-assistant-production.up.railway.app
 > Credenciales de demo: `demo@practice.com` / `Demo1234!`
@@ -12,13 +12,16 @@ App web full stack para reconciliar automáticamente reportes de Airbnb contra e
 | Capa | Tecnología |
 |------|------------|
 | Runtime | Node.js 20 |
-| Framework | Express 4 |
+| Framework | Express 5 |
+| Lenguaje | TypeScript (migración incremental — servicios core) |
 | Base de datos | PostgreSQL (via `pg`) |
 | Auth | JWT en httpOnly cookie |
 | Archivos | Multer — PDF y CSV |
 | Reportes | ExcelJS, PDFKit |
-| IA (opcional) | Claude API — Anthropic |
-| Tests | Jest + Supertest — 69 tests |
+| Frontend | React 19 + Vite 8 + Context API |
+| Gráficas | Chart.js |
+| IA | Claude API — Anthropic |
+| Tests | Jest + ts-jest — 69 tests |
 | Deploy | Railway (backend + PostgreSQL) |
 
 ---
@@ -26,20 +29,24 @@ App web full stack para reconciliar automáticamente reportes de Airbnb contra e
 ## Características
 
 - **Reconciliación automática** de reportes Airbnb (CSV/PDF) contra estados de cuenta BBVA (PDF)
+- **Frontend React** — migración incremental desde Vanilla JS con Context API, useRef, useCallback
 - **Soporte multi-propiedad** — gestiona varias propiedades por usuario
-- **Historial mensual** de reportes guardados con filtros por tipo
-- **Dashboard anual** con métricas agregadas (Chart.js)
-- **Exportación** a Excel (.xlsx) y PDF ejecutivo
-- **Análisis IA** con Claude — resumen financiero inteligente por mes (requiere `ANTHROPIC_API_KEY`)
+- **Dashboard anual** con métricas KPI y gráfica comparativa año a año (Chart.js)
+- **Historial mensual** con drawer lateral animado y análisis IA por mes
+- **Exportación** a Excel (.xlsx) con fórmulas reales y PDF ejecutivo multi-propiedad
+- **Análisis IA** con Claude — resumen financiero inteligente (caché en DB para control de costos)
+- **Crawler de mercado** — scrapea Lamudi en tiempo real con análisis de precios vía Claude
+- **TypeScript incremental** — `csvParser.ts`, `pdfParser.ts`, `comparator.ts` + 10 interfaces de dominio
+- **Job queue asíncrono** — patrón POST 202 + polling para operaciones lentas de IA
 - **Swagger UI** en `/api/docs` — documentación interactiva de todos los endpoints
-- **69 tests** — unitarios y de integración con PostgreSQL en memoria (`pg-mem`)
+- **69 tests** — unitarios e integración con PostgreSQL en memoria (`pg-mem`)
 
 ---
 
-## Instalación local
+## Instalación local (Vite dev server)
 
 **Requisitos previos:**
-- Node.js ≥ 18.x
+- Node.js ≥ 20.x
 - PostgreSQL 14+ (local o via Docker)
 
 ```bash
@@ -47,33 +54,45 @@ App web full stack para reconciliar automáticamente reportes de Airbnb contra e
 git clone https://github.com/Alfredosullivan/airbnb-finance-assistant.git
 cd airbnb-finance-assistant
 
-# 2. Instalar dependencias
+# 2. Instalar dependencias del backend
 npm install
 
-# 3. Crear archivo de entorno
+# 3. Instalar dependencias del frontend
+cd client && npm install && cd ..
+
+# 4. Crear archivo de entorno
 cp .env.example .env
 # Edita .env con tus valores
 
-# 4. Iniciar en desarrollo
+# 5. Iniciar backend en desarrollo
 npm run dev
+
+# 6. En otra terminal, iniciar el frontend con Vite
+cd client && npm run dev
 ```
 
-Abre `http://localhost:3000` en el navegador.
+- Backend: `http://localhost:3000`
+- Frontend (Vite): `http://localhost:5173` — el proxy redirige `/api/*` al backend automáticamente
 
 ---
 
 ## Instalación con Docker
 
-El proyecto incluye `docker-compose.yml` que levanta la app y PostgreSQL con un solo comando:
+El proyecto incluye `docker-compose.yml` con build completo (TypeScript + React):
 
 ```bash
 cp .env.example .env
-# En .env cambia el host de DATABASE_URL a "db":
+# En .env usa host "db" para PostgreSQL:
 # DATABASE_URL=postgresql://postgres:password@db:5432/finance_db
 
-docker compose up -d
+docker compose up -d --build
 docker compose logs -f app
 ```
+
+El build dentro del contenedor ejecuta:
+1. `tsc` — compila TypeScript a `dist/`
+2. `vite build` — genera `client/dist/` con el frontend React optimizado
+3. Express sirve `client/dist/` en producción
 
 Para detener:
 ```bash
@@ -90,11 +109,14 @@ docker compose down -v   # detiene Y borra el volumen de PostgreSQL
 | `PORT` | Puerto del servidor | No (default: `3000`) |
 | `DATABASE_URL` | Connection string de PostgreSQL | **Sí** |
 | `JWT_SECRET` | Clave para firmar tokens JWT | **Sí** |
-| `ALLOWED_ORIGINS` | Orígenes CORS permitidos (separados por coma) | No (default: `http://localhost:3000`) |
-| `MAX_FILE_SIZE_MB` | Tamaño máximo de archivos subidos en MB | No (default: `10`) |
+| `POSTGRES_USER` | Usuario de PostgreSQL (Docker) | **Sí (Docker)** |
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL (Docker) | **Sí (Docker)** |
+| `POSTGRES_DB` | Nombre de la base de datos (Docker) | **Sí (Docker)** |
+| `ALLOWED_ORIGINS` | Orígenes CORS permitidos | No (default: `http://localhost:3000`) |
+| `MAX_FILE_SIZE_MB` | Tamaño máximo de archivos en MB | No (default: `10`) |
 | `ANTHROPIC_API_KEY` | API key de Claude para análisis IA | No |
 
-> Si `ANTHROPIC_API_KEY` no está definida, la app funciona normalmente — solo los botones de análisis IA quedan deshabilitados.
+> Si `ANTHROPIC_API_KEY` no está definida, la app funciona normalmente — los botones de análisis IA quedan deshabilitados.
 
 ---
 
@@ -112,38 +134,45 @@ npm test
 | Unit — Formatter | `tests/unit/formatter.test.js` | 17 |
 | **Total** | | **69** |
 
-Los tests corren contra PostgreSQL en memoria (`pg-mem`) — no tocan la base de datos real.
+Los tests corren contra PostgreSQL en memoria (`pg-mem`) — no tocan la base de datos real. Los archivos `.ts` se compilan con `ts-jest`.
 
 ---
 
 ## Arquitectura
-
-El proyecto sigue **Clean Architecture** con separación estricta de capas:
 
 ```
 HTTP Request
     ↓
 Routes (src/routes/)
     ↓
-Middleware (src/middleware/)      — JWT auth, rate limiting, error handler
+Middleware (src/middleware/)      — JWT auth, error handler centralizado
     ↓
 Controllers (src/controllers/)   — HTTP request/response, sin lógica de negocio
     ↓
-Services (src/services/)         — Parseo CSV/PDF, comparación, Excel/PDF/IA
+Services (src/services/)         — Parseo CSV/PDF (TypeScript), comparación, Excel/PDF/IA
     ↓
 Repositories (src/repositories/) — Queries PostgreSQL con pg pool
     ↓
-Database (src/database/)         — Pool de conexiones + schema init async
+Database (src/database/)         — Pool de conexiones + schema init
 ```
 
-| Capa | Ruta | Responsabilidad |
-|------|------|-----------------|
-| Routes | `src/routes/` | Definir URLs, aplicar middleware por ruta |
-| Middleware | `src/middleware/` | `requireAuth` (JWT cookie), `errorHandler` centralizado |
-| Controllers | `src/controllers/` | Parsear request, llamar services, enviar response |
-| Services | `src/services/` | Parseo CSV/PDF, comparación, generación Excel/PDF/IA |
-| Repositories | `src/repositories/` | CRUD async via `pg` pool para `users`, `properties`, `reports` |
-| Database | `src/database/` | Pool `pg` (`client.js`) + `schema.js` crea tablas al arrancar |
+**Frontend React (client/):**
+```
+App.jsx (auth state)
+    ↓
+AppProvider (Context API — properties, currentReport)
+    ↓
+AppShell (consume Context — no puede estar en App.jsx)
+    ├── Navbar
+    ├── PropertyBar
+    ├── Dashboard (Chart.js via useRef)
+    ├── main
+    │   ├── UploadSection
+    │   ├── ReportResults
+    │   └── MarketSection
+    ├── HistoryDrawer
+    └── AnalysisModal
+```
 
 ---
 
@@ -179,7 +208,17 @@ Documentación interactiva completa en `/api/docs` (Swagger UI).
 | GET | `/api/reports/dashboard/:year` | ✓ | Métricas del dashboard |
 | GET | `/api/reports/executive-pdf/:year` | ✓ | PDF ejecutivo anual |
 | POST | `/api/reports/:month/analysis` | ✓ | Análisis IA del mes con Claude |
-| POST | `/api/reports/:month/analysis/pdf` | ✓ | Descargar análisis IA como PDF |
+
+### Crawler — `/api/crawler`
+| Método | Endpoint | Auth | Descripción |
+|--------|----------|:----:|-------------|
+| GET | `/api/crawler/listings` | ✓ | Scrapea Lamudi — listings actuales de Mérida |
+| POST | `/api/crawler/analyze` | ✓ | Encola análisis de mercado con Claude (devuelve jobId) |
+
+### Jobs — `/api/jobs`
+| Método | Endpoint | Auth | Descripción |
+|--------|----------|:----:|-------------|
+| GET | `/api/jobs/:jobId` | ✓ | Estado del job asíncrono (polling) |
 
 ### Sistema
 | Método | Endpoint | Descripción |
