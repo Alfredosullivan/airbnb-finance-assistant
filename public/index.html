@@ -109,6 +109,26 @@
     }
     .nav__cta:hover { background: var(--coral-d); }
 
+    /* ── Hamburger button — oculto en desktop, visible solo en mobile ── */
+    .nav__hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--coral);      /* acento rojo coral del proyecto */
+      font-size: 1.45rem;
+      line-height: 1;
+      padding: 0.2rem 0.25rem;
+      transition: opacity 0.15s;
+      flex-shrink: 0;
+    }
+    .nav__hamburger:hover  { opacity: 0.75; }
+    .nav__hamburger:focus-visible {
+      outline: 2px solid var(--coral);
+      outline-offset: 3px;
+      border-radius: 3px;
+    }
+
     /* ═══════════════════════════════════════════════════════════════
        HERO — fondo oscuro (#0F0F0F = var(--ink))
     ═══════════════════════════════════════════════════════════════ */
@@ -671,7 +691,54 @@
     }
 
     @media (max-width: 768px) {
-      .nav__links { display: none; }
+      /* Mostrar el hamburger */
+      .nav__hamburger { display: flex; align-items: center; }
+
+      /* Dropdown — posición absoluta justo debajo del navbar (top: 52px) */
+      .nav__links {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        position: absolute;
+        top: 52px;
+        left: 0;
+        right: 0;
+        background: rgba(15,15,15,0.98);
+        border-bottom: 2px solid var(--coral);
+        padding: 0 2rem;
+        /* Estado cerrado: colapsado e invisible */
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        pointer-events: none;
+        /* Slide-down + fade simultáneos */
+        transition: max-height 0.32s ease, opacity 0.22s ease;
+      }
+
+      /* Estado abierto — JS añade .is-open al <nav> */
+      .nav.is-open .nav__links {
+        max-height: 300px;
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      /* Links individuales: más espacio, separador sutil */
+      .nav__link {
+        padding: 0.9rem 0;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        font-size: 0.8rem;
+        text-align: center;
+      }
+
+      /* CTA "Ver App": bloque centrado con margen */
+      .nav__cta {
+        display: block;
+        text-align: center;
+        margin: 0.85rem 0 1rem;
+      }
+
+      /* Resto de estilos responsive sin cambios */
       .hero { padding: 7rem 1.5rem 5rem; }
       .hero__stats { flex-wrap: wrap; gap: 1.25rem; }
       .hero__stat { padding: 0; }
@@ -695,12 +762,22 @@
 <body>
 
   <!-- ── NAVBAR ──────────────────────────────────────────────────── -->
-  <nav class="nav" role="navigation" aria-label="Navegación principal">
+  <nav class="nav" id="main-nav" role="navigation" aria-label="Navegación principal">
     <span class="nav__brand">✦ Airbnb Finance</span>
-    <div class="nav__links">
-      <a href="#features"      class="nav__link">Features</a>
-      <a href="#architecture"  class="nav__link">Arquitectura</a>
-      <a href="/app"     class="nav__cta">Ver App →</a>
+
+    <!-- Botón hamburguesa — solo visible en mobile (≤768px) -->
+    <button class="nav__hamburger"
+            id="nav-hamburger"
+            aria-label="Abrir menú"
+            aria-expanded="false"
+            aria-controls="nav-menu">
+      <span class="nav__hamburger-icon" aria-hidden="true">☰</span>
+    </button>
+
+    <div class="nav__links" id="nav-menu">
+      <a href="#features"     class="nav__link">Features</a>
+      <a href="#architecture" class="nav__link">Arquitectura</a>
+      <a href="/app"          class="nav__cta">Ver App →</a>
     </div>
   </nav>
 
@@ -1051,6 +1128,51 @@
       Node.js &nbsp;·&nbsp; React &nbsp;·&nbsp; PostgreSQL
     </div>
   </footer>
+
+  <!-- ── Menú hamburguesa — vanilla JS, sin dependencias ─────────── -->
+  <script>
+    (function () {
+      const nav       = document.getElementById('main-nav');
+      const hamburger = document.getElementById('nav-hamburger');
+      const icon      = hamburger.querySelector('.nav__hamburger-icon');
+      const links     = document.querySelectorAll('#nav-menu a');
+
+      function openMenu() {
+        nav.classList.add('is-open');
+        hamburger.setAttribute('aria-expanded', 'true');
+        hamburger.setAttribute('aria-label', 'Cerrar menú');
+        icon.textContent = '✕';
+      }
+
+      function closeMenu() {
+        nav.classList.remove('is-open');
+        hamburger.setAttribute('aria-expanded', 'false');
+        hamburger.setAttribute('aria-label', 'Abrir menú');
+        icon.textContent = '☰';
+      }
+
+      // Toggle al hacer click en el botón hamburguesa
+      hamburger.addEventListener('click', function (e) {
+        e.stopPropagation(); // evitar que el listener del document lo cierre inmediatamente
+        nav.classList.contains('is-open') ? closeMenu() : openMenu();
+      });
+
+      // Cerrar al hacer click en cualquier link del menú (anchor o CTA)
+      links.forEach(function (link) {
+        link.addEventListener('click', closeMenu);
+      });
+
+      // Cerrar al hacer click fuera del navbar
+      document.addEventListener('click', function (e) {
+        if (!nav.contains(e.target)) closeMenu();
+      });
+
+      // Cerrar también con la tecla Escape (accesibilidad)
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMenu();
+      });
+    })();
+  </script>
 
 </body>
 </html>
