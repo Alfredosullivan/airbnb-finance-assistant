@@ -22,6 +22,15 @@ const { initQueue }     = require('./src/queue');
 const jobsRoutes        = require('./src/routes/jobs.routes');
 const crawlerRoutes     = require('./src/routes/crawler.routes');
 
+// Raíz del proyecto — resuelve correctamente tanto en dev como en prod.
+// Dev: "node index.js"       → __dirname = /proyecto       → PROJECT_ROOT = /proyecto
+// Prod: "node dist/index.js" → __dirname = /proyecto/dist  → PROJECT_ROOT = /proyecto
+// Sin esto, express.static apuntaba a 'dist/public/' (inexistente) en producción
+// y el servidor servía el shell de React vacío en vez de la landing.
+const PROJECT_ROOT = path.basename(__dirname) === 'dist'
+  ? path.join(__dirname, '..')
+  : __dirname;
+
 const app = express();
 
 // Avisar si falta la API key de Anthropic (análisis IA no disponible)
@@ -66,8 +75,12 @@ app.use(cookieParser());
 // Parsear cuerpos JSON
 app.use(express.json());
 
-// Servir archivos estáticos del frontend (HTML, CSS, JS del cliente)
-app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
+// Servir archivos estáticos del frontend Vanilla JS (landing + dashboard)
+// PROJECT_ROOT garantiza que 'public/' resuelve correctamente en dev y en prod
+app.use(express.static(path.join(PROJECT_ROOT, 'public')));
+
+// Servir archivos estáticos del frontend React (build de producción)
+app.use(express.static(path.join(PROJECT_ROOT, 'client', 'dist')));
 
 // ── Rutas de la API ────────────────────────────────────────────
 
@@ -108,10 +121,20 @@ app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
-// Catch-all para React Router — sirve index.html para cualquier ruta no-API
-// Si se agrega React Router en el futuro, las rutas del cliente funcionarán sin 404
+// GET / — landing page (explícito, refuerzo el express.static anterior)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, 'public', 'index.html'));
+});
+
+// GET /app — dashboard (login / upload / conciliación)
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, 'public', 'app.html'));
+});
+
+// Catch-all para React Router — sirve el shell de React para cualquier ruta no-API
+// Necesario si en el futuro se activan rutas del cliente React
 app.get('/{*path}', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
+  res.sendFile(path.join(PROJECT_ROOT, 'client', 'dist', 'index.html'));
 });
 
 // Middleware centralizado de errores — debe ir DESPUÉS de todas las rutas

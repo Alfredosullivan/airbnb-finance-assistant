@@ -161,6 +161,7 @@ export default function AuthModal({
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleLoginSubmit() }}
                   />
                 </div>
                 <div className="auth-field">
@@ -175,6 +176,7 @@ export default function AuthModal({
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleLoginSubmit() }}
                   />
                 </div>
                 {error && <p className="auth-error">{error}</p>}
@@ -224,6 +226,7 @@ export default function AuthModal({
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleRegisterSubmit() }}
                   />
                 </div>
                 <div className="auth-field">
@@ -238,6 +241,7 @@ export default function AuthModal({
                     autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleRegisterSubmit() }}
                   />
                 </div>
                 {error && <p className="auth-error">{error}</p>}

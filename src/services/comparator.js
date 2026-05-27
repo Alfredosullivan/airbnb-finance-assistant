@@ -1,26 +1,8 @@
-// comparator.ts — Servicio de comparación de transacciones Airbnb vs banco
+// comparator.js — Servicio de comparación de transacciones Airbnb vs banco
 // Cruza Payouts de Airbnb con depósitos SPEI en el estado de cuenta BBVA.
 // Filtrado estricto por mes calendario (sin ventana de ±7 días).
 
-import type {
-  AirbnbPayout,
-  AirbnbParseResult,
-  BankDeposit,
-  BankParseResult,
-  ReconciliationResult,
-  MatchedTransaction,
-  DateRange,
-} from '../types';
-
 const AMOUNT_TOLERANCE = 1.00; // Tolerancia de monto en MXN (redondeos bancarios)
-
-// Tipo local: bankData acepta el formato nuevo (objeto con bankPdf1/bankPdf2)
-// y el formato legado (array plano de depósitos) para compatibilidad hacia atrás.
-type BankDataObject = { bankPdf1?: BankParseResult | null; bankPdf2?: BankParseResult | null };
-type BankDataInput  = BankDeposit[] | BankDataObject;
-
-// Tipo local: candidatos del algoritmo de cruce (payout ↔ depósito)
-type Candidate = { dep: BankDeposit; idx: number };
 
 /**
  * compareTransactions — Cruza los Payouts de Airbnb con los depósitos bancarios
@@ -30,23 +12,19 @@ type Candidate = { dep: BankDeposit; idx: number };
  * @param reportMonth - Mes del reporte "YYYY-MM"; filtra ambos lados al mes exacto
  * @returns Resultado estructurado con matched, onlyInAirbnb, onlyInBank, differences y totales
  */
-function compareTransactions(
-  airbnbData:  AirbnbParseResult | AirbnbPayout[],
-  bankData:    BankDataInput,
-  reportMonth: string | null = null
-): ReconciliationResult {
+function compareTransactions(airbnbData, bankData, reportMonth = null) {
 
   // ── Normalizar entradas ────────────────────────────────────────
 
   // Extraer array de Payouts de Airbnb
-  const payouts: AirbnbPayout[] = Array.isArray(airbnbData)
+  const payouts = Array.isArray(airbnbData)
     ? airbnbData                       // compatibilidad legado
     : (airbnbData.payouts || []);
 
   // Extraer depósitos bancarios de Airbnb de ambos PDFs y combinarlos
-  let bankPdf1: BankDeposit[];
-  let bankPdf2: BankDeposit[];
-  let allBankDeposits: BankDeposit[];
+  let bankPdf1;
+  let bankPdf2;
+  let allBankDeposits;
 
   if (Array.isArray(bankData)) {
     // Modo legado: array plano
@@ -62,10 +40,9 @@ function compareTransactions(
   // ── Determinar mes activo ──────────────────────────────────────
   const mesActivo = reportMonth || (Array.isArray(airbnbData) ? null : airbnbData.reportMonth) || null;
 
-  // mesValido: boolean explícito — evita que TypeScript infiera string | null | boolean.
-  // !!() garantiza que el resultado sea siempre true | false.
+  // mesValido: evaluación explícita con !! para garantizar boolean (nunca string | null)
   const MONTH_RE  = /^\d{4}-(0[1-9]|1[0-2])$/;
-  const mesValido: boolean = !!(mesActivo && MONTH_RE.test(mesActivo));
+  const mesValido = !!(mesActivo && MONTH_RE.test(mesActivo));
 
   if (!mesValido && mesActivo) {
     console.error('[comparator] reportMonth inválido, se ignorará el filtro:', mesActivo);
@@ -76,17 +53,15 @@ function compareTransactions(
   console.log('[comparator] Total depósitos bancarios combinados:', allBankDeposits.length);
 
   // ── Filtrar payouts al mes activo (filtro estricto por mes calendario) ──
-  // mesActivo! — non-null assertion segura: solo se llega aquí cuando mesValido es true,
-  // que solo puede ser true si mesActivo es un string no-nulo (por la condición &&).
-  const payoutsActivos: AirbnbPayout[] = mesValido
-    ? payouts.filter(p => p.date && p.date.startsWith(mesActivo!))
+  const payoutsActivos = mesValido
+    ? payouts.filter(p => p.date && p.date.startsWith(mesActivo))
     : payouts;
 
   // ── Filtrar depósitos bancarios al mes activo (filtro estricto) ──────────
-  const depositosFiltrados: BankDeposit[] = mesValido
+  const depositosFiltrados = mesValido
     ? allBankDeposits.filter(dep => {
         const fechaDep = dep.date || dep.liquidationDate || '';
-        return fechaDep.startsWith(mesActivo!);
+        return fechaDep.startsWith(mesActivo);
       })
     : allBankDeposits;
 
@@ -99,7 +74,7 @@ function compareTransactions(
   }
 
   // Totales para desglose en el reporte
-  // d.amount ya es number (tipado en BankDeposit) — no necesita parseFloat
+  // d.amount ya es number — no necesita parseFloat
   const bankDepositsInMonth = depositosFiltrados.reduce((s, d) => s + (d.amount || 0), 0);
   const otherBankMovements  = allBankDeposits
     .filter(dep => !depositosFiltrados.includes(dep))
@@ -109,15 +84,15 @@ function compareTransactions(
   const mesActivoFinal = mesValido ? mesActivo : null;
 
   // ── Algoritmo de cruce (usa conjuntos filtrados) ───────────────
-  const matched: MatchedTransaction[] = [];
-  const onlyInAirbnb: AirbnbPayout[]  = [];
-  const usedBankIdx = new Set<number>();
+  const matched       = [];
+  const onlyInAirbnb  = [];
+  const usedBankIdx   = new Set();
 
   for (const payout of payoutsActivos) {
     const payoutDate = new Date(payout.date);
 
-    const candidatos: Candidate[] = depositosFiltrados
-      .map((dep, idx): Candidate => ({ dep, idx }))
+    const candidatos = depositosFiltrados
+      .map((dep, idx) => ({ dep, idx }))
       .filter(({ dep, idx }) => {
         if (usedBankIdx.has(idx)) return false;
         return Math.abs((dep.amount || 0) - payout.amount) <= AMOUNT_TOLERANCE;
@@ -129,7 +104,6 @@ function compareTransactions(
     }
 
     // Elegir el candidato más cercano en fecha
-    // .getTime() — TypeScript requiere conversión numérica explícita para restar Dates
     const mejor = candidatos.reduce((prev, curr) => {
       const dP = Math.abs(payoutDate.getTime() - new Date(prev.dep.date || prev.dep.liquidationDate || '').getTime());
       const dC = Math.abs(payoutDate.getTime() - new Date(curr.dep.date || curr.dep.liquidationDate || '').getTime());
@@ -164,11 +138,11 @@ function compareTransactions(
 
   // Depósitos filtrados sin Payout → onlyInBank
   console.log(`[comparator] onlyInBank candidates: ${depositosFiltrados.length}`);
-  const onlyInBank: BankDeposit[]         = depositosFiltrados.filter((_, idx) => !usedBankIdx.has(idx));
+  const onlyInBank = depositosFiltrados.filter((_, idx) => !usedBankIdx.has(idx));
   console.log(`[comparator] onlyInBank final: ${onlyInBank.length}`);
 
   // Subconjunto de matched donde el monto Airbnb ≠ monto banco
-  const differences: MatchedTransaction[] = matched.filter(m => Math.abs(m.amountDifference) > 0);
+  const differences = matched.filter(m => Math.abs(m.amountDifference) > 0);
 
   // ── Calcular totales ───────────────────────────────────────────
   const totalAirbnbPayouts = payoutsActivos.reduce((s, p) => s + (p.amount || 0), 0);
@@ -182,9 +156,7 @@ function compareTransactions(
     ? matched.reduce((s, m) => s + m.daysDifference, 0) / matched.length
     : 0;
 
-  // ── Narrowing de bankData para acceder a bankPdf1/bankPdf2 ─────
-  // Fuera del if/else TypeScript no sabe si bankData es array u objeto.
-  // bankDataObj centraliza el narrowing de forma type-safe sin 'any'.
+  // ── Acceder a bankPdf1/bankPdf2 solo si bankData no es array ──
   const bankDataObj  = Array.isArray(bankData) ? null : bankData;
   const bankPeriod   = combinePeriods(
     bankDataObj?.bankPdf1 ? bankDataObj.bankPdf1.period : null,
@@ -226,7 +198,7 @@ function compareTransactions(
 
 // ── Helpers privados ───────────────────────────────────────────
 
-function calcMatchRate(matched: number, total: number): string {
+function calcMatchRate(matched, total) {
   if (total === 0) return '0%';
   return `${Math.round((matched / total) * 100)}%`;
 }
@@ -234,7 +206,7 @@ function calcMatchRate(matched: number, total: number): string {
 /**
  * combinePeriods — Combina dos períodos { from, to } en el rango total
  */
-function combinePeriods(p1: DateRange | null, p2: DateRange | null): DateRange | null {
+function combinePeriods(p1, p2) {
   if (!p1 && !p2) return null;
   if (!p1) return p2;
   if (!p2) return p1;

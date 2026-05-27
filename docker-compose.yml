@@ -1,0 +1,84 @@
+# docker-compose.yml — Orquestación de servicios para desarrollo local
+#
+# Levanta dos contenedores:
+#   - app:  la aplicación Node.js construida desde el Dockerfile
+#   - db:   PostgreSQL 18 con datos persistentes en un volumen nombrado
+#
+# La base de datos NUNCA se expone al exterior — solo vive en la red interna finance_net.
+# La app se expone únicamente en 127.0.0.1 (localhost), no en 0.0.0.0.
+#
+# Uso rápido:
+#   cp .env.example .env          # completar variables, cambiar host a "db" en DATABASE_URL
+#   docker compose up -d          # levantar en segundo plano
+#   docker compose exec app node scripts/migrate.js   # correr migración la primera vez
+#   docker compose logs -f app    # ver logs en tiempo real
+
+services:
+
+  # ── Servicio de base de datos ─────────────────────────────────
+  db:
+    image: postgres:18-alpine
+    # Sin sección "ports" — no exponemos el puerto al host.
+    # Solo el servicio "app" (en la misma red finance_net) puede conectarse.
+    # Si necesitas conectarte con pgAdmin o psql desde tu máquina para inspección,
+    # descomenta temporalmente las siguientes dos líneas:
+    # ports:
+    #   - "127.0.0.1:5432:5432"
+    environment:
+      # Estas variables las lee la imagen oficial de postgres para crear la DB inicial.
+      # Los valores vienen de tu .env — nunca escribas contraseñas directamente aquí.
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB}
+    volumes:
+      # Volumen nombrado: los datos de la DB sobreviven aunque el contenedor se elimine.
+      # "postgres_data" es el nombre del volumen; se define abajo en la sección "volumes".
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - finance_net
+    # Healthcheck: Docker esperará a que Postgres esté listo antes de iniciar la app.
+    # pg_isready verifica que el servidor acepta conexiones — más confiable que "just started".
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Servicio de la aplicación Node.js ────────────────────────
+  app:
+    build:
+      context: .        # busca el Dockerfile en la raíz del proyecto
+      dockerfile: Dockerfile
+    ports:
+      # 127.0.0.1:3000:3000 — solo escucha en localhost del host.
+      # Si usáramos "3000:3000" (sin IP), Docker escucharía en 0.0.0.0
+      # y la app quedaría expuesta en todas las interfaces de red de la máquina.
+      # Restringir a 127.0.0.1 es la práctica correcta en desarrollo local.
+      - "127.0.0.1:3000:3000"
+    env_file:
+      # Carga todas las variables de .env al contenedor.
+      # DATABASE_URL debe apuntar al host "db" (nombre del servicio arriba),
+      # no a "localhost" — dentro de Docker, cada contenedor tiene su propio localhost.
+      - .env
+    depends_on:
+      db:
+        # Espera a que el healthcheck de "db" pase antes de iniciar "app".
+        # Sin esto, la app arrancaría antes de que Postgres esté listo y fallaría.
+        condition: service_healthy
+    networks:
+      - finance_net
+    restart: unless-stopped
+
+# ── Redes ────────────────────────────────────────────────────────
+networks:
+  finance_net:
+    # Red bridge privada — los contenedores se comunican por nombre de servicio.
+    # "db" resuelve al IP del contenedor de Postgres; "app" resuelve al de Node.
+    driver: bridge
+
+# ── Volúmenes ─────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    # Volumen gestionado por Docker — los datos persisten aunque hagas
+    # "docker compose down". Solo se pierden con "docker compose down -v".

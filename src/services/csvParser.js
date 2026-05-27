@@ -1,14 +1,6 @@
-// csvParser.ts — Parser real del CSV de transacciones de Airbnb
+// csvParser.js — Parser real del CSV de transacciones de Airbnb
 // Extrae Payouts y los agrupa con sus reservaciones asociadas por fecha.
 // También detecta el mes predominante del CSV para etiquetar el reporte.
-
-import type {
-  Reservation,
-  TaxWithholdings,
-  AirbnbPayout,
-  AirbnbParseResult,
-  DateRange,
-} from '../types';
 
 const fs   = require('fs');
 const path = require('path');
@@ -35,7 +27,7 @@ const COL = {
 };
 
 // ── Meses del año en español (para el label del reporte) ──────
-const MESES_ES: Record<string, string> = {
+const MESES_ES = {
   '01': 'Enero',    '02': 'Febrero', '03': 'Marzo',    '04': 'Abril',
   '05': 'Mayo',     '06': 'Junio',   '07': 'Julio',    '08': 'Agosto',
   '09': 'Septiembre','10': 'Octubre','11': 'Noviembre','12': 'Diciembre',
@@ -49,20 +41,12 @@ const TIPO_IVA           = 'Retención del IVA en México';
 const TIPO_HOST_TAX      = 'Impuestos liquidados como anfitrión';
 const TIPO_AJUSTE        = 'Ajuste de resolución';
 
-// Tipos locales para las filas crudas del CSV (csv-parse devuelve Record<string, string>)
-type CsvRow    = Record<string, string>;
-type DateGroup = {
-  payout:        CsvRow | null;
-  reservaciones: CsvRow[];
-  retenciones:   Array<{ tipo: string; row: CsvRow }>;
-};
-
 /**
  * parseAirbnbCSV — Extrae los Payouts del CSV de Airbnb con sus reservaciones
  * @param {string} filePath - Ruta absoluta al archivo CSV en disco
- * @returns {Promise<AirbnbParseResult | { error: true; message: string }>}
+ * @returns {Promise<Object>} AirbnbParseResult o { error: true, message: string }
  */
-async function parseAirbnbCSV(filePath: string): Promise<AirbnbParseResult | { error: true; message: string }> {
+async function parseAirbnbCSV(filePath) {
   try {
     const buffer = fs.readFileSync(filePath);
 
@@ -83,7 +67,7 @@ async function parseAirbnbCSV(filePath: string): Promise<AirbnbParseResult | { e
 
     // ── Agrupar filas por fecha ────────────────────────────────
     // Cada fecha agrupa: un Payout + sus reservaciones + retenciones de ese día
-    const byDate: Record<string, DateGroup> = {};
+    const byDate = {};
 
     for (const row of rows) {
       const fecha = normalizarFecha(row[COL.FECHA]);
@@ -105,7 +89,7 @@ async function parseAirbnbCSV(filePath: string): Promise<AirbnbParseResult | { e
     }
 
     // ── Construir array de Payouts estructurados ───────────────
-    const payouts: AirbnbPayout[] = [];
+    const payouts = [];
 
     for (const [fecha, grupo] of Object.entries(byDate)) {
       if (!grupo.payout) continue; // Ignorar fechas sin Payout
@@ -117,7 +101,7 @@ async function parseAirbnbCSV(filePath: string): Promise<AirbnbParseResult | { e
       const taxWithholdings = calcularRetenciones(grupo.retenciones);
 
       // Construir el objeto Payout
-      const payoutObj: AirbnbPayout = {
+      const payoutObj = {
         date:            fecha,
         expectedDepositDate: null, // El CSV de Airbnb no incluye fecha estimada de llegada
         amount:          parseMonto(payoutRow[COL.INGRESOS_REC]),
@@ -132,13 +116,11 @@ async function parseAirbnbCSV(filePath: string): Promise<AirbnbParseResult | { e
     }
 
     // Ordenar por fecha descendente (más reciente primero)
-    // ¿Por qué .getTime()? TypeScript no permite aritmética directa entre objetos Date —
-    // .getTime() convierte cada Date a número (milisegundos desde epoch) para la resta.
     payouts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // Calcular período cubierto
     const fechas  = payouts.map(p => p.date).sort();
-    const period: DateRange | null = fechas.length > 0
+    const period  = fechas.length > 0
       ? { from: fechas[0], to: fechas[fechas.length - 1] }
       : null;
 
@@ -153,7 +135,7 @@ async function parseAirbnbCSV(filePath: string): Promise<AirbnbParseResult | { e
 
     return { payouts, period, totalAmount, reportMonth, reportLabel, source: 'airbnb_csv' };
 
-  } catch (err: unknown) {
+  } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[csvParser] Error al parsear CSV de Airbnb:', message);
     return { error: true, message: `Error al parsear CSV: ${message}` };
@@ -166,19 +148,16 @@ async function parseAirbnbCSV(filePath: string): Promise<AirbnbParseResult | { e
  * normalizarFecha — Convierte fechas con separador "/" al formato YYYY-MM-DD
  *
  * El CSV de Airbnb USA usa formato MM/DD/YYYY (ej: "02/28/2026").
- * El código anterior tenía dos bloques con el MISMO regex, por lo que el
- * segundo bloque (MM/DD/YYYY) era código muerto: nunca se alcanzaba.
- * Resultado: "02/28/2026" se interpretaba como dd=02, mm=28 → "2026-28-02".
  *
  * Fix: un solo regex, detectar el formato por qué campo supera el valor 12.
  *   - Si el segundo número (b) > 12 → el primero es el mes: MM/DD/YYYY
  *   - Si el primer número (a) > 12 → el segundo es el mes: DD/MM/YYYY
  *   - Ambos ≤ 12 (ambiguo) → usar MM/DD/YYYY (estándar de Airbnb USA)
  *
- * @param raw - Fecha en cualquier formato separado por "/"
- * @returns Fecha en formato YYYY-MM-DD o null si no se puede parsear
+ * @param {string|null|undefined} raw - Fecha en cualquier formato separado por "/"
+ * @returns {string|null} Fecha en formato YYYY-MM-DD o null si no se puede parsear
  */
-function normalizarFecha(raw: string | null | undefined): string | null {
+function normalizarFecha(raw) {
   if (!raw) return null;
   const trimmed = raw.trim();
 
@@ -215,7 +194,7 @@ function normalizarFecha(raw: string | null | undefined): string | null {
  * parseMonto — Convierte string de monto a número flotante
  * Maneja formatos "$3,415.67", "3415.67", "-135.92"
  */
-function parseMonto(raw: string | null | undefined): number {
+function parseMonto(raw) {
   if (!raw) return 0;
   // Eliminar símbolo de moneda y comas de miles
   const clean = raw.toString().replace(/[$,\s]/g, '').trim();
@@ -226,7 +205,7 @@ function parseMonto(raw: string | null | undefined): number {
 /**
  * buildReservacion — Construye el objeto de reservación a partir de una fila CSV
  */
-function buildReservacion(row: CsvRow): Reservation {
+function buildReservacion(row) {
   return {
     confirmationCode: (row[COL.COD_CONFIRMACION] || '').trim(),
     guest:            (row[COL.HUESPED]          || '').trim(),
@@ -244,15 +223,15 @@ function buildReservacion(row: CsvRow): Reservation {
 /**
  * calcularRetenciones — Suma las retenciones fiscales por tipo
  */
-function calcularRetenciones(retenciones: Array<{ tipo: string; row: CsvRow }>): TaxWithholdings {
+function calcularRetenciones(retenciones) {
   let isr     = 0;
   let iva     = 0;
   let hostTax = 0;
 
   for (const { tipo, row } of retenciones) {
     const monto = parseMonto(row[COL.MONTO] || row[COL.INGRESOS_REC]);
-    if (tipo === TIPO_ISR)      isr     += monto;
-    else if (tipo === TIPO_IVA) iva     += monto;
+    if (tipo === TIPO_ISR)           isr     += monto;
+    else if (tipo === TIPO_IVA)      iva     += monto;
     else if (tipo === TIPO_HOST_TAX) hostTax += monto;
     // TIPO_AJUSTE se ignora en las retenciones (va al monto del Payout)
   }
@@ -260,18 +239,16 @@ function calcularRetenciones(retenciones: Array<{ tipo: string; row: CsvRow }>):
   return { isr, iva, hostTax };
 }
 
-// ── Helpers adicionales ────────────────────────────────────────
-
 /**
  * detectarMesPredominante — Calcula el mes que más aparece entre los Payouts
  *
  * Usa p.date.substring(0, 7) sobre la fecha YA normalizada a YYYY-MM-DD.
  * Nunca vuelve a splitear la fecha original (evita el bug de MM/DD vs DD/MM).
  *
- * @param payouts - Payouts con date en formato YYYY-MM-DD
- * @returns { reportMonth: "2026-02", reportLabel: "Febrero 2026" }
+ * @param {Array} payouts - Payouts con date en formato YYYY-MM-DD
+ * @returns {{ reportMonth: string|null, reportLabel: string }}
  */
-function detectarMesPredominante(payouts: Array<{ date: string }>): { reportMonth: string | null; reportLabel: string } {
+function detectarMesPredominante(payouts) {
   if (!payouts || payouts.length === 0) {
     const now = new Date();
     const mm  = String(now.getMonth() + 1).padStart(2, '0');
@@ -279,7 +256,7 @@ function detectarMesPredominante(payouts: Array<{ date: string }>): { reportMont
   }
 
   // Contar payouts por mes. p.date ya está en YYYY-MM-DD → substring(0,7) = "YYYY-MM"
-  const monthCount: Record<string, number> = {};
+  const monthCount = {};
   payouts.forEach(p => {
     if (!p.date || p.date.length < 7) return;
     const yearMonth = p.date.substring(0, 7); // "2026-02" — nunca re-splitear raw

@@ -1,0 +1,40 @@
+# .dockerignore — Archivos excluidos del contexto de build de Docker
+#
+# Funciona igual que .gitignore pero para Docker.
+# Docker envía al daemon todo lo que NO esté en este archivo antes de construir la imagen.
+# Excluir node_modules reduce dramáticamente el tamaño del contexto (puede ser 200MB+)
+# y evita que credenciales o datos locales lleguen a la imagen.
+
+# Dependencias — se instalan dentro del contenedor con npm ci
+node_modules/
+
+# Variables de entorno — NUNCA deben entrar a una imagen Docker
+.env
+.env.local
+.env.*.local
+
+# Logs — basura que no aporta nada a la imagen
+*.log
+logs/
+npm-debug.log*
+
+# Control de versiones — innecesario en la imagen
+.git/
+.gitignore
+
+# Archivos subidos por los usuarios — datos volátiles, no parte del código
+uploads/
+
+# Base de datos local (SQLite legacy) — ya no usamos esto, pero por si acaso
+data/
+
+# Cobertura de tests — no se necesita en producción
+coverage/
+
+# Archivos del IDE
+.vscode/
+.idea/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
