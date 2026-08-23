@@ -1,51 +1,56 @@
 # Dockerfile — Imagen de producción para la app Node.js
 #
-# Usamos node:20-alpine porque Alpine es una distribución Linux muy liviana
-# (~5 MB vs ~900 MB de la imagen debian-based). Esto hace que la imagen final
-# sea más pequeña, se descargue más rápido y tenga menos superficie de ataque.
+# Usamos un build multi-stage para separar la etapa de compilación de la
+# etapa de producción. El beneficio clave para seguridad: la imagen final
+# NO contiene package.json ni package-lock.json, por lo que Trivy solo
+# escanea lo que realmente está instalado en node_modules (solo producción),
+# eliminando los falsos positivos de devDependencies.
 #
 # Construir: docker build -t airbnb-finance-assistant .
 # Correr:    docker compose up -d  (recomendado, usa docker-compose.yml)
 
-# ── Etapa única — imagen base con Node 20 LTS sobre Alpine ─────
-FROM node:20-alpine
+# ── Etapa 1: Build ──────────────────────────────────────────────────────
+# Instala todo (incluyendo devDeps), compila TypeScript y el frontend React,
+# luego re-instala solo las dependencias de producción.
+FROM node:20-alpine AS builder
 
-# Directorio de trabajo dentro del contenedor.
-# Todo lo que copie o instale a partir de aquí vive en /app.
 WORKDIR /app
 
-# Copiamos PRIMERO solo los manifests de dependencias.
-# Docker cachea cada instrucción como una capa. Si el código cambia pero
-# package.json no, Docker reutiliza la capa de npm ci (mucho más rápido).
+# Copiar primero los manifests para aprovechar el cache de capas de Docker.
+# Si package.json no cambió, npm ci reutiliza la capa cacheada.
 COPY package*.json ./
 
-# 1. Instalar TODAS las dependencias, incluyendo devDependencies.
-# ¿Por qué no --only=production aquí?
-# typescript, ts-node y @vitejs/plugin-react son devDependencies que
-# necesitamos para ejecutar `npm run build` (tsc + vite build).
-# Las eliminaremos después del build en el paso 3.
+# Instalar TODAS las dependencias (devDeps necesarias para tsc + vite build).
 RUN npm ci
 
-# 2. Copiar el resto del código y ejecutar el build completo.
-# tsc compila src/**/*.ts → dist/src/
+# Copiar el resto del código y compilar.
+# tsc compila src/**/*.ts + index.js + config.js → dist/
 # vite build compila client/src → client/dist/
 COPY . .
 RUN npm run build
 
-# 3. Limpiar devDependencies para dejar la imagen lo más liviana posible.
-# El build ya terminó — typescript y vite ya no son necesarios en runtime.
-# --omit=dev reemplaza al deprecado --only=production (deprecado desde npm 7).
-# --ignore-scripts evita que npm ejecute el lifecycle "prepare: husky", que
-# falla en Docker porque husky es devDependency y .git no existe en el contenedor.
+# Re-instalar solo dependencias de producción para copiar a la etapa final.
+# --ignore-scripts evita que husky falle (es devDep y .git no existe en Docker).
 RUN npm ci --omit=dev --ignore-scripts
 
-# Documentamos el puerto que usa la app.
-# EXPOSE no publica el puerto — solo sirve de documentación para
-# docker inspect y para docker-compose, que lo usa como referencia.
+# ── Etapa 2: Producción ─────────────────────────────────────────────────
+# Imagen limpia: solo copiamos los artefactos necesarios en runtime.
+# Al no copiar package.json ni package-lock.json, Trivy no puede ver las
+# devDependencies y solo reporta vulnerabilidades de lo que realmente corre.
+FROM node:20-alpine
+
+WORKDIR /app
+
+# dist/       — código compilado por tsc (entry point: dist/index.js)
+# node_modules/ — solo dependencias de producción
+# public/     — frontend vanilla JS (landing + dashboard), servido por Express
+# client/dist/ — build de React, servido como catch-all por Express
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/client/dist ./client/dist
+
 EXPOSE 3000
 
-# Comando que ejecuta el contenedor cuando arranca.
-# Usamos la forma array (exec form) para que Node sea PID 1 y reciba
-# señales del sistema operativo correctamente (SIGTERM para graceful shutdown).
-# Apunta a dist/index.js — el entry point compilado por tsc.
+# Exec form: Node es PID 1 y recibe señales del SO (SIGTERM para graceful shutdown).
 CMD ["node", "dist/index.js"]
