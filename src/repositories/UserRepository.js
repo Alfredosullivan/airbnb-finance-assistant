@@ -15,10 +15,10 @@ const { pool } = require('../database/client');
  * @returns {Promise<{ id: number } | null>}
  */
 async function findByUsernameOrEmail(username, email) {
-  const { rows } = await pool.query(
-    'SELECT id FROM users WHERE username = $1 OR email = $2',
-    [username, email]
-  );
+  const { rows } = await pool.query('SELECT id FROM users WHERE username = $1 OR email = $2', [
+    username,
+    email,
+  ]);
   return rows[0] || null;
 }
 
@@ -60,10 +60,7 @@ async function findByEmail(email) {
  * @returns {Promise<{ id, username, email } | null>}
  */
 async function findById(id) {
-  const { rows } = await pool.query(
-    'SELECT id, username, email FROM users WHERE id = $1',
-    [id]
-  );
+  const { rows } = await pool.query('SELECT id, username, email FROM users WHERE id = $1', [id]);
   return rows[0] || null;
 }
 

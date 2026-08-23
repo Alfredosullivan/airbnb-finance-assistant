@@ -155,8 +155,8 @@
  *         description: Property not found or does not belong to this user
  */
 
-const express      = require('express');
-const router       = express.Router();
+const express = require('express');
+const router = express.Router();
 const { requireAuth } = require('../middleware/auth.middleware');
 const {
   listProperties,
@@ -167,19 +167,19 @@ const {
 } = require('../controllers/properties.controller');
 
 // GET  /api/properties               → Lista todas las propiedades del usuario
-router.get('/',               requireAuth, listProperties);
+router.get('/', requireAuth, listProperties);
 
 // POST /api/properties               → Crea una nueva propiedad  { name }
-router.post('/',              requireAuth, createProperty);
+router.post('/', requireAuth, createProperty);
 
 // GET  /api/properties/combined/:year → Reporte anual combinado (todas las propiedades)
 // IMPORTANTE: debe estar antes de /:id para que "combined" no sea interpretado como un id
 router.get('/combined/:year', requireAuth, getCombinedReport);
 
 // PUT  /api/properties/:id           → Renombra una propiedad  { name }
-router.put('/:id',            requireAuth, renameProperty);
+router.put('/:id', requireAuth, renameProperty);
 
 // DELETE /api/properties/:id         → Elimina una propiedad y sus reportes
-router.delete('/:id',         requireAuth, deleteProperty);
+router.delete('/:id', requireAuth, deleteProperty);
 
 module.exports = router;

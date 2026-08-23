@@ -5,7 +5,7 @@
 //   GET  /api/crawler/listings — scrapea y devuelve listings de forma síncrona
 //   POST /api/crawler/analyze  — encola un análisis de mercado con Claude (operación lenta)
 
-const { crawlMeridaRentals, analyzePricesWithClaude } = require('../services/crawler/crawlerService');
+const { crawlMeridaRentals } = require('../services/crawler/crawlerService');
 const queue = require('../queue/MemoryQueue');
 
 /**
@@ -46,15 +46,15 @@ const analyzeMarket = async (req, res) => {
     // Encolar el job de análisis de mercado
     // El worker procesará: crawl → Claude → resultado como texto descargable
     const job = queue.addJob('market_analysis', {
-      userId:       req.user.userId,
+      userId: req.user.userId,
       propertyName: propertyName || null,
-      currentRate:  currentRate  || null,
+      currentRate: currentRate || null,
     });
 
     // 202 Accepted — request aceptado pero procesamiento no terminó aún
     res.status(202).json({
-      jobId:   job.id,
-      status:  job.status,
+      jobId: job.id,
+      status: job.status,
       message: `Análisis de mercado encolado. Consulta el estado en GET /api/jobs/${job.id}`,
     });
   } catch (err) {

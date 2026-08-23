@@ -1,1178 +1,1416 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Airbnb Finance Assistant — Portfolio</title>
-  <meta name="description" content="Herramienta full stack de conciliación financiera para propietarios de Airbnb. Node.js · PostgreSQL · Claude AI · 69 Tests." />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Airbnb Finance Assistant — Portfolio</title>
+    <meta
+      name="description"
+      content="Herramienta full stack de conciliación financiera para propietarios de Airbnb. Node.js · PostgreSQL · Claude AI · 69 Tests."
+    />
 
-  <!-- Google Fonts — las mismas que usa el proyecto en style.css -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- Google Fonts — las mismas que usa el proyecto en style.css -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&family=Syne:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
 
-  <style>
-    /* ═══════════════════════════════════════════════════════════════
+    <style>
+      /* ═══════════════════════════════════════════════════════════════
        VARIABLES — copia exacta del :root de public/style.css
        No se inventan colores nuevos aquí.
     ═══════════════════════════════════════════════════════════════ */
-    :root {
-      --coral:     #FF5A5F;
-      --coral-d:   #D94F54;
-      --coral-l:   #FFE8E9;
-      --ink:       #0F0F0F;
-      --ink-60:    #6B6B6B;
-      --ink-20:    #E8E8E8;
-      --paper:     #FAF9F7;
-      --paper-d:   #F0EDE8;
-      --blue:      #1F4E79;
-      --blue-l:    #EBF3FA;
-      --green:     #1A7A4A;
-      --green-l:   #E8F5EE;
-      --amber:     #B45309;
-      --amber-l:   #FEF3C7;
-      --radius:    10px;
-      --radius-sm: 6px;
-      --shadow:    0 8px 24px rgba(0,0,0,0.08);
-    }
+      :root {
+        --coral: #ff5a5f;
+        --coral-d: #d94f54;
+        --coral-l: #ffe8e9;
+        --ink: #0f0f0f;
+        --ink-60: #6b6b6b;
+        --ink-20: #e8e8e8;
+        --paper: #faf9f7;
+        --paper-d: #f0ede8;
+        --blue: #1f4e79;
+        --blue-l: #ebf3fa;
+        --green: #1a7a4a;
+        --green-l: #e8f5ee;
+        --amber: #b45309;
+        --amber-l: #fef3c7;
+        --radius: 10px;
+        --radius-sm: 6px;
+        --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      }
 
-    /* ═══════════════════════════════════════════════════════════════
+      /* ═══════════════════════════════════════════════════════════════
        RESET + BASE
     ═══════════════════════════════════════════════════════════════ */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: 16px; scroll-behavior: smooth; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        font-size: 16px;
+        scroll-behavior: smooth;
+      }
 
-    body {
-      font-family: 'Syne', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--paper);
-      color: var(--ink);
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
+      body {
+        font-family:
+          'Syne',
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+        line-height: 1.6;
+        overflow-x: hidden;
+      }
 
-    a { text-decoration: none; color: inherit; }
-    img { max-width: 100%; }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+      img {
+        max-width: 100%;
+      }
 
-    /* ═══════════════════════════════════════════════════════════════
+      /* ═══════════════════════════════════════════════════════════════
        NAVBAR — sticky, glassmorphism sobre fondo oscuro
     ═══════════════════════════════════════════════════════════════ */
-    .nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      height: 52px;
-      padding: 0 2rem;
-      background: rgba(15,15,15,0.88);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-bottom: 2px solid var(--coral);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .nav__brand {
-      font-family: 'DM Serif Display', serif;
-      font-size: 1rem;
-      color: var(--coral);
-      flex-shrink: 0;
-    }
-
-    .nav__links {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-    }
-
-    .nav__link {
-      font-family: 'Syne', sans-serif;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.6);
-      transition: color 0.2s;
-    }
-    .nav__link:hover { color: var(--coral); }
-
-    .nav__cta {
-      background: var(--coral);
-      color: #fff;
-      font-family: 'Syne', sans-serif;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      padding: 0.35rem 1rem;
-      border-radius: var(--radius-sm);
-      transition: background 0.2s;
-    }
-    .nav__cta:hover { background: var(--coral-d); }
-
-    /* ── Hamburger button — oculto en desktop, visible solo en mobile ── */
-    .nav__hamburger {
-      display: none;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--coral);      /* acento rojo coral del proyecto */
-      font-size: 1.45rem;
-      line-height: 1;
-      padding: 0.2rem 0.25rem;
-      transition: opacity 0.15s;
-      flex-shrink: 0;
-    }
-    .nav__hamburger:hover  { opacity: 0.75; }
-    .nav__hamburger:focus-visible {
-      outline: 2px solid var(--coral);
-      outline-offset: 3px;
-      border-radius: 3px;
-    }
-
-    /* ═══════════════════════════════════════════════════════════════
-       HERO — fondo oscuro (#0F0F0F = var(--ink))
-    ═══════════════════════════════════════════════════════════════ */
-    .hero {
-      min-height: 100vh;
-      background: var(--ink);
-      display: flex;
-      align-items: center;
-      padding: 8rem 2rem 6rem;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Glow coral — igual al radial-gradient del hero en index.html */
-    .hero::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(
-        ellipse at 78% 40%,
-        rgba(255,90,95,0.16) 0%,
-        transparent 65%
-      );
-      pointer-events: none;
-    }
-
-    /* Grid de fondo — igual al patrón del dashboard-section */
-    .hero::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
-      background-size: 64px 64px;
-      pointer-events: none;
-    }
-
-    .hero__inner {
-      max-width: 900px;
-      width: 100%;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* Eyebrow label — DM Mono, muy pequeño, estilo del .hero-tag del proyecto */
-    .hero__eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
-      font-weight: 500;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.38);
-      margin-bottom: 1.75rem;
-    }
-    .hero__eyebrow-dot {
-      width: 6px;
-      height: 6px;
-      background: var(--coral);
-      border-radius: 50%;
-      flex-shrink: 0;
-      box-shadow: 0 0 8px rgba(255,90,95,0.6);
-    }
-
-    /* Título grande — DM Serif Display, mismo estilo que .hero h1 */
-    .hero__title {
-      font-family: 'DM Serif Display', serif;
-      font-size: clamp(3rem, 7.5vw, 5.75rem);
-      line-height: 1.0;
-      color: #fff;
-      margin-bottom: 1.5rem;
-      letter-spacing: -0.01em;
-    }
-    .hero__title em {
-      font-style: italic;
-      color: var(--coral);
-    }
-
-    .hero__subtitle {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(0.9375rem, 1.8vw, 1.125rem);
-      color: rgba(255,255,255,0.48);
-      font-weight: 400;
-      max-width: 520px;
-      line-height: 1.72;
-      margin-bottom: 2.75rem;
-    }
-
-    /* Stats row — tres cifras con divisores verticales */
-    .hero__stats {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      margin-bottom: 2.5rem;
-      flex-wrap: wrap;
-      row-gap: 1.25rem;
-    }
-
-    .hero__stat {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      padding: 0 2.25rem;
-    }
-    .hero__stat:first-child { padding-left: 0; }
-
-    .hero__stat-value {
-      font-family: 'DM Serif Display', serif;
-      font-size: 2.25rem;
-      color: #fff;
-      line-height: 1;
-    }
-    .hero__stat-value span { color: var(--coral); }
-
-    .hero__stat-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.63rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.3);
-      white-space: nowrap;
-    }
-
-    .hero__stat-divider {
-      width: 1px;
-      height: 42px;
-      background: rgba(255,255,255,0.1);
-      flex-shrink: 0;
-      align-self: center;
-    }
-
-    /* CTAs — botones primario y secundario */
-    .hero__ctas {
-      display: flex;
-      align-items: center;
-      gap: 0.875rem;
-      margin-bottom: 2.75rem;
-      flex-wrap: wrap;
-    }
-
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      background: var(--coral);
-      color: #fff;
-      font-family: 'Syne', sans-serif;
-      font-size: 0.875rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      padding: 0.75rem 1.75rem;
-      border-radius: var(--radius-sm);
-      border: none;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.15s;
-      height: 46px;
-    }
-    .btn-primary:hover {
-      background: var(--coral-d);
-      transform: translateY(-1px);
-    }
-
-    /* Secundario sobre fondo oscuro (en hero) */
-    .btn-secondary-dark {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      background: transparent;
-      color: rgba(255,255,255,0.65);
-      font-family: 'Syne', sans-serif;
-      font-size: 0.875rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      padding: 0.75rem 1.75rem;
-      border-radius: var(--radius-sm);
-      border: 1.5px solid rgba(255,255,255,0.18);
-      cursor: pointer;
-      transition: border-color 0.2s, color 0.2s, transform 0.15s;
-      height: 46px;
-    }
-    .btn-secondary-dark:hover {
-      border-color: rgba(255,255,255,0.55);
-      color: #fff;
-      transform: translateY(-1px);
-    }
-
-    /* Secundario sobre fondo claro (en sección técnica) */
-    .btn-secondary-light {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      background: transparent;
-      color: var(--ink-60);
-      font-family: 'Syne', sans-serif;
-      font-size: 0.875rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      padding: 0.75rem 1.75rem;
-      border-radius: var(--radius-sm);
-      border: 1.5px solid var(--ink-20);
-      cursor: pointer;
-      transition: border-color 0.2s, color 0.2s, transform 0.15s;
-      height: 46px;
-    }
-    .btn-secondary-light:hover {
-      border-color: var(--ink-60);
-      color: var(--ink);
-      transform: translateY(-1px);
-    }
-
-    /* Stack pills — idénticas a .chip del hero en index.html */
-    .hero__pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .pill {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.5);
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 0.3rem 0.8rem;
-      border-radius: 100px;
-      transition: background 0.2s, color 0.2s, border-color 0.2s;
-      cursor: default;
-    }
-    .pill:hover {
-      background: rgba(255,90,95,0.1);
-      border-color: rgba(255,90,95,0.35);
-      color: rgba(255,255,255,0.8);
-    }
-    /* Acento coral — igual a .chip.coral del proyecto */
-    .pill--accent {
-      background: rgba(255,90,95,0.12);
-      border-color: rgba(255,90,95,0.4);
-      color: var(--coral);
-    }
-    .pill--accent:hover {
-      background: rgba(255,90,95,0.2);
-      color: #fff;
-    }
-
-    /* ═══════════════════════════════════════════════════════════════
-       TRANSICIÓN GRADIENTE — oscuro → paper
-    ═══════════════════════════════════════════════════════════════ */
-    .gradient-transition {
-      height: 100px;
-      background: linear-gradient(to bottom, var(--ink), var(--paper));
-    }
-
-    /* ═══════════════════════════════════════════════════════════════
-       SECCIÓN TÉCNICA — fondo paper (claro)
-    ═══════════════════════════════════════════════════════════════ */
-    .technical {
-      background: var(--paper);
-      padding: 5.5rem 2rem 6rem;
-    }
-
-    .section-inner {
-      max-width: 960px;
-      margin: 0 auto;
-    }
-
-    /* Label de sección — DM Mono, estilo del .tabs-category-label del proyecto */
-    .section-label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--coral);
-      margin-bottom: 0.75rem;
-    }
-    .section-label::before {
-      content: '';
-      display: inline-block;
-      width: 22px;
-      height: 2px;
-      background: var(--coral);
-      flex-shrink: 0;
-    }
-
-    /* Título — DM Serif Display, estilo .section-title del proyecto */
-    .section-title {
-      font-family: 'DM Serif Display', serif;
-      font-size: clamp(1.75rem, 3.5vw, 2.75rem);
-      color: var(--ink);
-      line-height: 1.12;
-      margin-bottom: 0.75rem;
-      max-width: 580px;
-      font-weight: 400;
-    }
-    .section-title em {
-      font-style: italic;
-      color: var(--coral);
-    }
-
-    .section-subtitle {
-      font-family: 'Syne', sans-serif;
-      font-size: 0.9375rem;
-      color: var(--ink-60);
-      max-width: 520px;
-      line-height: 1.7;
-      margin-bottom: 3.5rem;
-    }
-
-    /* ── Feature cards grid — 3 columnas ── */
-    .cards-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
-      margin-bottom: 4rem;
-    }
-
-    /* Card — idéntica a .history-card / .total-card del proyecto */
-    .feature-card {
-      background: #fff;
-      border: 1px solid var(--ink-20);
-      border-radius: var(--radius);
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-      transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
-    }
-    .feature-card:hover {
-      box-shadow: var(--shadow);
-      transform: translateY(-3px);
-      border-color: rgba(255,90,95,0.25);
-    }
-
-    /* Ícono — caja con color semántico del proyecto */
-    .feature-card__icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      margin-bottom: 0.25rem;
-    }
-    .feature-card__icon--coral  { background: var(--coral-l);  color: var(--coral-d); }
-    .feature-card__icon--green  { background: var(--green-l);  color: var(--green); }
-    .feature-card__icon--amber  { background: var(--amber-l);  color: var(--amber); }
-    .feature-card__icon--blue   { background: var(--blue-l);   color: var(--blue); }
-
-    /* Badge — igual al .status-badge del proyecto */
-    .feature-card__badge {
-      display: inline-flex;
-      align-self: flex-start;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.6rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 0.18rem 0.55rem;
-      border-radius: 4px;
-    }
-    .feature-card__badge--coral { background: var(--coral-l); color: var(--coral-d); }
-    .feature-card__badge--green { background: var(--green-l); color: var(--green); }
-    .feature-card__badge--blue  { background: var(--blue-l);  color: var(--blue); }
-    .feature-card__badge--amber { background: var(--amber-l); color: var(--amber); }
-
-    .feature-card__title {
-      font-family: 'Syne', sans-serif;
-      font-size: 0.9375rem;
-      font-weight: 700;
-      color: var(--ink);
-      line-height: 1.25;
-    }
-
-    .feature-card__desc {
-      font-family: 'Syne', sans-serif;
-      font-size: 0.8125rem;
-      color: var(--ink-60);
-      line-height: 1.65;
-      flex: 1;
-    }
-
-    /* ── Stack tags ── */
-    .stack-section { margin-bottom: 4rem; }
-
-    .stack-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.63rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--ink-60);
-      margin-bottom: 0.875rem;
-    }
-
-    .stack-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .stack-tag {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      font-weight: 500;
-      padding: 0.35rem 0.875rem;
-      border-radius: 100px;
-      border: 1.5px solid var(--ink-20);
-      color: var(--ink-60);
-      background: #fff;
-      transition: border-color 0.2s, color 0.2s;
-      cursor: default;
-    }
-    .stack-tag:hover { border-color: var(--ink-60); color: var(--ink); }
-
-    /* Core del proyecto — fondo oscuro, como .btn--primary */
-    .stack-tag--core {
-      background: var(--ink);
-      color: #fff;
-      border-color: var(--ink);
-    }
-    .stack-tag--core:hover {
-      background: #2a2a2a;
-      border-color: #2a2a2a;
-    }
-
-    /* ── Diagrama de arquitectura ── */
-    .arch-section { margin-bottom: 4.5rem; }
-
-    .arch-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.63rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--ink-60);
-      margin-bottom: 1.25rem;
-    }
-
-    /* Panel oscuro — igual al .dashboard-section del proyecto */
-    .arch-diagram {
-      background: var(--ink);
-      border-radius: var(--radius);
-      padding: 2rem 2.5rem;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .arch-flow {
-      display: flex;
-      align-items: center;
-      min-width: 560px;
-    }
-
-    .arch-node {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.35rem;
-    }
-
-    /* Nodo base — idéntico al .dashboard-card del proyecto */
-    .arch-node__box {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 8px;
-      padding: 0.65rem 0.75rem;
-      text-align: center;
-      width: 100%;
-      transition: background 0.2s, border-color 0.2s;
-    }
-    .arch-node__box:hover {
-      background: rgba(255,90,95,0.09);
-      border-color: rgba(255,90,95,0.35);
-    }
-
-    .arch-node__name {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: #fff;
-      white-space: nowrap;
-    }
-
-    .arch-node__sub {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.6rem;
-      color: rgba(255,255,255,0.3);
-      white-space: nowrap;
-    }
-
-    .arch-arrow {
-      flex-shrink: 0;
-      color: rgba(255,255,255,0.18);
-      padding: 0 0.25rem;
-    }
-
-    /* Nodo de DB — usa el --blue del proyecto */
-    .arch-node--db .arch-node__box {
-      background: rgba(31,78,121,0.25);
-      border-color: rgba(31,78,121,0.5);
-    }
-    .arch-node--db .arch-node__name { color: #88BBE0; }
-
-    /* ── CTAs al final de la sección técnica ── */
-    .cta-row {
-      display: flex;
-      align-items: center;
-      gap: 0.875rem;
-      flex-wrap: wrap;
-    }
-
-    /* ═══════════════════════════════════════════════════════════════
-       FOOTER — mismo estilo que el footer del proyecto
-    ═══════════════════════════════════════════════════════════════ */
-    .footer {
-      background: var(--ink);
-      border-top: 2px solid var(--coral);
-      padding: 2rem;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      gap: 0.375rem;
-    }
-
-    .footer__name {
-      font-family: 'DM Serif Display', serif;
-      font-size: 1.1rem;
-      color: var(--coral);
-    }
-
-    .footer__meta {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
-      color: rgba(255,255,255,0.28);
-      letter-spacing: 0.06em;
-    }
-    .footer__meta span { color: rgba(255,255,255,0.5); }
-
-    /* ═══════════════════════════════════════════════════════════════
-       RESPONSIVE
-    ═══════════════════════════════════════════════════════════════ */
-    @media (max-width: 900px) {
-      .cards-grid { grid-template-columns: repeat(2, 1fr); }
-      .hero__stat { padding: 0 1.5rem; }
-      .hero__stat:first-child { padding-left: 0; }
-    }
-
-    @media (max-width: 768px) {
-      /* Mostrar el hamburger */
-      .nav__hamburger { display: flex; align-items: center; }
-
-      /* Dropdown — posición absoluta justo debajo del navbar (top: 52px) */
-      .nav__links {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0;
-        position: absolute;
-        top: 52px;
+      .nav {
+        position: fixed;
+        top: 0;
         left: 0;
         right: 0;
-        background: rgba(15,15,15,0.98);
-        border-bottom: 2px solid var(--coral);
+        z-index: 100;
+        height: 52px;
         padding: 0 2rem;
-        /* Estado cerrado: colapsado e invisible */
-        max-height: 0;
-        overflow: hidden;
-        opacity: 0;
-        pointer-events: none;
-        /* Slide-down + fade simultáneos */
-        transition: max-height 0.32s ease, opacity 0.22s ease;
+        background: rgba(15, 15, 15, 0.88);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom: 2px solid var(--coral);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
 
-      /* Estado abierto — JS añade .is-open al <nav> */
-      .nav.is-open .nav__links {
-        max-height: 300px;
-        opacity: 1;
-        pointer-events: auto;
+      .nav__brand {
+        font-family: 'DM Serif Display', serif;
+        font-size: 1rem;
+        color: var(--coral);
+        flex-shrink: 0;
       }
 
-      /* Links individuales: más espacio, separador sutil */
+      .nav__links {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+      }
+
       .nav__link {
-        padding: 0.9rem 0;
-        border-bottom: 1px solid rgba(255,255,255,0.07);
-        font-size: 0.8rem;
-        text-align: center;
+        font-family: 'Syne', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.6);
+        transition: color 0.2s;
+      }
+      .nav__link:hover {
+        color: var(--coral);
       }
 
-      /* CTA "Ver App": bloque centrado con margen */
       .nav__cta {
-        display: block;
+        background: var(--coral);
+        color: #fff;
+        font-family: 'Syne', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.35rem 1rem;
+        border-radius: var(--radius-sm);
+        transition: background 0.2s;
+      }
+      .nav__cta:hover {
+        background: var(--coral-d);
+      }
+
+      /* ── Hamburger button — oculto en desktop, visible solo en mobile ── */
+      .nav__hamburger {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--coral); /* acento rojo coral del proyecto */
+        font-size: 1.45rem;
+        line-height: 1;
+        padding: 0.2rem 0.25rem;
+        transition: opacity 0.15s;
+        flex-shrink: 0;
+      }
+      .nav__hamburger:hover {
+        opacity: 0.75;
+      }
+      .nav__hamburger:focus-visible {
+        outline: 2px solid var(--coral);
+        outline-offset: 3px;
+        border-radius: 3px;
+      }
+
+      /* ═══════════════════════════════════════════════════════════════
+       HERO — fondo oscuro (#0F0F0F = var(--ink))
+    ═══════════════════════════════════════════════════════════════ */
+      .hero {
+        min-height: 100vh;
+        background: var(--ink);
+        display: flex;
+        align-items: center;
+        padding: 8rem 2rem 6rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Glow coral — igual al radial-gradient del hero en index.html */
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at 78% 40%,
+          rgba(255, 90, 95, 0.16) 0%,
+          transparent 65%
+        );
+        pointer-events: none;
+      }
+
+      /* Grid de fondo — igual al patrón del dashboard-section */
+      .hero::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+        background-size: 64px 64px;
+        pointer-events: none;
+      }
+
+      .hero__inner {
+        max-width: 900px;
+        width: 100%;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Eyebrow label — DM Mono, muy pequeño, estilo del .hero-tag del proyecto */
+      .hero__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: 'DM Mono', monospace;
+        font-size: 0.68rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.38);
+        margin-bottom: 1.75rem;
+      }
+      .hero__eyebrow-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--coral);
+        border-radius: 50%;
+        flex-shrink: 0;
+        box-shadow: 0 0 8px rgba(255, 90, 95, 0.6);
+      }
+
+      /* Título grande — DM Serif Display, mismo estilo que .hero h1 */
+      .hero__title {
+        font-family: 'DM Serif Display', serif;
+        font-size: clamp(3rem, 7.5vw, 5.75rem);
+        line-height: 1;
+        color: #fff;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.01em;
+      }
+      .hero__title em {
+        font-style: italic;
+        color: var(--coral);
+      }
+
+      .hero__subtitle {
+        font-family: 'Syne', sans-serif;
+        font-size: clamp(0.9375rem, 1.8vw, 1.125rem);
+        color: rgba(255, 255, 255, 0.48);
+        font-weight: 400;
+        max-width: 520px;
+        line-height: 1.72;
+        margin-bottom: 2.75rem;
+      }
+
+      /* Stats row — tres cifras con divisores verticales */
+      .hero__stats {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        margin-bottom: 2.5rem;
+        flex-wrap: wrap;
+        row-gap: 1.25rem;
+      }
+
+      .hero__stat {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        padding: 0 2.25rem;
+      }
+      .hero__stat:first-child {
+        padding-left: 0;
+      }
+
+      .hero__stat-value {
+        font-family: 'DM Serif Display', serif;
+        font-size: 2.25rem;
+        color: #fff;
+        line-height: 1;
+      }
+      .hero__stat-value span {
+        color: var(--coral);
+      }
+
+      .hero__stat-label {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.63rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.3);
+        white-space: nowrap;
+      }
+
+      .hero__stat-divider {
+        width: 1px;
+        height: 42px;
+        background: rgba(255, 255, 255, 0.1);
+        flex-shrink: 0;
+        align-self: center;
+      }
+
+      /* CTAs — botones primario y secundario */
+      .hero__ctas {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        margin-bottom: 2.75rem;
+        flex-wrap: wrap;
+      }
+
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        background: var(--coral);
+        color: #fff;
+        font-family: 'Syne', sans-serif;
+        font-size: 0.875rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 0.75rem 1.75rem;
+        border-radius: var(--radius-sm);
+        border: none;
+        cursor: pointer;
+        transition:
+          background 0.2s,
+          transform 0.15s;
+        height: 46px;
+      }
+      .btn-primary:hover {
+        background: var(--coral-d);
+        transform: translateY(-1px);
+      }
+
+      /* Secundario sobre fondo oscuro (en hero) */
+      .btn-secondary-dark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.65);
+        font-family: 'Syne', sans-serif;
+        font-size: 0.875rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        padding: 0.75rem 1.75rem;
+        border-radius: var(--radius-sm);
+        border: 1.5px solid rgba(255, 255, 255, 0.18);
+        cursor: pointer;
+        transition:
+          border-color 0.2s,
+          color 0.2s,
+          transform 0.15s;
+        height: 46px;
+      }
+      .btn-secondary-dark:hover {
+        border-color: rgba(255, 255, 255, 0.55);
+        color: #fff;
+        transform: translateY(-1px);
+      }
+
+      /* Secundario sobre fondo claro (en sección técnica) */
+      .btn-secondary-light {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        background: transparent;
+        color: var(--ink-60);
+        font-family: 'Syne', sans-serif;
+        font-size: 0.875rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        padding: 0.75rem 1.75rem;
+        border-radius: var(--radius-sm);
+        border: 1.5px solid var(--ink-20);
+        cursor: pointer;
+        transition:
+          border-color 0.2s,
+          color 0.2s,
+          transform 0.15s;
+        height: 46px;
+      }
+      .btn-secondary-light:hover {
+        border-color: var(--ink-60);
+        color: var(--ink);
+        transform: translateY(-1px);
+      }
+
+      /* Stack pills — idénticas a .chip del hero en index.html */
+      .hero__pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .pill {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.68rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0.3rem 0.8rem;
+        border-radius: 100px;
+        transition:
+          background 0.2s,
+          color 0.2s,
+          border-color 0.2s;
+        cursor: default;
+      }
+      .pill:hover {
+        background: rgba(255, 90, 95, 0.1);
+        border-color: rgba(255, 90, 95, 0.35);
+        color: rgba(255, 255, 255, 0.8);
+      }
+      /* Acento coral — igual a .chip.coral del proyecto */
+      .pill--accent {
+        background: rgba(255, 90, 95, 0.12);
+        border-color: rgba(255, 90, 95, 0.4);
+        color: var(--coral);
+      }
+      .pill--accent:hover {
+        background: rgba(255, 90, 95, 0.2);
+        color: #fff;
+      }
+
+      /* ═══════════════════════════════════════════════════════════════
+       TRANSICIÓN GRADIENTE — oscuro → paper
+    ═══════════════════════════════════════════════════════════════ */
+      .gradient-transition {
+        height: 100px;
+        background: linear-gradient(to bottom, var(--ink), var(--paper));
+      }
+
+      /* ═══════════════════════════════════════════════════════════════
+       SECCIÓN TÉCNICA — fondo paper (claro)
+    ═══════════════════════════════════════════════════════════════ */
+      .technical {
+        background: var(--paper);
+        padding: 5.5rem 2rem 6rem;
+      }
+
+      .section-inner {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      /* Label de sección — DM Mono, estilo del .tabs-category-label del proyecto */
+      .section-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: 'DM Mono', monospace;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--coral);
+        margin-bottom: 0.75rem;
+      }
+      .section-label::before {
+        content: '';
+        display: inline-block;
+        width: 22px;
+        height: 2px;
+        background: var(--coral);
+        flex-shrink: 0;
+      }
+
+      /* Título — DM Serif Display, estilo .section-title del proyecto */
+      .section-title {
+        font-family: 'DM Serif Display', serif;
+        font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+        color: var(--ink);
+        line-height: 1.12;
+        margin-bottom: 0.75rem;
+        max-width: 580px;
+        font-weight: 400;
+      }
+      .section-title em {
+        font-style: italic;
+        color: var(--coral);
+      }
+
+      .section-subtitle {
+        font-family: 'Syne', sans-serif;
+        font-size: 0.9375rem;
+        color: var(--ink-60);
+        max-width: 520px;
+        line-height: 1.7;
+        margin-bottom: 3.5rem;
+      }
+
+      /* ── Feature cards grid — 3 columnas ── */
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 4rem;
+      }
+
+      /* Card — idéntica a .history-card / .total-card del proyecto */
+      .feature-card {
+        background: #fff;
+        border: 1px solid var(--ink-20);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        transition:
+          box-shadow 0.2s,
+          transform 0.2s,
+          border-color 0.2s;
+      }
+      .feature-card:hover {
+        box-shadow: var(--shadow);
+        transform: translateY(-3px);
+        border-color: rgba(255, 90, 95, 0.25);
+      }
+
+      /* Ícono — caja con color semántico del proyecto */
+      .feature-card__icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-bottom: 0.25rem;
+      }
+      .feature-card__icon--coral {
+        background: var(--coral-l);
+        color: var(--coral-d);
+      }
+      .feature-card__icon--green {
+        background: var(--green-l);
+        color: var(--green);
+      }
+      .feature-card__icon--amber {
+        background: var(--amber-l);
+        color: var(--amber);
+      }
+      .feature-card__icon--blue {
+        background: var(--blue-l);
+        color: var(--blue);
+      }
+
+      /* Badge — igual al .status-badge del proyecto */
+      .feature-card__badge {
+        display: inline-flex;
+        align-self: flex-start;
+        font-family: 'DM Mono', monospace;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.18rem 0.55rem;
+        border-radius: 4px;
+      }
+      .feature-card__badge--coral {
+        background: var(--coral-l);
+        color: var(--coral-d);
+      }
+      .feature-card__badge--green {
+        background: var(--green-l);
+        color: var(--green);
+      }
+      .feature-card__badge--blue {
+        background: var(--blue-l);
+        color: var(--blue);
+      }
+      .feature-card__badge--amber {
+        background: var(--amber-l);
+        color: var(--amber);
+      }
+
+      .feature-card__title {
+        font-family: 'Syne', sans-serif;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        color: var(--ink);
+        line-height: 1.25;
+      }
+
+      .feature-card__desc {
+        font-family: 'Syne', sans-serif;
+        font-size: 0.8125rem;
+        color: var(--ink-60);
+        line-height: 1.65;
+        flex: 1;
+      }
+
+      /* ── Stack tags ── */
+      .stack-section {
+        margin-bottom: 4rem;
+      }
+
+      .stack-label {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.63rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-60);
+        margin-bottom: 0.875rem;
+      }
+
+      .stack-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .stack-tag {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.72rem;
+        font-weight: 500;
+        padding: 0.35rem 0.875rem;
+        border-radius: 100px;
+        border: 1.5px solid var(--ink-20);
+        color: var(--ink-60);
+        background: #fff;
+        transition:
+          border-color 0.2s,
+          color 0.2s;
+        cursor: default;
+      }
+      .stack-tag:hover {
+        border-color: var(--ink-60);
+        color: var(--ink);
+      }
+
+      /* Core del proyecto — fondo oscuro, como .btn--primary */
+      .stack-tag--core {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+      .stack-tag--core:hover {
+        background: #2a2a2a;
+        border-color: #2a2a2a;
+      }
+
+      /* ── Diagrama de arquitectura ── */
+      .arch-section {
+        margin-bottom: 4.5rem;
+      }
+
+      .arch-label {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.63rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-60);
+        margin-bottom: 1.25rem;
+      }
+
+      /* Panel oscuro — igual al .dashboard-section del proyecto */
+      .arch-diagram {
+        background: var(--ink);
+        border-radius: var(--radius);
+        padding: 2rem 2.5rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .arch-flow {
+        display: flex;
+        align-items: center;
+        min-width: 560px;
+      }
+
+      .arch-node {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+      }
+
+      /* Nodo base — idéntico al .dashboard-card del proyecto */
+      .arch-node__box {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 8px;
+        padding: 0.65rem 0.75rem;
         text-align: center;
-        margin: 0.85rem 0 1rem;
+        width: 100%;
+        transition:
+          background 0.2s,
+          border-color 0.2s;
+      }
+      .arch-node__box:hover {
+        background: rgba(255, 90, 95, 0.09);
+        border-color: rgba(255, 90, 95, 0.35);
       }
 
-      /* Resto de estilos responsive sin cambios */
-      .hero { padding: 7rem 1.5rem 5rem; }
-      .hero__stats { flex-wrap: wrap; gap: 1.25rem; }
-      .hero__stat { padding: 0; }
-      .hero__stat-divider { display: none; }
-      .hero__stat-value { font-size: 1.85rem; }
-      .technical { padding: 4rem 1.5rem 5rem; }
-      .arch-diagram { padding: 1.5rem 1.25rem; }
-    }
-
-    @media (max-width: 540px) {
-      .hero__title { font-size: 2.75rem; }
-      .cards-grid { grid-template-columns: 1fr; }
-      .hero__ctas { flex-direction: column; align-items: stretch; }
-      .cta-row { flex-direction: column; align-items: stretch; }
-      .btn-primary,
-      .btn-secondary-dark,
-      .btn-secondary-light { width: 100%; }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- ── NAVBAR ──────────────────────────────────────────────────── -->
-  <nav class="nav" id="main-nav" role="navigation" aria-label="Navegación principal">
-    <span class="nav__brand">✦ Airbnb Finance</span>
-
-    <!-- Botón hamburguesa — solo visible en mobile (≤768px) -->
-    <button class="nav__hamburger"
-            id="nav-hamburger"
-            aria-label="Abrir menú"
-            aria-expanded="false"
-            aria-controls="nav-menu">
-      <span class="nav__hamburger-icon" aria-hidden="true">☰</span>
-    </button>
-
-    <div class="nav__links" id="nav-menu">
-      <a href="#features"     class="nav__link">Features</a>
-      <a href="#architecture" class="nav__link">Arquitectura</a>
-      <a href="/app"          class="nav__cta">Ver App →</a>
-    </div>
-  </nav>
-
-  <!-- ── HERO ───────────────────────────────────────────────────── -->
-  <section class="hero" aria-label="Presentación del proyecto">
-    <div class="hero__inner">
-
-      <!-- Eyebrow -->
-      <div class="hero__eyebrow">
-        <span class="hero__eyebrow-dot" aria-hidden="true"></span>
-        Portfolio Project — Full Stack
-      </div>
-
-      <!-- Título -->
-      <h1 class="hero__title">
-        Airbnb<br>
-        <em>Finance</em><br>
-        Assistant
-      </h1>
-
-      <!-- Subtítulo -->
-      <p class="hero__subtitle">
-        Conciliación financiera automática para propietarios de Airbnb.
-        Compara tus depósitos con el estado de cuenta bancario,
-        detecta diferencias y genera reportes con análisis de IA.
-      </p>
-
-      <!-- Stats -->
-      <div class="hero__stats" role="list">
-        <div class="hero__stat" role="listitem">
-          <div class="hero__stat-value"><span>69</span></div>
-          <div class="hero__stat-label">Tests — Jest + Supertest</div>
-        </div>
-        <div class="hero__stat-divider" aria-hidden="true"></div>
-        <div class="hero__stat" role="listitem">
-          <div class="hero__stat-value">REST</div>
-          <div class="hero__stat-label">API — Clean Architecture</div>
-        </div>
-        <div class="hero__stat-divider" aria-hidden="true"></div>
-        <div class="hero__stat" role="listitem">
-          <div class="hero__stat-value">Claude</div>
-          <div class="hero__stat-label">AI — Anthropic SDK</div>
-        </div>
-      </div>
-
-      <!-- CTAs -->
-      <div class="hero__ctas">
-        <a href="/app" class="btn-primary">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2.5"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          Ver Demo
-        </a>
-        <a href="https://github.com/Alfredosullivan/airbnb-finance-assistant" target="_blank" rel="noopener noreferrer" class="btn-secondary-dark">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
-          </svg>
-          Ver en GitHub
-        </a>
-      </div>
-
-      <!-- Stack pills -->
-      <div class="hero__pills" role="list" aria-label="Tecnologías del proyecto">
-        <span class="pill pill--accent" role="listitem">Node.js</span>
-        <span class="pill pill--accent" role="listitem">Express</span>
-        <span class="pill pill--accent" role="listitem">PostgreSQL</span>
-        <span class="pill" role="listitem">JWT Auth</span>
-        <span class="pill" role="listitem">Vanilla JS</span>
-        <span class="pill" role="listitem">Chart.js</span>
-        <span class="pill" role="listitem">Clean Architecture</span>
-        <span class="pill" role="listitem">Swagger / OpenAPI</span>
-        <span class="pill" role="listitem">Claude AI</span>
-        <span class="pill" role="listitem">Docker</span>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ── TRANSICIÓN GRADIENTE ────────────────────────────────────── -->
-  <div class="gradient-transition" aria-hidden="true"></div>
-
-  <!-- ── SECCIÓN TÉCNICA ─────────────────────────────────────────── -->
-  <section class="technical" id="features" aria-label="Detalle técnico">
-    <div class="section-inner">
-
-      <!-- Header de sección -->
-      <div class="section-label" aria-hidden="true">Technical breakdown</div>
-      <h2 class="section-title">
-        Engineered with <em>intent</em>,<br>not just assembled.
-      </h2>
-      <p class="section-subtitle">
-        Cada capa responde a una decisión deliberada: arquitectura limpia,
-        cobertura de tests real y seguridad habilitada por defecto.
-      </p>
-
-      <!-- Feature cards -->
-      <div class="cards-grid" role="list">
-
-        <!-- 1. Clean Architecture -->
-        <article class="feature-card" role="listitem">
-          <div class="feature-card__icon feature-card__icon--coral" aria-hidden="true">
-            <!-- ícono "layers" — mismo estilo Feather que usa el proyecto -->
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-              <polyline points="2 17 12 22 22 17"/>
-              <polyline points="2 12 12 17 22 12"/>
-            </svg>
-          </div>
-          <span class="feature-card__badge feature-card__badge--coral">Architecture</span>
-          <h3 class="feature-card__title">Clean Architecture</h3>
-          <p class="feature-card__desc">
-            Separación estricta en 4 capas: Controllers, Services, Repositories y Models.
-            Los controllers nunca acceden a la base de datos. Los services no conocen HTTP.
-          </p>
-        </article>
-
-        <!-- 2. 69 Tests -->
-        <article class="feature-card" role="listitem">
-          <div class="feature-card__icon feature-card__icon--green" aria-hidden="true">
-            <!-- ícono "clipboard-check" -->
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-              <rect x="9" y="3" width="6" height="4" rx="2"/>
-              <path d="M9 12l2 2 4-4"/>
-            </svg>
-          </div>
-          <span class="feature-card__badge feature-card__badge--green">Testing</span>
-          <h3 class="feature-card__title">69 Tests — Jest + Supertest</h3>
-          <p class="feature-card__desc">
-            Cobertura de todos los endpoints críticos con integration tests que
-            corren contra una base de datos real. Sin mocks de DB — sin sorpresas en producción.
-          </p>
-        </article>
-
-        <!-- 3. Excel / PDF Export -->
-        <article class="feature-card" role="listitem">
-          <div class="feature-card__icon feature-card__icon--amber" aria-hidden="true">
-            <!-- ícono "download" — igual al que usa el proyecto en sus botones -->
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-          </div>
-          <h3 class="feature-card__title">Excel + PDF Export</h3>
-          <p class="feature-card__desc">
-            Genera archivos <code>.xlsx</code> con múltiples hojas: conciliación mensual,
-            resumen anual y comparativa YoY. También exporta el análisis de IA en PDF.
-          </p>
-        </article>
-
-        <!-- 4. Claude AI -->
-        <article class="feature-card" role="listitem">
-          <div class="feature-card__icon feature-card__icon--blue" aria-hidden="true">
-            <!-- ícono "sparkles" — estrella de 4 puntas para IA -->
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6L12 2z"/>
-            </svg>
-          </div>
-          <span class="feature-card__badge feature-card__badge--blue">AI</span>
-          <h3 class="feature-card__title">Claude AI Integration</h3>
-          <p class="feature-card__desc">
-            Análisis financiero personalizado via Anthropic SDK. Detecta patrones,
-            identifica discrepancias recurrentes y genera recomendaciones accionables.
-          </p>
-        </article>
-
-        <!-- 5. JWT Auth -->
-        <article class="feature-card" role="listitem">
-          <div class="feature-card__icon feature-card__icon--coral" aria-hidden="true">
-            <!-- ícono "lock" — igual al que usa el proyecto -->
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-          </div>
-          <h3 class="feature-card__title">JWT Authentication</h3>
-          <p class="feature-card__desc">
-            Auth completo con access tokens de 15 min y refresh tokens de 7 días.
-            Contraseñas hasheadas con bcrypt (12 rounds). Soporte multi-propiedad por usuario.
-          </p>
-        </article>
-
-        <!-- 6. Swagger / OpenAPI -->
-        <article class="feature-card" role="listitem">
-          <div class="feature-card__icon feature-card__icon--green" aria-hidden="true">
-            <!-- ícono "code" — mismos ángulos del SVG del proyecto -->
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="16 18 22 12 16 6"/>
-              <polyline points="8 6 2 12 8 18"/>
-            </svg>
-          </div>
-          <span class="feature-card__badge feature-card__badge--green">Docs</span>
-          <h3 class="feature-card__title">Swagger / OpenAPI</h3>
-          <p class="feature-card__desc">
-            Documentación interactiva completa disponible en <code>/api/docs</code>.
-            Cada endpoint documentado con schemas de request/response y ejemplos reales.
-          </p>
-        </article>
-
-      </div>
-
-      <!-- Stack tags -->
-      <div class="stack-section">
-        <div class="stack-label">Stack completo del proyecto</div>
-        <div class="stack-tags">
-          <span class="stack-tag stack-tag--core">Node.js</span>
-          <span class="stack-tag stack-tag--core">Express 5</span>
-          <span class="stack-tag stack-tag--core">PostgreSQL</span>
-          <span class="stack-tag">Prisma ORM</span>
-          <span class="stack-tag">JWT + bcrypt</span>
-          <span class="stack-tag">Zod</span>
-          <span class="stack-tag">Jest</span>
-          <span class="stack-tag">Supertest</span>
-          <span class="stack-tag">Anthropic SDK</span>
-          <span class="stack-tag">ExcelJS</span>
-          <span class="stack-tag">Puppeteer</span>
-          <span class="stack-tag">Chart.js</span>
-          <span class="stack-tag">Swagger UI</span>
-          <span class="stack-tag">Docker</span>
-          <span class="stack-tag">Railway</span>
-          <span class="stack-tag">Vercel</span>
-        </div>
-      </div>
-
-      <!-- Diagrama de arquitectura -->
-      <div class="arch-section" id="architecture">
-        <div class="arch-label">Diagrama de arquitectura — Request lifecycle</div>
-        <div class="arch-diagram" role="img" aria-label="Flujo de una request: Routes → Controllers → Services → Repositories → PostgreSQL">
-          <div class="arch-flow">
-
-            <div class="arch-node">
-              <div class="arch-node__box">
-                <div class="arch-node__name">Routes</div>
-                <div class="arch-node__sub">/api/v1/*</div>
-              </div>
-            </div>
-
-            <div class="arch-arrow" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2"
-                   stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </div>
-
-            <div class="arch-node">
-              <div class="arch-node__box">
-                <div class="arch-node__name">Controllers</div>
-                <div class="arch-node__sub">HTTP only</div>
-              </div>
-            </div>
-
-            <div class="arch-arrow" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2"
-                   stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </div>
-
-            <div class="arch-node">
-              <div class="arch-node__box">
-                <div class="arch-node__name">Services</div>
-                <div class="arch-node__sub">Business logic</div>
-              </div>
-            </div>
-
-            <div class="arch-arrow" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2"
-                   stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </div>
-
-            <div class="arch-node">
-              <div class="arch-node__box">
-                <div class="arch-node__name">Repositories</div>
-                <div class="arch-node__sub">Data access</div>
-              </div>
-            </div>
-
-            <div class="arch-arrow" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2"
-                   stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </div>
-
-            <div class="arch-node arch-node--db">
-              <div class="arch-node__box">
-                <div class="arch-node__name">PostgreSQL</div>
-                <div class="arch-node__sub">via Prisma</div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      <!-- CTAs repetidos al pie de la sección -->
-      <div class="cta-row">
-        <a href="/app" class="btn-primary">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2.5"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          Ver Demo
-        </a>
-        <a href="https://github.com/Alfredosullivan/airbnb-finance-assistant" target="_blank" rel="noopener noreferrer" class="btn-secondary-light">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
-          </svg>
-          Ver en GitHub
-        </a>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ── FOOTER ─────────────────────────────────────────────────── -->
-  <footer class="footer">
-    <div class="footer__name">Alfredo Sullivan</div>
-    <div class="footer__meta">
-      Full Stack Developer &nbsp;·&nbsp;
-      <span>Mérida, Yucatán</span> &nbsp;·&nbsp;
-      Node.js &nbsp;·&nbsp; React &nbsp;·&nbsp; PostgreSQL
-    </div>
-  </footer>
-
-  <!-- ── Menú hamburguesa — vanilla JS, sin dependencias ─────────── -->
-  <script>
-    (function () {
-      const nav       = document.getElementById('main-nav');
-      const hamburger = document.getElementById('nav-hamburger');
-      const icon      = hamburger.querySelector('.nav__hamburger-icon');
-      const links     = document.querySelectorAll('#nav-menu a');
-
-      function openMenu() {
-        nav.classList.add('is-open');
-        hamburger.setAttribute('aria-expanded', 'true');
-        hamburger.setAttribute('aria-label', 'Cerrar menú');
-        icon.textContent = '✕';
+      .arch-node__name {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #fff;
+        white-space: nowrap;
       }
 
-      function closeMenu() {
-        nav.classList.remove('is-open');
-        hamburger.setAttribute('aria-expanded', 'false');
-        hamburger.setAttribute('aria-label', 'Abrir menú');
-        icon.textContent = '☰';
+      .arch-node__sub {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.6rem;
+        color: rgba(255, 255, 255, 0.3);
+        white-space: nowrap;
       }
 
-      // Toggle al hacer click en el botón hamburguesa
-      hamburger.addEventListener('click', function (e) {
-        e.stopPropagation(); // evitar que el listener del document lo cierre inmediatamente
-        nav.classList.contains('is-open') ? closeMenu() : openMenu();
-      });
+      .arch-arrow {
+        flex-shrink: 0;
+        color: rgba(255, 255, 255, 0.18);
+        padding: 0 0.25rem;
+      }
 
-      // Cerrar al hacer click en cualquier link del menú (anchor o CTA)
-      links.forEach(function (link) {
-        link.addEventListener('click', closeMenu);
-      });
+      /* Nodo de DB — usa el --blue del proyecto */
+      .arch-node--db .arch-node__box {
+        background: rgba(31, 78, 121, 0.25);
+        border-color: rgba(31, 78, 121, 0.5);
+      }
+      .arch-node--db .arch-node__name {
+        color: #88bbe0;
+      }
 
-      // Cerrar al hacer click fuera del navbar
-      document.addEventListener('click', function (e) {
-        if (!nav.contains(e.target)) closeMenu();
-      });
+      /* ── CTAs al final de la sección técnica ── */
+      .cta-row {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        flex-wrap: wrap;
+      }
 
-      // Cerrar también con la tecla Escape (accesibilidad)
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closeMenu();
-      });
-    })();
-  </script>
+      /* ═══════════════════════════════════════════════════════════════
+       FOOTER — mismo estilo que el footer del proyecto
+    ═══════════════════════════════════════════════════════════════ */
+      .footer {
+        background: var(--ink);
+        border-top: 2px solid var(--coral);
+        padding: 2rem;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+      }
 
-</body>
+      .footer__name {
+        font-family: 'DM Serif Display', serif;
+        font-size: 1.1rem;
+        color: var(--coral);
+      }
+
+      .footer__meta {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.68rem;
+        color: rgba(255, 255, 255, 0.28);
+        letter-spacing: 0.06em;
+      }
+      .footer__meta span {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      /* ═══════════════════════════════════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════════════════════════════════ */
+      @media (max-width: 900px) {
+        .cards-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .hero__stat {
+          padding: 0 1.5rem;
+        }
+        .hero__stat:first-child {
+          padding-left: 0;
+        }
+      }
+
+      @media (max-width: 768px) {
+        /* Mostrar el hamburger */
+        .nav__hamburger {
+          display: flex;
+          align-items: center;
+        }
+
+        /* Dropdown — posición absoluta justo debajo del navbar (top: 52px) */
+        .nav__links {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+          position: absolute;
+          top: 52px;
+          left: 0;
+          right: 0;
+          background: rgba(15, 15, 15, 0.98);
+          border-bottom: 2px solid var(--coral);
+          padding: 0 2rem;
+          /* Estado cerrado: colapsado e invisible */
+          max-height: 0;
+          overflow: hidden;
+          opacity: 0;
+          pointer-events: none;
+          /* Slide-down + fade simultáneos */
+          transition:
+            max-height 0.32s ease,
+            opacity 0.22s ease;
+        }
+
+        /* Estado abierto — JS añade .is-open al <nav> */
+        .nav.is-open .nav__links {
+          max-height: 300px;
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        /* Links individuales: más espacio, separador sutil */
+        .nav__link {
+          padding: 0.9rem 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+          font-size: 0.8rem;
+          text-align: center;
+        }
+
+        /* CTA "Ver App": bloque centrado con margen */
+        .nav__cta {
+          display: block;
+          text-align: center;
+          margin: 0.85rem 0 1rem;
+        }
+
+        /* Resto de estilos responsive sin cambios */
+        .hero {
+          padding: 7rem 1.5rem 5rem;
+        }
+        .hero__stats {
+          flex-wrap: wrap;
+          gap: 1.25rem;
+        }
+        .hero__stat {
+          padding: 0;
+        }
+        .hero__stat-divider {
+          display: none;
+        }
+        .hero__stat-value {
+          font-size: 1.85rem;
+        }
+        .technical {
+          padding: 4rem 1.5rem 5rem;
+        }
+        .arch-diagram {
+          padding: 1.5rem 1.25rem;
+        }
+      }
+
+      @media (max-width: 540px) {
+        .hero__title {
+          font-size: 2.75rem;
+        }
+        .cards-grid {
+          grid-template-columns: 1fr;
+        }
+        .hero__ctas {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .cta-row {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .btn-primary,
+        .btn-secondary-dark,
+        .btn-secondary-light {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ── NAVBAR ──────────────────────────────────────────────────── -->
+    <nav class="nav" id="main-nav" role="navigation" aria-label="Navegación principal">
+      <span class="nav__brand">✦ Airbnb Finance</span>
+
+      <!-- Botón hamburguesa — solo visible en mobile (≤768px) -->
+      <button
+        class="nav__hamburger"
+        id="nav-hamburger"
+        aria-label="Abrir menú"
+        aria-expanded="false"
+        aria-controls="nav-menu"
+      >
+        <span class="nav__hamburger-icon" aria-hidden="true">☰</span>
+      </button>
+
+      <div class="nav__links" id="nav-menu">
+        <a href="#features" class="nav__link">Features</a>
+        <a href="#architecture" class="nav__link">Arquitectura</a>
+        <a href="/app" class="nav__cta">Ver App →</a>
+      </div>
+    </nav>
+
+    <!-- ── HERO ───────────────────────────────────────────────────── -->
+    <section class="hero" aria-label="Presentación del proyecto">
+      <div class="hero__inner">
+        <!-- Eyebrow -->
+        <div class="hero__eyebrow">
+          <span class="hero__eyebrow-dot" aria-hidden="true"></span>
+          Portfolio Project — Full Stack
+        </div>
+
+        <!-- Título -->
+        <h1 class="hero__title">
+          Airbnb<br />
+          <em>Finance</em><br />
+          Assistant
+        </h1>
+
+        <!-- Subtítulo -->
+        <p class="hero__subtitle">
+          Conciliación financiera automática para propietarios de Airbnb. Compara tus depósitos con
+          el estado de cuenta bancario, detecta diferencias y genera reportes con análisis de IA.
+        </p>
+
+        <!-- Stats -->
+        <div class="hero__stats" role="list">
+          <div class="hero__stat" role="listitem">
+            <div class="hero__stat-value"><span>69</span></div>
+            <div class="hero__stat-label">Tests — Jest + Supertest</div>
+          </div>
+          <div class="hero__stat-divider" aria-hidden="true"></div>
+          <div class="hero__stat" role="listitem">
+            <div class="hero__stat-value">REST</div>
+            <div class="hero__stat-label">API — Clean Architecture</div>
+          </div>
+          <div class="hero__stat-divider" aria-hidden="true"></div>
+          <div class="hero__stat" role="listitem">
+            <div class="hero__stat-value">Claude</div>
+            <div class="hero__stat-label">AI — Anthropic SDK</div>
+          </div>
+        </div>
+
+        <!-- CTAs -->
+        <div class="hero__ctas">
+          <a href="/app" class="btn-primary">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Ver Demo
+          </a>
+          <a
+            href="https://github.com/Alfredosullivan/airbnb-finance-assistant"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-secondary-dark"
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+              />
+            </svg>
+            Ver en GitHub
+          </a>
+        </div>
+
+        <!-- Stack pills -->
+        <div class="hero__pills" role="list" aria-label="Tecnologías del proyecto">
+          <span class="pill pill--accent" role="listitem">Node.js</span>
+          <span class="pill pill--accent" role="listitem">Express</span>
+          <span class="pill pill--accent" role="listitem">PostgreSQL</span>
+          <span class="pill" role="listitem">JWT Auth</span>
+          <span class="pill" role="listitem">Vanilla JS</span>
+          <span class="pill" role="listitem">Chart.js</span>
+          <span class="pill" role="listitem">Clean Architecture</span>
+          <span class="pill" role="listitem">Swagger / OpenAPI</span>
+          <span class="pill" role="listitem">Claude AI</span>
+          <span class="pill" role="listitem">Docker</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TRANSICIÓN GRADIENTE ────────────────────────────────────── -->
+    <div class="gradient-transition" aria-hidden="true"></div>
+
+    <!-- ── SECCIÓN TÉCNICA ─────────────────────────────────────────── -->
+    <section class="technical" id="features" aria-label="Detalle técnico">
+      <div class="section-inner">
+        <!-- Header de sección -->
+        <div class="section-label" aria-hidden="true">Technical breakdown</div>
+        <h2 class="section-title">Engineered with <em>intent</em>,<br />not just assembled.</h2>
+        <p class="section-subtitle">
+          Cada capa responde a una decisión deliberada: arquitectura limpia, cobertura de tests real
+          y seguridad habilitada por defecto.
+        </p>
+
+        <!-- Feature cards -->
+        <div class="cards-grid" role="list">
+          <!-- 1. Clean Architecture -->
+          <article class="feature-card" role="listitem">
+            <div class="feature-card__icon feature-card__icon--coral" aria-hidden="true">
+              <!-- ícono "layers" — mismo estilo Feather que usa el proyecto -->
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                <polyline points="2 17 12 22 22 17" />
+                <polyline points="2 12 12 17 22 12" />
+              </svg>
+            </div>
+            <span class="feature-card__badge feature-card__badge--coral">Architecture</span>
+            <h3 class="feature-card__title">Clean Architecture</h3>
+            <p class="feature-card__desc">
+              Separación estricta en 4 capas: Controllers, Services, Repositories y Models. Los
+              controllers nunca acceden a la base de datos. Los services no conocen HTTP.
+            </p>
+          </article>
+
+          <!-- 2. 69 Tests -->
+          <article class="feature-card" role="listitem">
+            <div class="feature-card__icon feature-card__icon--green" aria-hidden="true">
+              <!-- ícono "clipboard-check" -->
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"
+                />
+                <rect x="9" y="3" width="6" height="4" rx="2" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+            </div>
+            <span class="feature-card__badge feature-card__badge--green">Testing</span>
+            <h3 class="feature-card__title">69 Tests — Jest + Supertest</h3>
+            <p class="feature-card__desc">
+              Cobertura de todos los endpoints críticos con integration tests que corren contra una
+              base de datos real. Sin mocks de DB — sin sorpresas en producción.
+            </p>
+          </article>
+
+          <!-- 3. Excel / PDF Export -->
+          <article class="feature-card" role="listitem">
+            <div class="feature-card__icon feature-card__icon--amber" aria-hidden="true">
+              <!-- ícono "download" — igual al que usa el proyecto en sus botones -->
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </div>
+            <h3 class="feature-card__title">Excel + PDF Export</h3>
+            <p class="feature-card__desc">
+              Genera archivos <code>.xlsx</code> con múltiples hojas: conciliación mensual, resumen
+              anual y comparativa YoY. También exporta el análisis de IA en PDF.
+            </p>
+          </article>
+
+          <!-- 4. Claude AI -->
+          <article class="feature-card" role="listitem">
+            <div class="feature-card__icon feature-card__icon--blue" aria-hidden="true">
+              <!-- ícono "sparkles" — estrella de 4 puntas para IA -->
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6L12 2z" />
+              </svg>
+            </div>
+            <span class="feature-card__badge feature-card__badge--blue">AI</span>
+            <h3 class="feature-card__title">Claude AI Integration</h3>
+            <p class="feature-card__desc">
+              Análisis financiero personalizado via Anthropic SDK. Detecta patrones, identifica
+              discrepancias recurrentes y genera recomendaciones accionables.
+            </p>
+          </article>
+
+          <!-- 5. JWT Auth -->
+          <article class="feature-card" role="listitem">
+            <div class="feature-card__icon feature-card__icon--coral" aria-hidden="true">
+              <!-- ícono "lock" — igual al que usa el proyecto -->
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <h3 class="feature-card__title">JWT Authentication</h3>
+            <p class="feature-card__desc">
+              Auth completo con access tokens de 15 min y refresh tokens de 7 días. Contraseñas
+              hasheadas con bcrypt (12 rounds). Soporte multi-propiedad por usuario.
+            </p>
+          </article>
+
+          <!-- 6. Swagger / OpenAPI -->
+          <article class="feature-card" role="listitem">
+            <div class="feature-card__icon feature-card__icon--green" aria-hidden="true">
+              <!-- ícono "code" — mismos ángulos del SVG del proyecto -->
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+            </div>
+            <span class="feature-card__badge feature-card__badge--green">Docs</span>
+            <h3 class="feature-card__title">Swagger / OpenAPI</h3>
+            <p class="feature-card__desc">
+              Documentación interactiva completa disponible en <code>/api/docs</code>. Cada endpoint
+              documentado con schemas de request/response y ejemplos reales.
+            </p>
+          </article>
+        </div>
+
+        <!-- Stack tags -->
+        <div class="stack-section">
+          <div class="stack-label">Stack completo del proyecto</div>
+          <div class="stack-tags">
+            <span class="stack-tag stack-tag--core">Node.js</span>
+            <span class="stack-tag stack-tag--core">Express 5</span>
+            <span class="stack-tag stack-tag--core">PostgreSQL</span>
+            <span class="stack-tag">Prisma ORM</span>
+            <span class="stack-tag">JWT + bcrypt</span>
+            <span class="stack-tag">Zod</span>
+            <span class="stack-tag">Jest</span>
+            <span class="stack-tag">Supertest</span>
+            <span class="stack-tag">Anthropic SDK</span>
+            <span class="stack-tag">ExcelJS</span>
+            <span class="stack-tag">Puppeteer</span>
+            <span class="stack-tag">Chart.js</span>
+            <span class="stack-tag">Swagger UI</span>
+            <span class="stack-tag">Docker</span>
+            <span class="stack-tag">Railway</span>
+            <span class="stack-tag">Vercel</span>
+          </div>
+        </div>
+
+        <!-- Diagrama de arquitectura -->
+        <div class="arch-section" id="architecture">
+          <div class="arch-label">Diagrama de arquitectura — Request lifecycle</div>
+          <div
+            class="arch-diagram"
+            role="img"
+            aria-label="Flujo de una request: Routes → Controllers → Services → Repositories → PostgreSQL"
+          >
+            <div class="arch-flow">
+              <div class="arch-node">
+                <div class="arch-node__box">
+                  <div class="arch-node__name">Routes</div>
+                  <div class="arch-node__sub">/api/v1/*</div>
+                </div>
+              </div>
+
+              <div class="arch-arrow" aria-hidden="true">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+
+              <div class="arch-node">
+                <div class="arch-node__box">
+                  <div class="arch-node__name">Controllers</div>
+                  <div class="arch-node__sub">HTTP only</div>
+                </div>
+              </div>
+
+              <div class="arch-arrow" aria-hidden="true">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+
+              <div class="arch-node">
+                <div class="arch-node__box">
+                  <div class="arch-node__name">Services</div>
+                  <div class="arch-node__sub">Business logic</div>
+                </div>
+              </div>
+
+              <div class="arch-arrow" aria-hidden="true">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+
+              <div class="arch-node">
+                <div class="arch-node__box">
+                  <div class="arch-node__name">Repositories</div>
+                  <div class="arch-node__sub">Data access</div>
+                </div>
+              </div>
+
+              <div class="arch-arrow" aria-hidden="true">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+
+              <div class="arch-node arch-node--db">
+                <div class="arch-node__box">
+                  <div class="arch-node__name">PostgreSQL</div>
+                  <div class="arch-node__sub">via Prisma</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTAs repetidos al pie de la sección -->
+        <div class="cta-row">
+          <a href="/app" class="btn-primary">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Ver Demo
+          </a>
+          <a
+            href="https://github.com/Alfredosullivan/airbnb-finance-assistant"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-secondary-light"
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+              />
+            </svg>
+            Ver en GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FOOTER ─────────────────────────────────────────────────── -->
+    <footer class="footer">
+      <div class="footer__name">Alfredo Sullivan</div>
+      <div class="footer__meta">
+        Full Stack Developer &nbsp;·&nbsp;
+        <span>Mérida, Yucatán</span> &nbsp;·&nbsp; Node.js &nbsp;·&nbsp; React &nbsp;·&nbsp;
+        PostgreSQL
+      </div>
+    </footer>
+
+    <!-- ── Menú hamburguesa — vanilla JS, sin dependencias ─────────── -->
+    <script>
+      (function () {
+        const nav = document.getElementById('main-nav');
+        const hamburger = document.getElementById('nav-hamburger');
+        const icon = hamburger.querySelector('.nav__hamburger-icon');
+        const links = document.querySelectorAll('#nav-menu a');
+
+        function openMenu() {
+          nav.classList.add('is-open');
+          hamburger.setAttribute('aria-expanded', 'true');
+          hamburger.setAttribute('aria-label', 'Cerrar menú');
+          icon.textContent = '✕';
+        }
+
+        function closeMenu() {
+          nav.classList.remove('is-open');
+          hamburger.setAttribute('aria-expanded', 'false');
+          hamburger.setAttribute('aria-label', 'Abrir menú');
+          icon.textContent = '☰';
+        }
+
+        // Toggle al hacer click en el botón hamburguesa
+        hamburger.addEventListener('click', function (e) {
+          e.stopPropagation(); // evitar que el listener del document lo cierre inmediatamente
+          nav.classList.contains('is-open') ? closeMenu() : openMenu();
+        });
+
+        // Cerrar al hacer click en cualquier link del menú (anchor o CTA)
+        links.forEach(function (link) {
+          link.addEventListener('click', closeMenu);
+        });
+
+        // Cerrar al hacer click fuera del navbar
+        document.addEventListener('click', function (e) {
+          if (!nav.contains(e.target)) closeMenu();
+        });
+
+        // Cerrar también con la tecla Escape (accesibilidad)
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') closeMenu();
+        });
+      })();
+    </script>
+  </body>
 </html>

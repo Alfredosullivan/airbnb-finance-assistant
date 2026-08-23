@@ -11,12 +11,13 @@ const fetch = require('node-fetch');
 // Sin headers, el request llega como "Node.js fetch" y muchos sitios lo bloquean (403/429).
 // Con headers de browser, el servidor ve un request aparentemente legítimo.
 const BROWSER_HEADERS = {
-  'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Accept':          'text/html,application/xhtml+xml,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
   'Accept-Language': 'es-MX,es;q=0.9,en;q=0.8',
   'Accept-Encoding': 'gzip, deflate, br',
-  'Cache-Control':   'no-cache',
-  'Connection':      'keep-alive',
+  'Cache-Control': 'no-cache',
+  Connection: 'keep-alive',
 };
 
 // ── Helpers de timing ──────────────────────────────────────────
@@ -26,7 +27,7 @@ const BROWSER_HEADERS = {
  * @param {number} ms
  * @returns {Promise<void>}
  */
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * politeDelay — Pausa aleatoria de 1.5 a 3 segundos entre requests.

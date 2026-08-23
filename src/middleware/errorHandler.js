@@ -13,13 +13,13 @@
  */
 // eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, next) {
-  const status  = err.statusCode || err.status || 500;
-  const message = err.message    || 'Error interno del servidor';
-  const code    = err.code       || 'INTERNAL_ERROR';
+  const status = err.statusCode || err.status || 500;
+  const message = err.message || 'Error interno del servidor';
+  const code = err.code || 'INTERNAL_ERROR';
 
   // Solo incluir el stack trace en modo desarrollo
   const body = {
-    status:  'error',
+    status: 'error',
     message,
     code,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),

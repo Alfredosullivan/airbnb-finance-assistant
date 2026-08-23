@@ -1,8 +1,8 @@
 // auth.controller.js — Controlador de autenticación de usuarios
 // Maneja registro, login, logout y verificación de sesión activa
 
-const bcrypt   = require('bcryptjs');
-const jwt      = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const UserRepo = require('../repositories/UserRepository');
 const PropRepo = require('../repositories/PropertyRepository');
 
@@ -10,10 +10,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_local';
 
 // Opciones de la cookie de sesión
 const COOKIE_OPTS = {
-  httpOnly: true,            // No accesible desde JS del cliente (protección XSS)
-  secure:   false,           // false en desarrollo (sin HTTPS)
+  httpOnly: true, // No accesible desde JS del cliente (protección XSS)
+  secure: false, // false en desarrollo (sin HTTPS)
   sameSite: 'lax',
-  maxAge:   7 * 24 * 60 * 60 * 1000, // 7 días en milisegundos
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días en milisegundos
 };
 
 // ── Helpers internos ────────────────────────────────────────────
@@ -40,7 +40,9 @@ async function register(req, res) {
 
     // Validaciones de entrada
     if (!username || username.trim().length < 3) {
-      return res.status(400).json({ error: 'El nombre de usuario debe tener al menos 3 caracteres' });
+      return res
+        .status(400)
+        .json({ error: 'El nombre de usuario debe tener al menos 3 caracteres' });
     }
     if (!email || !esEmailValido(email)) {
       return res.status(400).json({ error: 'El email no tiene un formato válido' });
@@ -50,7 +52,7 @@ async function register(req, res) {
     }
 
     const cleanUsername = username.trim();
-    const cleanEmail    = email.toLowerCase().trim();
+    const cleanEmail = email.toLowerCase().trim();
 
     // Verificar que username y email no estén ya registrados
     const existente = await UserRepo.findByUsernameOrEmail(cleanUsername, cleanEmail);
@@ -74,7 +76,6 @@ async function register(req, res) {
       success: true,
       user: { id: userId, username: cleanUsername, email: cleanEmail },
     });
-
   } catch (err) {
     console.error('[auth] Error en register:', err.message);
     return res.status(500).json({ error: 'Error interno al registrar usuario' });
@@ -117,7 +118,6 @@ async function login(req, res) {
       success: true,
       user: { id: user.id, username: user.username, email: user.email },
     });
-
   } catch (err) {
     console.error('[auth] Error en login:', err.message);
     return res.status(500).json({ error: 'Error interno al iniciar sesión' });
@@ -161,14 +161,13 @@ async function me(req, res) {
 
     // needsPropertyName: true si el usuario solo tiene propiedades con el nombre
     // por defecto 'Mi propiedad' (creado por la migración automática).
-    const propCount    = await PropRepo.countByUser(user.id);
+    const propCount = await PropRepo.countByUser(user.id);
     const defaultCount = await PropRepo.countDefaultByUser(user.id);
 
     // Sugerir renombrar si tiene exactamente 1 propiedad con nombre por defecto
-    const needsPropertyName = (propCount === 1 && defaultCount === 1);
+    const needsPropertyName = propCount === 1 && defaultCount === 1;
 
     return res.json({ user, needsPropertyName });
-
   } catch (err) {
     console.error('[auth] Error en me:', err.message);
     return res.status(500).json({ error: 'Error interno' });
@@ -198,11 +197,9 @@ async function me(req, res) {
  */
 function getToken(req, res) {
   // req.user ya fue poblado por requireAuth — contiene userId y username
-  const token = jwt.sign(
-    { userId: req.user.userId, username: req.user.username },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
+  const token = jwt.sign({ userId: req.user.userId, username: req.user.username }, JWT_SECRET, {
+    expiresIn: '7d',
+  });
   return res.json({ token });
 }
 

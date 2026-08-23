@@ -95,11 +95,9 @@ const extractPriceFromDescription = (description) => {
 const buildLocation = (address) => {
   if (!address) return 'Mérida, Yucatán';
 
-  const parts = [
-    address.streetAddress,
-    address.addressLocality,
-    address.addressRegion,
-  ].filter(Boolean);
+  const parts = [address.streetAddress, address.addressLocality, address.addressRegion].filter(
+    Boolean
+  );
 
   // Devolver las partes disponibles separadas por coma
   // Si no hay nada, fallback al valor por defecto
@@ -139,7 +137,7 @@ const parseListings = (html) => {
   // ── Paso 3: Navegar hasta los ItemListElement ─────────────────────────────
   // La estructura puede variar ligeramente — usamos optional chaining en cada paso
   // para evitar crashes si Lamudi cambia el schema.
-  const graph     = data[0]?.['@graph']?.[0];
+  const graph = data[0]?.['@graph']?.[0];
   const mainEntity = graph?.mainEntity;
   // mainEntity es un objeto con claves '0', '1', '2'
   // '0' = 30 propiedades principales (la página de resultados)
@@ -173,21 +171,22 @@ const parseListings = (html) => {
       if (!price || price > MAX_RENTAL_PRICE_MXN) continue;
 
       listings.push({
-        source:   'lamudi',
-        title:    item.name   || 'Sin título',
+        source: 'lamudi',
+        title: item.name || 'Sin título',
         price,
         // Texto original para debug / trazabilidad
         priceText: `$${price.toLocaleString('es-MX')}`,
         location: buildLocation(item.address),
         features: [
-          item.numberOfBedrooms        ? `${item.numberOfBedrooms} rec`          : null,
-          item.numberOfBathroomsTotal  ? `${item.numberOfBathroomsTotal} baños`  : null,
-          item.floorSize?.value        ? `${item.floorSize.value} m²`            : null,
-        ].filter(Boolean).join(' · '),
-        url:       item.url || item['@id'] || '',
+          item.numberOfBedrooms ? `${item.numberOfBedrooms} rec` : null,
+          item.numberOfBathroomsTotal ? `${item.numberOfBathroomsTotal} baños` : null,
+          item.floorSize?.value ? `${item.floorSize.value} m²` : null,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        url: item.url || item['@id'] || '',
         scrapedAt: new Date().toISOString(),
       });
-
     } catch (_) {
       // Un listing con error de estructura no debe detener el procesamiento del resto.
       // Patrón de resiliencia: cualquier error individual es silenciado.

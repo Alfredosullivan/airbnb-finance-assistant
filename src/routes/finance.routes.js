@@ -1,10 +1,10 @@
 // finance.routes.js — Definición de rutas de la API de finanzas
 // Registra los endpoints de upload, reporte y reset; configura multer para almacenamiento temporal
 
-const express  = require('express');
-const multer   = require('multer');
-const path     = require('path');
-const fs       = require('fs');
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { UPLOADS_DIR, MAX_FILE_SIZE_BYTES } = require('../../config');
 
 // Crear el directorio de uploads si no existe — crítico para Railway y Docker.
@@ -18,9 +18,15 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-const { uploadAirbnb, uploadBank, resetReport }                   = require('../controllers/upload.controller');
-const { getReport, generateExcel, getMonthlyAnalysis, getMonthlyAnalysisPDF, queueExcelGeneration } = require('../controllers/report.controller');
-const { requireAuth }                           = require('../middleware/auth.middleware');
+const { uploadAirbnb, uploadBank, resetReport } = require('../controllers/upload.controller');
+const {
+  getReport,
+  generateExcel,
+  getMonthlyAnalysis,
+  getMonthlyAnalysisPDF,
+  queueExcelGeneration,
+} = require('../controllers/report.controller');
+const { requireAuth } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
@@ -40,7 +46,7 @@ const BANK_MIMETYPES = new Set(['application/pdf']);
 // diskStorage guarda el archivo en disco con un nombre único para evitar colisiones
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename:    (_req, file, cb) => {
+  filename: (_req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
     cb(null, `${unique}${path.extname(file.originalname)}`);
   },
@@ -92,14 +98,14 @@ router.get('/report/excel', requireAuth, generateExcel);
 router.post('/reset', resetReport);
 
 // POST /api/analysis/monthly     — Genera análisis IA del reporte actual (requiere auth)
-router.post('/analysis/monthly',     requireAuth, getMonthlyAnalysis);
+router.post('/analysis/monthly', requireAuth, getMonthlyAnalysis);
 
 // POST /api/analysis/monthly/pdf — Descarga el análisis como PDF (requiere auth)
 router.post('/analysis/monthly/pdf', requireAuth, getMonthlyAnalysisPDF);
 
 // POST /api/excel/queue — Encola la generación del Excel en background (requiere auth)
 // Responde 202 inmediatamente con jobId; el cliente hace polling a GET /api/jobs/:jobId
-router.post('/excel/queue',          requireAuth, queueExcelGeneration);
+router.post('/excel/queue', requireAuth, queueExcelGeneration);
 
 // Manejo de errores de multer (tamaño o tipo de archivo)
 router.use((err, _req, res, _next) => {

@@ -4,9 +4,9 @@
 // Montadas bajo /api/crawler en index.js
 // Ambas rutas requieren autenticación — los datos del mercado son para usuarios registrados
 
-const express     = require('express');
-const router      = express.Router();
-const { requireAuth }               = require('../middleware/auth.middleware');
+const express = require('express');
+const router = express.Router();
+const { requireAuth } = require('../middleware/auth.middleware');
 const { getListings, analyzeMarket } = require('../controllers/crawler.controller');
 
 // GET  /api/crawler/listings — Scrapea y devuelve listings actuales del mercado

@@ -21,7 +21,8 @@ const { pool } = require('../database/client');
  * @returns {Promise<void>}
  */
 async function upsert(userId, propertyId, monthKey, year, label, summaryJson) {
-  await pool.query(`
+  await pool.query(
+    `
     INSERT INTO reports (user_id, property_id, month, year, label, summary)
     VALUES ($1, $2, $3, $4, $5, $6)
     ON CONFLICT (user_id, property_id, month) DO UPDATE SET
@@ -29,7 +30,9 @@ async function upsert(userId, propertyId, monthKey, year, label, summaryJson) {
       label      = EXCLUDED.label,
       summary    = EXCLUDED.summary,
       created_at = NOW()
-  `, [userId, propertyId, monthKey, year, label, summaryJson]);
+  `,
+    [userId, propertyId, monthKey, year, label, summaryJson]
+  );
 }
 
 /**
@@ -42,15 +45,12 @@ async function upsert(userId, propertyId, monthKey, year, label, summaryJson) {
  */
 async function updateSummary(id, summaryJson, touchTimestamp = false) {
   if (touchTimestamp) {
-    await pool.query(
-      'UPDATE reports SET summary = $1, created_at = NOW() WHERE id = $2',
-      [summaryJson, id]
-    );
+    await pool.query('UPDATE reports SET summary = $1, created_at = NOW() WHERE id = $2', [
+      summaryJson,
+      id,
+    ]);
   } else {
-    await pool.query(
-      'UPDATE reports SET summary = $1 WHERE id = $2',
-      [summaryJson, id]
-    );
+    await pool.query('UPDATE reports SET summary = $1 WHERE id = $2', [summaryJson, id]);
   }
 }
 
@@ -78,10 +78,10 @@ async function remove(userId, propertyId, month) {
  * @returns {Promise<number>} filas eliminadas
  */
 async function removeAny(userId, month) {
-  const { rowCount } = await pool.query(
-    'DELETE FROM reports WHERE user_id = $1 AND month = $2',
-    [userId, month]
-  );
+  const { rowCount } = await pool.query('DELETE FROM reports WHERE user_id = $1 AND month = $2', [
+    userId,
+    month,
+  ]);
   return rowCount;
 }
 
@@ -110,12 +110,15 @@ async function countByProperty(propertyId) {
  * @returns {Promise<Array<{ id, month, year, label, created_at, summary }>>}
  */
 async function listByProperty(userId, propertyId) {
-  const { rows } = await pool.query(`
+  const { rows } = await pool.query(
+    `
     SELECT id, month, year, label, created_at, summary
     FROM   reports
     WHERE  user_id = $1 AND property_id = $2
     ORDER  BY SUBSTR(month, 1, 4) DESC, month ASC
-  `, [userId, propertyId]);
+  `,
+    [userId, propertyId]
+  );
   return rows;
 }
 
@@ -126,12 +129,15 @@ async function listByProperty(userId, propertyId) {
  * @returns {Promise<Array<{ id, month, year, label, created_at, summary }>>}
  */
 async function listByUser(userId) {
-  const { rows } = await pool.query(`
+  const { rows } = await pool.query(
+    `
     SELECT id, month, year, label, created_at, summary
     FROM   reports
     WHERE  user_id = $1
     ORDER  BY SUBSTR(month, 1, 4) DESC, month ASC
-  `, [userId]);
+  `,
+    [userId]
+  );
   return rows;
 }
 
@@ -206,12 +212,15 @@ async function findSummaryByMonthAny(userId, month) {
  * @returns {Promise<Array<{ month, label, summary }>>}
  */
 async function findByYear(userId, propertyId, year) {
-  const { rows } = await pool.query(`
+  const { rows } = await pool.query(
+    `
     SELECT month, label, summary
     FROM   reports
     WHERE  user_id = $1 AND property_id = $2 AND year = $3
     ORDER  BY month ASC
-  `, [userId, propertyId, year]);
+  `,
+    [userId, propertyId, year]
+  );
   return rows;
 }
 
@@ -223,12 +232,15 @@ async function findByYear(userId, propertyId, year) {
  * @returns {Promise<Array<{ month, label, summary }>>}
  */
 async function findByYearAll(userId, year) {
-  const { rows } = await pool.query(`
+  const { rows } = await pool.query(
+    `
     SELECT month, label, summary
     FROM   reports
     WHERE  user_id = $1 AND year = $2
     ORDER  BY month ASC
-  `, [userId, year]);
+  `,
+    [userId, year]
+  );
   return rows;
 }
 
@@ -241,12 +253,15 @@ async function findByYearAll(userId, year) {
  * @returns {Promise<Array<{ month, summary }>>}
  */
 async function findSummaryByYear(userId, propertyId, year) {
-  const { rows } = await pool.query(`
+  const { rows } = await pool.query(
+    `
     SELECT month, summary
     FROM   reports
     WHERE  user_id = $1 AND property_id = $2 AND year = $3
     ORDER  BY month ASC
-  `, [userId, propertyId, year]);
+  `,
+    [userId, propertyId, year]
+  );
   return rows;
 }
 
@@ -258,12 +273,15 @@ async function findSummaryByYear(userId, propertyId, year) {
  * @returns {Promise<Array<{ month, summary }>>}
  */
 async function findSummaryByYearAll(userId, year) {
-  const { rows } = await pool.query(`
+  const { rows } = await pool.query(
+    `
     SELECT month, summary
     FROM   reports
     WHERE  user_id = $1 AND year = $2
     ORDER  BY month ASC
-  `, [userId, year]);
+  `,
+    [userId, year]
+  );
   return rows;
 }
 
@@ -275,13 +293,16 @@ async function findSummaryByYearAll(userId, year) {
  * @returns {Promise<Array<{ month, label, summary, property_id, property_name }>>}
  */
 async function findByYearWithPropertyName(userId, year) {
-  const { rows } = await pool.query(`
+  const { rows } = await pool.query(
+    `
     SELECT r.month, r.label, r.summary, r.property_id, p.name AS property_name
     FROM   reports r
     LEFT   JOIN properties p ON p.id = r.property_id
     WHERE  r.user_id = $1 AND r.year = $2
     ORDER  BY r.month ASC, r.property_id ASC
-  `, [userId, year]);
+  `,
+    [userId, year]
+  );
   return rows;
 }
 
@@ -294,12 +315,15 @@ async function findByYearWithPropertyName(userId, year) {
  * @returns {Promise<Array<{ month, summary }>>}
  */
 async function findByMonthLike(userId, propertyId, pattern) {
-  const { rows } = await pool.query(`
+  const { rows } = await pool.query(
+    `
     SELECT month, summary
     FROM   reports
     WHERE  user_id = $1 AND property_id = $2 AND month LIKE $3
     ORDER  BY month ASC
-  `, [userId, propertyId, pattern]);
+  `,
+    [userId, propertyId, pattern]
+  );
   return rows;
 }
 

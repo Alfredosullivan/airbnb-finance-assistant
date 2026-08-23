@@ -12,15 +12,15 @@
 // productivo sería buena práctica verificar job.data.userId === req.user.userId.
 
 const express = require('express');
-const router  = express.Router();
+const router = express.Router();
 
-const { requireAuth }                       = require('../middleware/auth.middleware');
-const { getJobStatus, downloadJobResult }   = require('../controllers/jobs.controller');
+const { requireAuth } = require('../middleware/auth.middleware');
+const { getJobStatus, downloadJobResult } = require('../controllers/jobs.controller');
 
 // GET /api/jobs/:jobId          — Estado del job (polling del frontend)
-router.get('/:jobId',           requireAuth, getJobStatus);
+router.get('/:jobId', requireAuth, getJobStatus);
 
 // GET /api/jobs/:jobId/download — Descarga el resultado cuando está listo
-router.get('/:jobId/download',  requireAuth, downloadJobResult);
+router.get('/:jobId/download', requireAuth, downloadJobResult);
 
 module.exports = router;

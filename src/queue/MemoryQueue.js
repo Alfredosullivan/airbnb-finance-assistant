@@ -37,14 +37,14 @@ class MemoryQueue {
    * @returns {Object}    - El job creado con status 'pending'
    */
   addJob(type, data) {
-    const id  = `job_${uuidv4()}`;
+    const id = `job_${uuidv4()}`;
     const job = {
       id,
       type,
       data,
-      status:    'pending',   // pending → active → completed | failed
-      result:    null,
-      error:     null,
+      status: 'pending', // pending → active → completed | failed
+      result: null,
+      error: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -63,7 +63,7 @@ class MemoryQueue {
    */
   getNextPending() {
     while (this.pending.length > 0) {
-      const id  = this.pending.shift();
+      const id = this.pending.shift();
       const job = this.jobs.get(id);
 
       // Solo retornamos el job si sigue en estado 'pending'.

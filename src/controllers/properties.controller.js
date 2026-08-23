@@ -3,8 +3,8 @@
 
 'use strict';
 
-const PropRepo             = require('../repositories/PropertyRepository');
-const ReportRepo           = require('../repositories/ReportRepository');
+const PropRepo = require('../repositories/PropertyRepository');
+const ReportRepo = require('../repositories/ReportRepository');
 const annualExcelGenerator = require('../services/annualExcelGenerator');
 
 // ── Controllers ────────────────────────────────────────────────
@@ -41,7 +41,7 @@ async function createProperty(req, res) {
     console.log(`[properties] Nueva propiedad: "${cleanName}" (id=${id}, user=${userId})`);
 
     return res.status(201).json({
-      success:  true,
+      success: true,
       property: { id, name: cleanName },
     });
   } catch (err) {
@@ -57,7 +57,7 @@ async function createProperty(req, res) {
 async function renameProperty(req, res) {
   try {
     const userId = req.user.userId;
-    const id     = parseInt(req.params.id, 10);
+    const id = parseInt(req.params.id, 10);
     const { name } = req.body || {};
 
     if (!name || !String(name).trim()) {
@@ -86,13 +86,13 @@ async function renameProperty(req, res) {
 async function deleteProperty(req, res) {
   try {
     const userId = req.user.userId;
-    const id     = parseInt(req.params.id, 10);
+    const id = parseInt(req.params.id, 10);
 
     const prop = await PropRepo.findByIdAndUser(id, userId);
     if (!prop) return res.status(404).json({ error: 'Propiedad no encontrada' });
 
     // No permitir eliminar la única propiedad
-    if (await PropRepo.countByUser(userId) <= 1) {
+    if ((await PropRepo.countByUser(userId)) <= 1) {
       return res.status(400).json({ error: 'No puedes eliminar la única propiedad' });
     }
 
@@ -121,7 +121,7 @@ async function deleteProperty(req, res) {
 async function getCombinedReport(req, res) {
   try {
     const userId = req.user.userId;
-    const year   = parseInt(req.params.year, 10);
+    const year = parseInt(req.params.year, 10);
     if (!year || year < 2020 || year > 2030) {
       return res.status(400).json({ error: 'Año inválido. Debe estar entre 2020 y 2030.' });
     }
@@ -135,48 +135,51 @@ async function getCombinedReport(req, res) {
     const byMonth = {};
     for (const r of rows) {
       let s = {};
-      try { s = JSON.parse(r.summary); } catch (_) {}
+      try {
+        s = JSON.parse(r.summary);
+      } catch (_) {}
 
-      const sum        = s?.summary   || {};
-      const excelData  = s?.excelData || {};
+      const sum = s?.summary || {};
+      const excelData = s?.excelData || {};
       const airbnbTotal = parseFloat(
         sum.totalAirbnbPayouts || sum.totals?.airbnbPayouts || sum.airbnbTotal || 0
       );
-      const ivaRet = excelData.ivaRetenido != null
-        ? excelData.ivaRetenido
-        : parseFloat((airbnbTotal * 0.08).toFixed(2));
-      const isrRet = excelData.isrRetenido != null
-        ? excelData.isrRetenido
-        : parseFloat((airbnbTotal * 0.04).toFixed(2));
-      const comision = excelData.comisionAirbnb ||
-        parseFloat((airbnbTotal * 0.035).toFixed(2));
+      const ivaRet =
+        excelData.ivaRetenido != null
+          ? excelData.ivaRetenido
+          : parseFloat((airbnbTotal * 0.08).toFixed(2));
+      const isrRet =
+        excelData.isrRetenido != null
+          ? excelData.isrRetenido
+          : parseFloat((airbnbTotal * 0.04).toFixed(2));
+      const comision = excelData.comisionAirbnb || parseFloat((airbnbTotal * 0.035).toFixed(2));
 
       if (!byMonth[r.month]) {
         byMonth[r.month] = {
-          month:          r.month,
-          label:          r.label,
-          airbnbTotal:    0,
-          bankTotal:      0,
-          noches:         0,
+          month: r.month,
+          label: r.label,
+          airbnbTotal: 0,
+          bankTotal: 0,
+          noches: 0,
           comisionAirbnb: 0,
-          ivaRetenido:    0,
-          isrRetenido:    0,
-          grossIncome:    0,
-          matchRate:      '—',
-          payoutsCount:   0,
-          hasExcelData:   false,
-          propiedades:    [],
+          ivaRetenido: 0,
+          isrRetenido: 0,
+          grossIncome: 0,
+          matchRate: '—',
+          payoutsCount: 0,
+          hasExcelData: false,
+          propiedades: [],
         };
       }
 
-      byMonth[r.month].airbnbTotal    += airbnbTotal;
-      byMonth[r.month].bankTotal      += parseFloat(
+      byMonth[r.month].airbnbTotal += airbnbTotal;
+      byMonth[r.month].bankTotal += parseFloat(
         sum.totalBankDeposits || sum.totals?.bankDepositsMonth || 0
       );
-      byMonth[r.month].noches         += excelData.noches || 0;
+      byMonth[r.month].noches += excelData.noches || 0;
       byMonth[r.month].comisionAirbnb += comision;
-      byMonth[r.month].ivaRetenido    += ivaRet;
-      byMonth[r.month].isrRetenido    += isrRet;
+      byMonth[r.month].ivaRetenido += ivaRet;
+      byMonth[r.month].isrRetenido += isrRet;
       if (excelData.noches > 0) byMonth[r.month].hasExcelData = true;
       byMonth[r.month].propiedades.push(r.property_name || '?');
     }
@@ -186,42 +189,60 @@ async function getCombinedReport(req, res) {
     const prevRows = await ReportRepo.findSummaryByYearAll(userId, year - 1);
 
     const prevData = {};
-    prevRows.forEach(r => {
+    prevRows.forEach((r) => {
       let s = {};
-      try { s = JSON.parse(r.summary); } catch (_) {}
+      try {
+        s = JSON.parse(r.summary);
+      } catch (_) {}
       const mm = r.month.split('-')[1];
       if (!prevData[mm]) prevData[mm] = { airbnbTotal: 0, noches: 0 };
-      prevData[mm].airbnbTotal +=
-        parseFloat(s?.summary?.totalAirbnbPayouts || s?.summary?.totals?.airbnbPayouts || 0);
-      prevData[mm].noches      += s?.excelData?.noches || 0;
+      prevData[mm].airbnbTotal += parseFloat(
+        s?.summary?.totalAirbnbPayouts || s?.summary?.totals?.airbnbPayouts || 0
+      );
+      prevData[mm].noches += s?.excelData?.noches || 0;
     });
 
-    const mesesGuardados  = rows.map(r => r.month.split('-')[1]);
-    const mesesFaltantes  = ['01','02','03','04','05','06','07','08','09','10','11','12']
-      .filter(m => !mesesGuardados.includes(m));
+    const mesesGuardados = rows.map((r) => r.month.split('-')[1]);
+    const mesesFaltantes = [
+      '01',
+      '02',
+      '03',
+      '04',
+      '05',
+      '06',
+      '07',
+      '08',
+      '09',
+      '10',
+      '11',
+      '12',
+    ].filter((m) => !mesesGuardados.includes(m));
 
     const propNames = await PropRepo.findNamesByUser(userId);
 
     console.log(
       `[properties] Reporte combinado ${year}: ${monthlyData.length} meses,` +
-      ` ${propNames.length} propiedades`
+        ` ${propNames.length} propiedades`
     );
 
     const buffer = await annualExcelGenerator.generateAnnualReport({
       year,
       monthlyData,
       prevData,
-      prevYear:       year - 1,
+      prevYear: year - 1,
       mesesFaltantes,
-      tituloExtra:    `Combinado — ${propNames.join(', ')}`,
+      tituloExtra: `Combinado — ${propNames.join(', ')}`,
     });
 
-    res.setHeader('Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition',
-      `attachment; filename="Reporte_Anual_${year}_Combinado.xlsx"`);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Reporte_Anual_${year}_Combinado.xlsx"`
+    );
     res.send(buffer);
-
   } catch (err) {
     console.error('[properties] Error en getCombinedReport:', err.message);
     res.status(500).json({ error: `Error al generar el reporte combinado: ${err.message}` });

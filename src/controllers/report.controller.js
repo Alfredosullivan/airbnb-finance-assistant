@@ -1,15 +1,15 @@
 // report.controller.js — Controlador del reporte comparativo
 // Orquesta el parseo de los archivos, la comparación y el formateo del resultado final
 
-const { store }                                = require('./upload.controller');
-const { parseAirbnbPDF, parseBankPDF }         = require('../services/pdfParser');
-const { parseAirbnbCSV }                       = require('../services/csvParser');
-const { compareTransactions }                  = require('../services/comparator');
-const { formatReport }                         = require('../utils/formatter');
-const { generateMonthlyReport }                = require('../services/excelGenerator');
-const { generateMonthlyAnalysis }              = require('../services/analysisGenerator');
-const ReportRepo                               = require('../repositories/ReportRepository');
-const queue                                    = require('../queue/MemoryQueue');
+const { store } = require('./upload.controller');
+const { parseAirbnbPDF, parseBankPDF } = require('../services/pdfParser');
+const { parseAirbnbCSV } = require('../services/csvParser');
+const { compareTransactions } = require('../services/comparator');
+const { formatReport } = require('../utils/formatter');
+const { generateMonthlyReport } = require('../services/excelGenerator');
+const { generateMonthlyAnalysis } = require('../services/analysisGenerator');
+const ReportRepo = require('../repositories/ReportRepository');
+const queue = require('../queue/MemoryQueue');
 
 // ── Helper privado ─────────────────────────────────────────────
 
@@ -23,35 +23,42 @@ const queue                                    = require('../queue/MemoryQueue')
  * @returns {Object} Payload listo para generateMonthlyAnalysis
  */
 function buildAnalysisData(compareResult, airbnbData) {
-  const payouts    = airbnbData.payouts || [];
-  const noches     = payouts.reduce((s, p) =>
-    s + (p.reservations || []).reduce((ss, r) => ss + (parseInt(r.nights, 10) || 0), 0), 0);
-  const comision   = payouts.reduce((s, p) =>
-    s + (p.reservations || []).reduce((ss, r) => ss + (parseFloat(r.serviceFee) || 0), 0), 0);
+  const payouts = airbnbData.payouts || [];
+  const noches = payouts.reduce(
+    (s, p) => s + (p.reservations || []).reduce((ss, r) => ss + (parseInt(r.nights, 10) || 0), 0),
+    0
+  );
+  const comision = payouts.reduce(
+    (s, p) => s + (p.reservations || []).reduce((ss, r) => ss + (parseFloat(r.serviceFee) || 0), 0),
+    0
+  );
   const airbnbTotal = parseFloat(
     compareResult?.totals?.totalAirbnbPayouts ||
-    compareResult?.summary?.totalAirbnbPayouts ||
-    compareResult?.summary?.airbnbTotal || 0
+      compareResult?.summary?.totalAirbnbPayouts ||
+      compareResult?.summary?.airbnbTotal ||
+      0
   );
 
   return {
     reportLabel: compareResult.reportLabel || airbnbData.reportLabel || 'Este mes',
     summary: {
       airbnbTotal,
-      bankTotal:     compareResult?.totals?.totalBankDeposits  || compareResult?.summary?.totalBankDeposits || 0,
-      matchRate:     compareResult?.totals?.matchRate          || compareResult?.summary?.matchRate         || '0%',
-      netDifference: compareResult?.totals?.netDifference      || compareResult?.summary?.netDifference     || 0,
+      bankTotal:
+        compareResult?.totals?.totalBankDeposits || compareResult?.summary?.totalBankDeposits || 0,
+      matchRate: compareResult?.totals?.matchRate || compareResult?.summary?.matchRate || '0%',
+      netDifference:
+        compareResult?.totals?.netDifference || compareResult?.summary?.netDifference || 0,
     },
     tables: {
-      matched:      compareResult.matched      || compareResult.tables?.matched      || [],
+      matched: compareResult.matched || compareResult.tables?.matched || [],
       onlyInAirbnb: compareResult.onlyInAirbnb || compareResult.tables?.onlyInAirbnb || [],
-      onlyInBank:   compareResult.onlyInBank   || compareResult.tables?.onlyInBank   || [],
+      onlyInBank: compareResult.onlyInBank || compareResult.tables?.onlyInBank || [],
     },
     excelData: {
       noches,
       comisionAirbnb: parseFloat(comision.toFixed(2)),
-      ivaRetenido:    parseFloat((airbnbTotal * 0.08).toFixed(2)),
-      isrRetenido:    parseFloat((airbnbTotal * 0.04).toFixed(2)),
+      ivaRetenido: parseFloat((airbnbTotal * 0.08).toFixed(2)),
+      isrRetenido: parseFloat((airbnbTotal * 0.04).toFixed(2)),
     },
   };
 }
@@ -65,10 +72,14 @@ async function getReport(req, res) {
   try {
     // Verificar que ambos archivos hayan sido subidos previamente
     if (!store.airbnbPath) {
-      return res.status(400).json({ error: 'Debes subir el reporte de Airbnb (CSV o PDF) antes de generar el reporte' });
+      return res.status(400).json({
+        error: 'Debes subir el reporte de Airbnb (CSV o PDF) antes de generar el reporte',
+      });
     }
     if (!store.bankPaths || store.bankPaths.length === 0) {
-      return res.status(400).json({ error: 'Debes subir al menos un PDF bancario antes de generar el reporte' });
+      return res
+        .status(400)
+        .json({ error: 'Debes subir al menos un PDF bancario antes de generar el reporte' });
     }
 
     // 1. Parsear el archivo de Airbnb según su tipo detectado al subir
@@ -86,7 +97,7 @@ async function getReport(req, res) {
 
     // 2. Parsear cada PDF bancario por separado (parseBankPDF puede llamarse N veces)
     const bankParsedResults = await Promise.all(
-      store.bankPaths.map(filePath => parseBankPDF(filePath))
+      store.bankPaths.map((filePath) => parseBankPDF(filePath))
     );
 
     // Verificar errores de parseo bancario
@@ -110,8 +121,8 @@ async function getReport(req, res) {
     const report = formatReport(compareResult);
 
     // Guardar en el store para /api/reset y para el generador de Excel
-    store.reportData    = report;
-    store.airbnbData    = airbnbData;
+    store.reportData = report;
+    store.airbnbData = airbnbData;
     store.compareResult = compareResult;
 
     res.json(report);
@@ -130,18 +141,20 @@ async function generateExcel(req, res) {
     const { airbnbData, compareResult } = store;
 
     if (!airbnbData || !compareResult) {
-      return res.status(400).json({ error: 'Genera primero la comparativa antes de descargar el Excel' });
+      return res
+        .status(400)
+        .json({ error: 'Genera primero la comparativa antes de descargar el Excel' });
     }
 
     // Buscar reporte del año anterior si hay sesión activa
     let previousYearReport = null;
     if (req.user) {
       const reportMonth = compareResult.reportMonth || airbnbData.reportMonth || null;
-      const propertyId  = parseInt(req.query.propertyId, 10) || null;
+      const propertyId = parseInt(req.query.propertyId, 10) || null;
 
       if (reportMonth && /^\d{4}-\d{2}$/.test(reportMonth)) {
         const [year, month] = reportMonth.split('-');
-        const prevMonth     = `${parseInt(year, 10) - 1}-${month}`;
+        const prevMonth = `${parseInt(year, 10) - 1}-${month}`;
 
         // ── Buscar reporte del año anterior (con filtro de propiedad si se indica) ─
         const prevRow = propertyId
@@ -149,7 +162,9 @@ async function generateExcel(req, res) {
           : await ReportRepo.findSummaryByMonthAny(req.user.userId, prevMonth);
 
         if (prevRow) {
-          try { previousYearReport = JSON.parse(prevRow.summary); } catch (_) {}
+          try {
+            previousYearReport = JSON.parse(prevRow.summary);
+          } catch (_) {}
         }
 
         // ── Fallback: leer prevYearData inyectado en el reporte guardado actual ─
@@ -162,19 +177,21 @@ async function generateExcel(req, res) {
 
           if (currRow) {
             let currReport = null;
-            try { currReport = JSON.parse(currRow.summary); } catch (_) {}
+            try {
+              currReport = JSON.parse(currRow.summary);
+            } catch (_) {}
             const pvd = currReport?.summary?.prevYearData;
             if (pvd) {
               // Construir previousYearReport sintético con la estructura que espera buildSheet3
               previousYearReport = {
                 summary: {
                   totalAirbnbPayouts: pvd.totalAirbnbPayouts || 0,
-                  totalBankDeposits:  pvd.totalBankDeposits  || 0,
-                  matchRate:          pvd.matchRate           || '0%',
-                  payoutsCount:       pvd.payoutsCount        || 0,
-                  matchedCount:       pvd.matchedCount        || 0,
-                  onlyAirbnbCount:    pvd.onlyAirbnbCount     || 0,
-                  onlyBankCount:      pvd.onlyBankCount       || 0,
+                  totalBankDeposits: pvd.totalBankDeposits || 0,
+                  matchRate: pvd.matchRate || '0%',
+                  payoutsCount: pvd.payoutsCount || 0,
+                  matchedCount: pvd.matchedCount || 0,
+                  onlyAirbnbCount: pvd.onlyAirbnbCount || 0,
+                  onlyBankCount: pvd.onlyBankCount || 0,
                 },
                 excelData: { noches: pvd.noches || 0 },
               };
@@ -199,15 +216,22 @@ async function generateExcel(req, res) {
       }
     }
 
-    const buffer = await generateMonthlyReport(airbnbData, compareResult, previousYearReport, analysisText);
+    const buffer = await generateMonthlyReport(
+      airbnbData,
+      compareResult,
+      previousYearReport,
+      analysisText
+    );
 
     const reportMonth = compareResult.reportMonth || airbnbData.reportMonth || 'reporte';
-    const filename    = `Reporte_${reportMonth}.xlsx`;
+    const filename = `Reporte_${reportMonth}.xlsx`;
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(buffer);
-
   } catch (err) {
     console.error('[excel] Error al generar Excel:', err.message);
     res.status(500).json({ error: `Error al generar el Excel: ${err.message}` });
@@ -222,18 +246,22 @@ async function generateExcel(req, res) {
 async function getMonthlyAnalysis(req, res) {
   try {
     if (!store.compareResult || !store.airbnbData) {
-      return res.status(400).json({ error: 'Genera primero la comparativa antes de solicitar el análisis' });
+      return res
+        .status(400)
+        .json({ error: 'Genera primero la comparativa antes de solicitar el análisis' });
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(503).json({ error: 'ANTHROPIC_API_KEY no está configurada en el servidor. Agrega la variable en el archivo .env' });
+      return res.status(503).json({
+        error:
+          'ANTHROPIC_API_KEY no está configurada en el servidor. Agrega la variable en el archivo .env',
+      });
     }
 
     const { compareResult, airbnbData } = store;
-    const data     = buildAnalysisData(compareResult, airbnbData);
+    const data = buildAnalysisData(compareResult, airbnbData);
     const analysis = await generateMonthlyAnalysis(data);
     return res.json({ success: true, analysis });
-
   } catch (err) {
     console.error('[analysis] Error en getMonthlyAnalysis:', err.message);
     return res.status(500).json({ error: `Error al generar el análisis: ${err.message}` });
@@ -255,13 +283,16 @@ async function getMonthlyAnalysisPDF(req, res) {
     }
 
     const { compareResult, airbnbData } = store;
-    const data         = buildAnalysisData(compareResult, airbnbData);
+    const data = buildAnalysisData(compareResult, airbnbData);
     const analysisText = await generateMonthlyAnalysis(data);
 
     // Generar PDF con pdfkit
     const PDFDocument = require('pdfkit');
-    const label       = compareResult.reportLabel || airbnbData.reportLabel || 'Reporte';
-    const safeLabel   = label.replace(/[^a-zA-Z0-9À-ÿ ]/g, '').trim().replace(/\s+/g, '_');
+    const label = compareResult.reportLabel || airbnbData.reportLabel || 'Reporte';
+    const safeLabel = label
+      .replace(/[^a-zA-Z0-9À-ÿ ]/g, '')
+      .trim()
+      .replace(/\s+/g, '_');
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="Analisis_${safeLabel}.pdf"`);
@@ -270,36 +301,37 @@ async function getMonthlyAnalysisPDF(req, res) {
     doc.pipe(res);
 
     // Título
-    doc.fontSize(20).font('Helvetica-Bold')
-       .text(`Análisis Financiero — ${label}`, { align: 'center' });
+    doc
+      .fontSize(20)
+      .font('Helvetica-Bold')
+      .text(`Análisis Financiero — ${label}`, { align: 'center' });
     doc.moveDown(0.5);
-    doc.fontSize(10).font('Helvetica')
-       .text(`Generado el ${new Date().toLocaleDateString('es-MX')} con IA (Claude)`, { align: 'center' });
+    doc
+      .fontSize(10)
+      .font('Helvetica')
+      .text(`Generado el ${new Date().toLocaleDateString('es-MX')} con IA (Claude)`, {
+        align: 'center',
+      });
     doc.moveDown(2);
 
     // Parsear secciones del análisis y escribirlas con formato
     const lines = analysisText.split('\n');
-    lines.forEach(line => {
+    lines.forEach((line) => {
       if (line.startsWith('## ')) {
         doc.moveDown(0.5);
-        doc.fontSize(13).font('Helvetica-Bold')
-           .fillColor('#1F4E79')
-           .text(line.replace('## ', ''));
+        doc.fontSize(13).font('Helvetica-Bold').fillColor('#1F4E79').text(line.replace('## ', ''));
         doc.moveDown(0.3);
         doc.fillColor('#000000');
       } else if (line.startsWith('- ')) {
-        doc.fontSize(10).font('Helvetica')
-           .text(line, { indent: 15 });
+        doc.fontSize(10).font('Helvetica').text(line, { indent: 15 });
       } else if (line.trim()) {
-        doc.fontSize(10).font('Helvetica')
-           .text(line);
+        doc.fontSize(10).font('Helvetica').text(line);
       } else {
         doc.moveDown(0.3);
       }
     });
 
     doc.end();
-
   } catch (err) {
     console.error('[analysis] Error en getMonthlyAnalysisPDF:', err.message);
     if (!res.headersSent) {
@@ -333,7 +365,7 @@ async function queueExcelGeneration(req, res) {
       });
     }
 
-    const userId     = req.user.userId;
+    const userId = req.user.userId;
     const propertyId = req.body.propertyId || null;
 
     // month y label pueden venir del body o inferirse del store
@@ -342,7 +374,8 @@ async function queueExcelGeneration(req, res) {
 
     if (!month) {
       return res.status(400).json({
-        error: 'El campo month es requerido (formato YYYY-MM) o asegúrate de haber generado el reporte primero',
+        error:
+          'El campo month es requerido (formato YYYY-MM) o asegúrate de haber generado el reporte primero',
       });
     }
 
@@ -354,21 +387,26 @@ async function queueExcelGeneration(req, res) {
       month,
       label,
       // Snapshot de los datos necesarios para generateMonthlyReport
-      airbnbData:    airbnbData,
+      airbnbData: airbnbData,
       compareResult: compareResult,
     });
 
     // 202 Accepted: la request fue aceptada pero el procesamiento no terminó aún.
     // Es el status HTTP correcto para operaciones asíncronas en background.
     res.status(202).json({
-      jobId:   job.id,
-      status:  job.status,
+      jobId: job.id,
+      status: job.status,
       message: `Excel encolado para ${label}. Consulta el estado en GET /api/jobs/${job.id}`,
     });
-
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 }
 
-module.exports = { getReport, generateExcel, getMonthlyAnalysis, getMonthlyAnalysisPDF, queueExcelGeneration };
+module.exports = {
+  getReport,
+  generateExcel,
+  getMonthlyAnalysis,
+  getMonthlyAnalysisPDF,
+  queueExcelGeneration,
+};

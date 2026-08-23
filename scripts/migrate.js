@@ -12,8 +12,7 @@
 require('dotenv').config();
 
 const { Pool } = require('pg');
-const path     = require('path');
-const seed     = require('./seed.json');
+const seed = require('./seed.json');
 
 // ── Validar variable de entorno ────────────────────────────────
 if (!process.env.DATABASE_URL) {
@@ -81,12 +80,12 @@ async function migrate() {
     console.log('[migrate] Índice reports: OK');
 
     // ── 2. Insertar datos del seed (idempotente) ───────────────
-    let usersInserted      = 0;
+    let usersInserted = 0;
     let propertiesInserted = 0;
-    let reportsInserted    = 0;
+    let reportsInserted = 0;
 
     // Mapa old_id → new_id para mantener relaciones entre tablas
-    const userIdMap     = {};
+    const userIdMap = {};
     const propertyIdMap = {};
 
     for (const u of seed.users) {
@@ -103,10 +102,9 @@ async function migrate() {
         usersInserted++;
       } else {
         // El usuario ya existe — recuperar su id actual
-        const existing = await client.query(
-          'SELECT id FROM users WHERE username = $1',
-          [u.username]
-        );
+        const existing = await client.query('SELECT id FROM users WHERE username = $1', [
+          u.username,
+        ]);
         userIdMap[u.id] = existing.rows[0].id;
       }
     }
@@ -115,7 +113,9 @@ async function migrate() {
     for (const p of seed.properties) {
       const mappedUserId = userIdMap[p.user_id];
       if (!mappedUserId) {
-        console.warn(`[migrate] Propiedad id=${p.id} sin usuario mapeado (user_id=${p.user_id}) — omitida`);
+        console.warn(
+          `[migrate] Propiedad id=${p.id} sin usuario mapeado (user_id=${p.user_id}) — omitida`
+        );
         continue;
       }
 
@@ -139,10 +139,12 @@ async function migrate() {
         propertiesInserted++;
       }
     }
-    console.log(`[migrate] Propiedades insertadas: ${propertiesInserted} (de ${seed.properties.length})`);
+    console.log(
+      `[migrate] Propiedades insertadas: ${propertiesInserted} (de ${seed.properties.length})`
+    );
 
     for (const r of seed.reports) {
-      const mappedUserId     = userIdMap[r.user_id];
+      const mappedUserId = userIdMap[r.user_id];
       const mappedPropertyId = propertyIdMap[r.property_id];
 
       if (!mappedUserId || !mappedPropertyId) {
@@ -170,7 +172,6 @@ async function migrate() {
     console.log(`[migrate] Reportes insertados: ${reportsInserted} (de ${seed.reports.length})`);
 
     console.log('[migrate] ✅ Migración completada exitosamente');
-
   } catch (err) {
     console.error('[migrate] ❌ Error durante la migración:', err.message);
     throw err;
@@ -180,7 +181,7 @@ async function migrate() {
   }
 }
 
-migrate().catch(err => {
+migrate().catch((err) => {
   console.error(err.message);
   process.exit(1);
 });

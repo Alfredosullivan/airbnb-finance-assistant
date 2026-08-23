@@ -17,10 +17,10 @@
 // queueExcelGeneration los captura del store al momento de encolar y los
 // incluye en job.data — así el worker es autosuficiente.
 
-const queue          = require('../MemoryQueue');
+const queue = require('../MemoryQueue');
 const { generateMonthlyAnalysis } = require('../../services/analysisGenerator');
-const { generateMonthlyReport }   = require('../../services/excelGenerator');
-const ReportRepository            = require('../../repositories/ReportRepository');
+const { generateMonthlyReport } = require('../../services/excelGenerator');
+const ReportRepository = require('../../repositories/ReportRepository');
 
 // Tiempo entre ciclos del worker cuando no hay jobs pendientes
 const POLL_INTERVAL = 2000;
@@ -38,43 +38,43 @@ function buildAnalysisPayload(airbnbData, compareResult, label) {
 
   // Suma de noches de todas las reservaciones de todos los payouts del mes
   const noches = payouts.reduce(
-    (s, p) => s + (p.reservations || []).reduce(
-      (ss, r) => ss + (parseInt(r.nights, 10) || 0), 0
-    ), 0
+    (s, p) => s + (p.reservations || []).reduce((ss, r) => ss + (parseInt(r.nights, 10) || 0), 0),
+    0
   );
 
   // Comisión total de Airbnb (valor absoluto porque el CSV lo reporta negativo)
   const comision = payouts.reduce(
-    (s, p) => s + (p.reservations || []).reduce(
-      (ss, r) => ss + Math.abs(parseFloat(r.serviceFee) || 0), 0
-    ), 0
+    (s, p) =>
+      s + (p.reservations || []).reduce((ss, r) => ss + Math.abs(parseFloat(r.serviceFee) || 0), 0),
+    0
   );
 
   const airbnbTotal = parseFloat(
-    compareResult?.totals?.totalAirbnbPayouts  ||
-    compareResult?.summary?.totalAirbnbPayouts ||
-    compareResult?.summary?.airbnbTotal        || 0
+    compareResult?.totals?.totalAirbnbPayouts ||
+      compareResult?.summary?.totalAirbnbPayouts ||
+      compareResult?.summary?.airbnbTotal ||
+      0
   );
 
   return {
     reportLabel: compareResult.reportLabel || airbnbData.reportLabel || label,
     summary: {
       airbnbTotal,
-      bankTotal:     compareResult?.totals?.totalBankDeposits || 0,
-      matchRate:     compareResult?.totals?.matchRate         || '0%',
-      netDifference: compareResult?.totals?.netDifference     || 0,
+      bankTotal: compareResult?.totals?.totalBankDeposits || 0,
+      matchRate: compareResult?.totals?.matchRate || '0%',
+      netDifference: compareResult?.totals?.netDifference || 0,
     },
     tables: {
-      matched:      compareResult.matched      || [],
+      matched: compareResult.matched || [],
       onlyInAirbnb: compareResult.onlyInAirbnb || [],
-      onlyInBank:   compareResult.onlyInBank   || [],
+      onlyInBank: compareResult.onlyInBank || [],
     },
     excelData: {
       noches,
       comisionAirbnb: parseFloat(comision.toFixed(2)),
       // IVA e ISR retenidos: calculados sobre el neto pagado por Airbnb
-      ivaRetenido:    parseFloat((airbnbTotal * 0.08).toFixed(2)),
-      isrRetenido:    parseFloat((airbnbTotal * 0.04).toFixed(2)),
+      ivaRetenido: parseFloat((airbnbTotal * 0.08).toFixed(2)),
+      isrRetenido: parseFloat((airbnbTotal * 0.04).toFixed(2)),
     },
   };
 }
@@ -99,32 +99,35 @@ function buildAnalysisPayload(airbnbData, compareResult, label) {
 async function processMarketAnalysisJob(job) {
   queue.updateJob(job.id, { status: 'active' });
 
-  const { userId, propertyName, currentRate } = job.data;
+  const { propertyName, currentRate } = job.data;
 
   // Require dinámico — evita cargar el crawler al inicio si no hay jobs de este tipo
-  const { crawlMeridaRentals, analyzePricesWithClaude } = require('../../services/crawler/crawlerService');
+  const {
+    crawlMeridaRentals,
+    analyzePricesWithClaude,
+  } = require('../../services/crawler/crawlerService');
 
   // Paso 1: Crawl de precios del mercado
   const crawlResults = await crawlMeridaRentals();
 
   // Paso 2: Análisis con Claude (usa generatePriceAnalysis internamente)
   const analysisText = await analyzePricesWithClaude(crawlResults, {
-    name:        propertyName || undefined,
-    currentRate: currentRate  || undefined,
+    name: propertyName || undefined,
+    currentRate: currentRate || undefined,
   });
 
   // Paso 3: Empacar como buffer de texto descargable
   // Usamos base64 igual que los jobs de Excel para compatibilidad con jobs.controller
-  const buffer   = Buffer.from(analysisText, 'utf-8');
+  const buffer = Buffer.from(analysisText, 'utf-8');
   const datePart = new Date().toISOString().substring(0, 10);
 
   return {
-    filename:     `Analisis_Mercado_Merida_${datePart}.txt`,
-    buffer:       buffer.toString('base64'),
-    contentType:  'text/plain; charset=utf-8',
+    filename: `Analisis_Mercado_Merida_${datePart}.txt`,
+    buffer: buffer.toString('base64'),
+    contentType: 'text/plain; charset=utf-8',
     // Campos extra para que el cliente tenga contexto sin descargar el archivo
     analysisText,
-    crawlStats:   crawlResults.stats,
+    crawlStats: crawlResults.stats,
   };
 }
 
@@ -150,13 +153,12 @@ async function processJob(job) {
   let previousYearReport = null;
   if (month && /^\d{4}-\d{2}$/.test(month)) {
     const [year, mm] = month.split('-');
-    const prevMonth  = `${parseInt(year, 10) - 1}-${mm}`;
-    const prevRow    = await ReportRepository.findSummaryByMonthAny(userId, prevMonth);
+    const prevMonth = `${parseInt(year, 10) - 1}-${mm}`;
+    const prevRow = await ReportRepository.findSummaryByMonthAny(userId, prevMonth);
     if (prevRow) {
       try {
-        previousYearReport = typeof prevRow.summary === 'string'
-          ? JSON.parse(prevRow.summary)
-          : prevRow.summary;
+        previousYearReport =
+          typeof prevRow.summary === 'string' ? JSON.parse(prevRow.summary) : prevRow.summary;
       } catch (_) {
         // Si el JSON está corrupto, continuamos sin comparativa del año anterior
       }
@@ -175,12 +177,13 @@ async function processJob(job) {
   const currentRow = await ReportRepository.findByMonthAny(userId, month);
   if (currentRow?.id) {
     try {
-      const currentSummary = typeof currentRow.summary === 'string'
-        ? JSON.parse(currentRow.summary)
-        : (currentRow.summary || {});
+      const currentSummary =
+        typeof currentRow.summary === 'string'
+          ? JSON.parse(currentRow.summary)
+          : currentRow.summary || {};
 
       // Guardar el análisis cacheado para que futuros requests lo reusen
-      currentSummary.cachedAnalysis   = analysisText;
+      currentSummary.cachedAnalysis = analysisText;
       currentSummary.cachedAnalysisAt = new Date().toISOString();
 
       await ReportRepository.updateSummary(currentRow.id, JSON.stringify(currentSummary));
@@ -203,11 +206,14 @@ async function processJob(job) {
   // Usamos base64 para serializar el Buffer binario dentro del Map de la cola.
   // Al descargar, el jobs.controller lo convierte de vuelta a Buffer con Buffer.from().
   const reportLabel = compareResult.reportLabel || airbnbData.reportLabel || label || month;
-  const safeLabel   = reportLabel.replace(/[^a-zA-Z0-9À-ÿ\s]/g, '').trim().replace(/\s+/g, '_');
+  const safeLabel = reportLabel
+    .replace(/[^a-zA-Z0-9À-ÿ\s]/g, '')
+    .trim()
+    .replace(/\s+/g, '_');
 
   return {
-    filename:    `Reporte_${month}_${safeLabel}.xlsx`,
-    buffer:      excelBuffer.toString('base64'),
+    filename: `Reporte_${month}_${safeLabel}.xlsx`,
+    buffer: excelBuffer.toString('base64'),
     contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   };
 }
@@ -235,14 +241,13 @@ function startWorker() {
           // pero el worker sigue vivo para el próximo job
           queue.updateJob(job.id, {
             status: 'failed',
-            error:  jobError.message || 'Error desconocido al procesar el job',
+            error: jobError.message || 'Error desconocido al procesar el job',
           });
         }
       }
 
       // Limpiar jobs viejos (completados/fallidos con > 1 hora)
       queue.cleanup();
-
     } catch (unexpectedError) {
       // Error en la infraestructura (queue.getNextPending falla, etc.)
       // Logueamos pero no detenemos el worker

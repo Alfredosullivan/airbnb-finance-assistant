@@ -7,8 +7,8 @@
 // La lógica de negocio real (generar el Excel, enviar email) pertenece
 // a los services — este job solo los orquesta.
 
-const log        = require('../logger');
-const { pool }   = require('../../database/client');
+const log = require('../logger');
+const { pool } = require('../../database/client');
 
 // ─── Constantes ────────────────────────────────────────────────────────────
 
@@ -38,8 +38,8 @@ async function runMonthlyReportCheck() {
   // Usamos el día 0 del mes actual — que en JavaScript equivale
   // al último día del mes anterior. Así no tenemos que manejar
   // los casos de diciembre → enero manualmente.
-  const now       = new Date();
-  const prevDate  = new Date(now.getFullYear(), now.getMonth(), 0);
+  const now = new Date();
+  const prevDate = new Date(now.getFullYear(), now.getMonth(), 0);
   const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
 
   log('info', `Mes a revisar: ${prevMonth}`);
@@ -65,12 +65,11 @@ async function runMonthlyReportCheck() {
     }
 
     // Registramos el conteo por usuario para tener trazabilidad en los logs
-    rows.forEach(row => {
+    rows.forEach((row) => {
       log('info', `Usuario ${row.user_id}: ${row.total} reporte(s) en ${prevMonth}`);
     });
 
     log('info', `Verificación completa — ${rows.length} usuario(s) con actividad en ${prevMonth}`);
-
   } catch (err) {
     // Capturamos el error para que un fallo en este job no derribe
     // el scheduler completo. Cada job es aislado.

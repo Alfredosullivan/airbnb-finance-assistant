@@ -8,8 +8,8 @@
 //   2. Calcula métricas de ocupación por propiedad
 //   3. Notifica a los propietarios o guarda un reporte de tendencias
 
-const log       = require('../logger');
-const { pool }  = require('../../database/client');
+const log = require('../logger');
+const { pool } = require('../../database/client');
 
 // Expresión cron: "0 8 * * 1"
 // minuto=0, hora=8, día=*, mes=*, día_semana=1 (lunes)
@@ -30,7 +30,7 @@ async function runWeeklyOccupancyCheck() {
     // Date.now() - 7*24*60*60*1000 es más explícito que "hace 7 días"
     // porque no asume horario de verano ni saltos de fecha.
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const cutoffDate   = sevenDaysAgo.toISOString();
+    const cutoffDate = sevenDaysAgo.toISOString();
 
     // Agrupamos por property_id para ver qué propiedades tienen actividad.
     // AVG sobre el campo JSON es simplificado — en un sistema productivo
@@ -51,14 +51,14 @@ async function runWeeklyOccupancyCheck() {
       return;
     }
 
-    rows.forEach(row => {
-      log('info',
+    rows.forEach((row) => {
+      log(
+        'info',
         `Propiedad ${row.property_id}: ${row.total_reportes} reporte(s) — último mes: ${row.mes_mas_reciente}`
       );
     });
 
     log('info', `Revisión semanal completa — ${rows.length} propiedad(es) con actividad reciente`);
-
   } catch (err) {
     log('error', `Error en revisión semanal de ocupación: ${err.message}`);
   }

@@ -11,12 +11,12 @@
 
 'use strict';
 
-const https    = require('https');
-const http     = require('http');
-const fs       = require('fs');
-const path     = require('path');
+const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const readline = require('readline');
-const os       = require('os');
+const os = require('os');
 
 // ── Config local ────────────────────────────────────────────────
 // Guarda el token y la baseUrl entre sesiones en el home dir del usuario.
@@ -53,13 +53,13 @@ const saveConfig = (data) => {
  */
 const apiRequest = (method, urlPath, body = null, token = null) => {
   return new Promise((resolve, reject) => {
-    const config    = loadConfig();
+    const config = loadConfig();
     const authToken = token || config.token;
-    const baseUrl   = config.baseUrl || 'http://localhost:3000';
+    const baseUrl = config.baseUrl || 'http://localhost:3000';
 
-    const url      = new URL(urlPath, baseUrl);
-    const isHttps  = url.protocol === 'https:';
-    const lib      = isHttps ? https : http;
+    const url = new URL(urlPath, baseUrl);
+    const isHttps = url.protocol === 'https:';
+    const lib = isHttps ? https : http;
 
     const options = {
       hostname: url.hostname,
@@ -70,13 +70,15 @@ const apiRequest = (method, urlPath, body = null, token = null) => {
       headers: {
         'Content-Type': 'application/json',
         // Solo agregamos el header si tenemos token — no enviamos "Bearer undefined"
-        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       },
     };
 
     const req = lib.request(options, (res) => {
       let data = '';
-      res.on('data', chunk => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
         try {
           // Intentamos parsear JSON; si la respuesta no es JSON, devolvemos el texto crudo
@@ -99,12 +101,12 @@ const apiRequest = (method, urlPath, body = null, token = null) => {
 // Códigos ANSI: \x1b[<código>m abre el estilo, \x1b[0m lo cierra.
 // Funcionan en la mayoría de terminales modernas (Git Bash, PowerShell, iTerm2, etc.)
 const c = {
-  green:  (s) => `\x1b[32m${s}\x1b[0m`,
-  red:    (s) => `\x1b[31m${s}\x1b[0m`,
+  green: (s) => `\x1b[32m${s}\x1b[0m`,
+  red: (s) => `\x1b[31m${s}\x1b[0m`,
   yellow: (s) => `\x1b[33m${s}\x1b[0m`,
-  cyan:   (s) => `\x1b[36m${s}\x1b[0m`,
-  bold:   (s) => `\x1b[1m${s}\x1b[0m`,
-  dim:    (s) => `\x1b[2m${s}\x1b[0m`,
+  cyan: (s) => `\x1b[36m${s}\x1b[0m`,
+  bold: (s) => `\x1b[1m${s}\x1b[0m`,
+  dim: (s) => `\x1b[2m${s}\x1b[0m`,
 };
 
 // ── Prompt interactivo ─────────────────────────────────────────
@@ -113,10 +115,12 @@ const c = {
 // "colgado" esperando input.
 const ask = (question) => {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise(resolve => rl.question(question, ans => {
-    rl.close();
-    resolve(ans);
-  }));
+  return new Promise((resolve) =>
+    rl.question(question, (ans) => {
+      rl.close();
+      resolve(ans);
+    })
+  );
 };
 
 // ─── COMANDOS ────────────────────────────────────────────────────
@@ -136,8 +140,9 @@ const ask = (question) => {
 const cmdLogin = async () => {
   console.log(c.bold('\n🏠 Airbnb Finance Assistant — Configuración del CLI\n'));
 
-  const baseUrl = (await ask('URL del servidor (Enter para http://localhost:3000): ')).trim()
-    || 'http://localhost:3000';
+  const baseUrl =
+    (await ask('URL del servidor (Enter para http://localhost:3000): ')).trim() ||
+    'http://localhost:3000';
 
   // Guardar config sin verificar — el token validará la conexión al primer comando real.
   // ¿Por qué no verificar con /health?
@@ -180,8 +185,8 @@ const cmdSetToken = (args) => {
  *   No hay un endpoint /api/reports/list?year=N — el filtro se hace en el cliente.
  */
 const cmdStats = async (args) => {
-  const monthArg = args.find(a => a.startsWith('--month='));
-  const yearArg  = args.find(a => a.startsWith('--year='));
+  const monthArg = args.find((a) => a.startsWith('--month='));
+  const yearArg = args.find((a) => a.startsWith('--year='));
 
   if (!monthArg && !yearArg) {
     console.log(c.red('❌ Uso: airbnb-cli stats --month=2026-01 | airbnb-cli stats --year=2026'));
@@ -214,7 +219,11 @@ const cmdStats = async (args) => {
     }
 
     if (res.status !== 200 || !res.body || typeof res.body !== 'object') {
-      console.log(c.yellow(`⚠️  Error al obtener datos para ${month}: ${res.body?.error || 'respuesta inesperada'}`));
+      console.log(
+        c.yellow(
+          `⚠️  Error al obtener datos para ${month}: ${res.body?.error || 'respuesta inesperada'}`
+        )
+      );
       return;
     }
 
@@ -273,7 +282,7 @@ const cmdStats = async (args) => {
 
     // Filtrar solo los reportes del año solicitado
     const allReports = res.body.reports;
-    const reports    = allReports.filter(r => String(r.year) === year);
+    const reports = allReports.filter((r) => String(r.year) === year);
 
     if (!reports.length) {
       console.log(c.yellow(`⚠️  Sin reportes guardados para ${year}`));
@@ -295,8 +304,8 @@ const cmdStats = async (args) => {
       totalIngresos += ingresos;
       console.log(
         `  ${c.cyan(report.label || report.month)}: ` +
-        `${c.green('$' + ingresos.toFixed(2))} ` +
-        `| match: ${c.yellow(report.matchRate || 'N/A')}`
+          `${c.green('$' + ingresos.toFixed(2))} ` +
+          `| match: ${c.yellow(report.matchRate || 'N/A')}`
       );
     }
 
@@ -363,15 +372,15 @@ const cmdJobs = () => {
  *   3. Muestra resultado o instrucciones para descargar el análisis completo
  */
 const cmdMarket = async (args) => {
-  const propertyArg = args.find(a => a.startsWith('--property='));
-  const rateArg     = args.find(a => a.startsWith('--rate='));
+  const propertyArg = args.find((a) => a.startsWith('--property='));
+  const rateArg = args.find((a) => a.startsWith('--rate='));
 
   const propertyName = propertyArg ? propertyArg.split('=')[1] : null;
-  const currentRate  = rateArg     ? Number(rateArg.split('=')[1]) : null;
+  const currentRate = rateArg ? Number(rateArg.split('=')[1]) : null;
 
   console.log(c.bold('\n🕷️  Analizando mercado de rentas en Mérida...\n'));
   if (propertyName) console.log(c.dim(`  Propiedad: ${propertyName}`));
-  if (currentRate)  console.log(c.dim(`  Tarifa actual: $${currentRate} MXN/noche`));
+  if (currentRate) console.log(c.dim(`  Tarifa actual: $${currentRate} MXN/noche`));
   if (propertyName || currentRate) console.log();
 
   const res = await apiRequest('POST', '/api/crawler/analyze', {
@@ -399,7 +408,7 @@ const cmdMarket = async (args) => {
   // Con 3s de intervalo hacemos ~4-5 requests de polling en lugar de 13+.
   let done = false;
   while (!done) {
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 3000));
     const statusRes = await apiRequest('GET', `/api/jobs/${jobId}`);
     const { status } = statusRes.body;
 
@@ -465,7 +474,7 @@ ${c.bold('Config guardada en:')} ${path.join(os.homedir(), '.airbnb-cli.json')}
 // ─── ROUTER PRINCIPAL ──────────────────────────────────────────
 // process.argv tiene: [node, script, comando, ...args]
 // Desestructuramos para ignorar los dos primeros y quedarnos con el comando y sus args.
-const [,, cmd, ...args] = process.argv;
+const [, , cmd, ...args] = process.argv;
 
 /**
  * run — Envuelve comandos async para capturar errores de red de forma amigable
@@ -479,11 +488,11 @@ const [,, cmd, ...args] = process.argv;
  * @param {Array}    fnArgs - Argumentos a pasar al comando
  */
 const run = (fn, fnArgs = []) => {
-  fn(fnArgs).catch(err => {
+  fn(fnArgs).catch((err) => {
     // ECONNREFUSED = el servidor no está corriendo en la URL configurada
     if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
       const config = loadConfig();
-      const url    = config.baseUrl || 'http://localhost:3000';
+      const url = config.baseUrl || 'http://localhost:3000';
       console.log(c.red(`\n❌ No se pudo conectar al servidor en ${url}`));
       console.log(c.dim('   Verifica que el servidor esté corriendo.'));
       console.log(c.dim('   Si la URL cambió, corre: airbnb-cli login\n'));
@@ -499,15 +508,29 @@ const run = (fn, fnArgs = []) => {
 // para aliases (help / --help / -h). Para un CLI más grande usaríamos un framework
 // como commander.js, pero para este caso KISS (Keep It Simple) es suficiente.
 switch (cmd) {
-  case 'login':      run(cmdLogin);              break;
-  case 'set-token':  cmdSetToken(args);          break;  // síncrono — no necesita run()
-  case 'stats':      run(cmdStats, args);        break;
-  case 'properties': run(cmdProperties);         break;
-  case 'market':     run(cmdMarket, args);       break;
-  case 'jobs':       cmdJobs();                  break;  // síncrono — no necesita run()
+  case 'login':
+    run(cmdLogin);
+    break;
+  case 'set-token':
+    cmdSetToken(args);
+    break; // síncrono — no necesita run()
+  case 'stats':
+    run(cmdStats, args);
+    break;
+  case 'properties':
+    run(cmdProperties);
+    break;
+  case 'market':
+    run(cmdMarket, args);
+    break;
+  case 'jobs':
+    cmdJobs();
+    break; // síncrono — no necesita run()
   case 'help':
   case '--help':
-  case '-h':         cmdHelp();                  break;  // síncrono — no necesita run()
+  case '-h':
+    cmdHelp();
+    break; // síncrono — no necesita run()
   default:
     console.log(c.red(`\n❌ Comando desconocido: "${cmd || '(ninguno)'}".\n`));
     cmdHelp();
