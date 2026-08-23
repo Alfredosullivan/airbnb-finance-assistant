@@ -2,10 +2,19 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
+  {
+    // Directorios excluidos del linting del backend.
+    // client/  → tiene su propio eslint.config.js con reglas de React/JSX.
+    // dist/    → build compilado de TypeScript, no es código fuente.
+    // public/  → JS de browser (document/window/fetch), no Node.js.
+    // uploads/ y data/ → archivos de usuario/datos, no código.
+    // .claude/ → archivos internos de la herramienta de desarrollo.
+    ignores: ['client/**', 'dist/**', 'public/**', 'uploads/**', 'data/**', '.claude/**'],
+  },
   js.configs.recommended,
   {
     // Archivos del backend — controllers, services, repositories, etc.
-    files: ['src/**/*.js', 'index.js', 'scripts/**/*.js', 'bin/**/*.js'],
+    files: ['src/**/*.js', 'index.js', 'config.js', 'serve-preview.js', 'scripts/**/*.js', 'bin/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'commonjs',
