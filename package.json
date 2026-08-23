@@ -48,7 +48,8 @@
       "**/tests/**/*.test.js"
     ],
     "testPathIgnorePatterns": [
-      "<rootDir>/tests/integration.test.js"
+      "<rootDir>/tests/integration.test.js",
+      "<rootDir>/.claude/"
     ],
     "setupFiles": [
       "<rootDir>/tests/helpers/setup.js"
