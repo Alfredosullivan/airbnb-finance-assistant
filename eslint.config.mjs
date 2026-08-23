@@ -14,7 +14,14 @@ export default [
   js.configs.recommended,
   {
     // Archivos del backend — controllers, services, repositories, etc.
-    files: ['src/**/*.js', 'index.js', 'config.js', 'serve-preview.js', 'scripts/**/*.js', 'bin/**/*.js'],
+    files: [
+      'src/**/*.js',
+      'index.js',
+      'config.js',
+      'serve-preview.js',
+      'scripts/**/*.js',
+      'bin/**/*.js',
+    ],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'commonjs',

@@ -38,7 +38,7 @@
     "client/src/**/*.{js,jsx}": [
       "prettier --write"
     ],
-    "**/*.{json,md,css}": [
+    "**/*.{json,md,css,yml,yaml,mjs}": [
       "prettier --write"
     ]
   },
