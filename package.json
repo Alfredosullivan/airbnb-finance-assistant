@@ -11,7 +11,36 @@
     "dev": "nodemon index.js",
     "build": "tsc && cd client && npm install && npm run build",
     "test": "jest",
-    "cli": "node bin/airbnb-cli.js"
+    "cli": "node bin/airbnb-cli.js",
+    "prepare": "husky",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "lint-staged": {
+    "src/**/*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "index.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "tests/**/*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "scripts/**/*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "client/src/**/*.{js,jsx}": [
+      "prettier --write"
+    ],
+    "**/*.{json,md,css}": [
+      "prettier --write"
+    ]
   },
   "jest": {
     "testEnvironment": "node",
@@ -53,10 +82,16 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.6.0",
+    "eslint": "^10.9.0",
+    "globals": "^17.11.0",
+    "husky": "^9.1.7",
     "jest": "^30.3.0",
+    "lint-staged": "^16.4.0",
     "nodemon": "^3.1.0",
     "pg-mem": "^3.0.14",
+    "prettier": "^3.9.6",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
