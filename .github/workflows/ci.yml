@@ -47,11 +47,19 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Ejecutar tests
-        run: npm test
+      - name: Ejecutar tests con coverage
+        run: npm run test:coverage
         env:
           NODE_ENV: test
           JWT_SECRET: ci_test_secret_not_for_production
+
+      - name: Subir reporte de coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/lcov.info
+          retention-days: 30
 
   docker:
     name: Docker Build
