@@ -79,7 +79,7 @@ jobs:
         run: docker build -t airbnb-finance-assistant:ci .
 
       - name: Escanear imagen con Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.36.0
         with:
           image-ref: airbnb-finance-assistant:ci
           format: sarif
