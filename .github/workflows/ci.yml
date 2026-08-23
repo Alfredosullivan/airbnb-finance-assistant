@@ -30,6 +30,9 @@ jobs:
       - name: Verificar formato Prettier
         run: npm run format:check
 
+      - name: Auditoría de seguridad (npm audit)
+        run: npm audit --audit-level=high
+
   test:
     name: Tests (69)
     runs-on: ubuntu-latest
