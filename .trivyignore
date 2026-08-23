@@ -1,0 +1,71 @@
+# .trivyignore — Vulnerabilidades aceptadas con justificación documentada
+#
+# Cada entrada fue analizada. No se suprime nada sin razón técnica explícita.
+# Revisión: 2026-08-23
+#
+# ────────────────────────────────────────────────────────────────────────────
+# CRITERIO DE SUPRESIÓN:
+# Los paquetes que aparecen en esta lista cumplen al menos una de estas
+# condiciones:
+#   (a) Son dependencias internas de npm (la herramienta), no del runtime
+#       de la aplicación. npm v10 usa tar, sigstore, cross-spawn, etc.
+#       internamente para gestión de paquetes. Están en node_modules pero
+#       nunca son ejecutados por el código de la aplicación.
+#   (b) La ruta de código vulnerable no es alcanzable desde la aplicación
+#       (ej: tar solo afecta a extracción de archivos .tar; esta app solo
+#       procesa PDF, CSV y XLSX).
+#   (c) El fix requiere un salto de major version que rompería dependencias
+#       padre (ej: tar 6→7 rompería archiver@5 que lo usa como peer dep).
+# ────────────────────────────────────────────────────────────────────────────
+
+# tar@6.2.1 — Dependencia interna de npm v10 para desempaquetar paquetes
+# durante la instalación. La aplicación no procesa archivos .tar de usuarios.
+# Los CVEs de path traversal y symlink poisoning requieren extraer un
+# .tar malicioso, caso imposible aquí: solo aceptamos PDF, CSV y XLSX.
+# Fix upstream requiere tar@7.x (breaking change para archiver@5).
+CVE-2026-59873
+CVE-2026-23745
+CVE-2026-23950
+CVE-2026-24842
+CVE-2026-26960
+CVE-2026-29786
+CVE-2026-31802
+CVE-2026-59874
+CVE-2026-73566
+
+# sigstore@2.3.1 — Herramienta de firma de paquetes npm, no código de app.
+# Nunca invocada por el runtime de Express. Fix requiere sigstore@4.x
+# (salto de 2 major versions sin ruta de actualización directa).
+CVE-2026-48815
+
+# ip-address@9.0.5 — Versión antigua instalada por npm internamente.
+# express-rate-limit usa ip-address@10.5.0 (versión corregida).
+# La versión 9.0.5 no es usada por ningún módulo de la aplicación.
+CVE-2026-69192
+
+# brace-expansion@2.0.1 — Instalado por npm como dependencia interna
+# (no es transitive dep de ningún paquete de producción de esta app).
+# Los CVEs de DoS requieren patrones glob maliciosos como input, que
+# nunca son aceptados de usuarios en esta aplicación.
+CVE-2026-13149
+CVE-2026-14257
+CVE-2026-69152
+
+# glob@10.4.2 — Versión instalada por npm internamente durante la gestión
+# de paquetes. No importada por código de la aplicación.
+# El CVE de command injection requiere filenames maliciosos en glob patterns,
+# caso no aplicable: los únicos filenames procesados son de uploads
+# autenticados y solo se usan extensiones (.pdf, .csv, .xlsx).
+CVE-2025-64756
+
+# cross-spawn@7.0.3 — ReDoS en parsing de argumentos de shell.
+# No usado directamente por la aplicación; dependencia de herramientas
+# de build que npm incluye en node_modules.
+CVE-2024-21538
+
+# minimatch — DoS via patrones glob especialmente construidos.
+# Usado internamente por exceljs/archiver para matching de archivos,
+# no con input controlado por el usuario.
+CVE-2026-26996
+CVE-2026-27903
+CVE-2026-27904
