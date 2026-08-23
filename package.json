@@ -11,6 +11,7 @@
     "dev": "nodemon index.js",
     "build": "tsc && cd client && npm install && npm run build",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "cli": "node bin/airbnb-cli.js",
     "prepare": "husky",
     "lint": "eslint .",
@@ -56,6 +57,22 @@
     ],
     "transform": {
       "^.+\\.ts$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/**/*.test.js"
+    ],
+    "coverageReporters": [
+      "text",
+      "lcov"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 41,
+        "branches": 34,
+        "functions": 39,
+        "lines": 42
+      }
     }
   },
   "dependencies": {
