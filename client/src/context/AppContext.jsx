@@ -3,15 +3,15 @@
 // AppProvider envuelve toda la app en App.jsx.
 // useAppContext() es el hook de acceso — lanza error si se usa fuera del Provider.
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react';
 
-const AppContext = createContext(null)
+const AppContext = createContext(null);
 
 export function AppProvider({ children, user, onLogout }) {
-  const [properties, setProperties]               = useState([])
-  const [currentProperty, setCurrentProperty]     = useState(null)
-  const [loadingProperties, setLoadingProperties] = useState(false)
-  const [currentReport, setCurrentReport]         = useState(null)
+  const [properties, setProperties] = useState([]);
+  const [currentProperty, setCurrentProperty] = useState(null);
+  const [loadingProperties, setLoadingProperties] = useState(false);
+  const [currentReport, setCurrentReport] = useState(null);
 
   // Cargar propiedades cuando hay usuario autenticado.
   // ¿Por qué user como dependencia? Cuando user cambia de null a un objeto
@@ -19,33 +19,31 @@ export function AppProvider({ children, user, onLogout }) {
   // Cuando cambia de objeto a null (logout), limpia el estado.
   useEffect(() => {
     if (!user) {
-      setProperties([])
-      setCurrentProperty(null)
-      return
+      setProperties([]);
+      setCurrentProperty(null);
+      return;
     }
     const load = async () => {
-      setLoadingProperties(true)
+      setLoadingProperties(true);
       try {
-        const res  = await fetch('/api/properties')
-        const data = await res.json()
+        const res = await fetch('/api/properties');
+        const data = await res.json();
         if (data.properties?.length > 0) {
-          setProperties(data.properties)
+          setProperties(data.properties);
           // Mantener la propiedad activa si aún existe en la lista;
           // si no, seleccionar la primera. Mismo comportamiento que el Vanilla JS original.
-          setCurrentProperty(prev =>
-            data.properties.find(p => p.id === prev?.id)
-              ? prev
-              : data.properties[0]
-          )
+          setCurrentProperty((prev) =>
+            data.properties.find((p) => p.id === prev?.id) ? prev : data.properties[0]
+          );
         }
       } catch (err) {
-        console.error('Error cargando propiedades:', err)
+        console.error('Error cargando propiedades:', err);
       } finally {
-        setLoadingProperties(false)
+        setLoadingProperties(false);
       }
-    }
-    load()
-  }, [user])
+    };
+    load();
+  }, [user]);
 
   const value = {
     properties,
@@ -57,15 +55,15 @@ export function AppProvider({ children, user, onLogout }) {
     setCurrentReport,
     user,
     onLogout,
-  }
+  };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 export function useAppContext() {
-  const ctx = useContext(AppContext)
+  const ctx = useContext(AppContext);
   // Fallo rápido: si alguien usa el hook fuera del Provider, el error
   // aparece en el componente culpable, no en un crash misterioso más arriba.
-  if (!ctx) throw new Error('useAppContext debe usarse dentro de AppProvider')
-  return ctx
+  if (!ctx) throw new Error('useAppContext debe usarse dentro de AppProvider');
+  return ctx;
 }

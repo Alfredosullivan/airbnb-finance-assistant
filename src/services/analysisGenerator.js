@@ -13,15 +13,6 @@ Siempre respondes en español. No inventas datos — solo analizas lo que se te
 proporciona. Cuando un dato no está disponible, lo indicas claramente.`;
 
 /**
- * Formatea un número como moneda MXN.
- * @param {number} n
- * @returns {string}
- */
-function mxn(n) {
-  return (n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-/**
  * Obtiene un cliente Anthropic. Lanza un error claro si no hay API key.
  */
 function getClient() {
@@ -46,28 +37,25 @@ async function generateMonthlyAnalysis(data) {
 
   const { reportLabel, summary, tables, excelData } = data;
 
-  const airbnbTotal   = summary?.airbnbTotal   || summary?.totalAirbnbPayouts || 0;
-  const bankTotal     = summary?.bankTotal      || summary?.totalBankDeposits  || 0;
-  const matchRate     = summary?.matchRate      || '0%';
-  const netDifference = summary?.netDifference  || 0;
-  const matchedCount  = tables?.matched?.length  || 0;
-  const onlyAirbnb    = tables?.onlyInAirbnb?.length || 0;
-  const onlyBank      = tables?.onlyInBank?.length    || 0;
-  const noches        = excelData?.noches         || 0;
-  const comision      = excelData?.comisionAirbnb || 0;
-  const ivaRetenido   = excelData?.ivaRetenido    || 0;
-  const isrRetenido   = excelData?.isrRetenido    || 0;
+  const airbnbTotal = summary?.airbnbTotal || summary?.totalAirbnbPayouts || 0;
+  const bankTotal = summary?.bankTotal || summary?.totalBankDeposits || 0;
+  const matchRate = summary?.matchRate || '0%';
+  const netDifference = summary?.netDifference || 0;
+  const noches = excelData?.noches || 0;
+  const comision = excelData?.comisionAirbnb || 0;
+  const ivaRetenido = excelData?.ivaRetenido || 0;
+  const isrRetenido = excelData?.isrRetenido || 0;
 
   // Detalle de reservaciones desde matched
   const reservaciones = [];
-  (tables?.matched || []).forEach(m => {
-    (m.reservations || []).forEach(r => {
+  (tables?.matched || []).forEach((m) => {
+    (m.reservations || []).forEach((r) => {
       reservaciones.push({
-        huesped:  r.guest,
-        noches:   r.nights,
-        checkIn:  r.checkIn,
+        huesped: r.guest,
+        noches: r.nights,
+        checkIn: r.checkIn,
         checkOut: r.checkOut,
-        monto:    r.grossAmount,
+        monto: r.grossAmount,
         limpieza: r.cleaningFee,
         comision: r.serviceFee,
       });
@@ -80,23 +68,30 @@ y genera un reporte conciso enfocado en lo más útil para un
 superhost de Airbnb en México.
 
 DATOS FINANCIEROS:
-- Total neto Airbnb: $${airbnbTotal.toLocaleString('es-MX', {minimumFractionDigits:2})} MXN
-- Total banco (depósitos): $${bankTotal.toLocaleString('es-MX', {minimumFractionDigits:2})} MXN
-- Diferencia neta: $${netDifference.toLocaleString('es-MX', {minimumFractionDigits:2})} MXN
+- Total neto Airbnb: $${airbnbTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
+- Total banco (depósitos): $${bankTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
+- Diferencia neta: $${netDifference.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
 - Match rate: ${matchRate}
-- Comisiones Airbnb: $${comision.toLocaleString('es-MX', {minimumFractionDigits:2})} MXN
-- IVA retenido (8%): $${ivaRetenido.toLocaleString('es-MX', {minimumFractionDigits:2})} MXN
-- ISR retenido (4%): $${isrRetenido.toLocaleString('es-MX', {minimumFractionDigits:2})} MXN
+- Comisiones Airbnb: $${comision.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
+- IVA retenido (8%): $${ivaRetenido.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
+- ISR retenido (4%): $${isrRetenido.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
 
 OCUPACIÓN:
 - Noches ocupadas: ${noches}
 - Reservaciones: ${reservaciones.length}
 - Días del mes: 31
-${reservaciones.length > 0 ? `
+${
+  reservaciones.length > 0
+    ? `
 DETALLE DE RESERVACIONES:
-${reservaciones.map(r =>
-  `- ${r.huesped}: ${r.noches} noches (${r.checkIn} al ${r.checkOut}), $${r.monto} MXN bruto`
-).join('\n')}` : ''}
+${reservaciones
+  .map(
+    (r) =>
+      `- ${r.huesped}: ${r.noches} noches (${r.checkIn} al ${r.checkOut}), $${r.monto} MXN bruto`
+  )
+  .join('\n')}`
+    : ''
+}
 
 Genera ÚNICAMENTE estas 3 secciones, sin agregar más:
 
@@ -122,10 +117,10 @@ Cada punto en 1-2 líneas máximo. Sin texto de relleno.]
 `;
 
   const response = await client.messages.create({
-    model:      MODEL,
+    model: MODEL,
     max_tokens: 1500,
-    system:     SYSTEM_PROMPT,
-    messages:   [{ role: 'user', content: userPrompt }],
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userPrompt }],
   });
 
   return response.content[0].text;
@@ -141,32 +136,33 @@ Cada punto en 1-2 líneas máximo. Sin texto de relleno.]
 async function generateAnnualAnalysis(monthlyData, year) {
   const client = getClient();
 
-  const totalAnual   = monthlyData.reduce((s, m) => s + m.airbnbTotal, 0);
-  const totalNoches  = monthlyData.reduce((s, m) => s + (m.noches || 0), 0);
-  const mesesActivos = monthlyData.filter(m => m.airbnbTotal > 0).length;
+  const totalAnual = monthlyData.reduce((s, m) => s + m.airbnbTotal, 0);
+  const totalNoches = monthlyData.reduce((s, m) => s + (m.noches || 0), 0);
+  const mesesActivos = monthlyData.filter((m) => m.airbnbTotal > 0).length;
 
-  const activos = monthlyData.filter(m => m.airbnbTotal > 0);
-  const mejorMes = activos.length > 0
-    ? activos.reduce((a, b) => b.airbnbTotal > a.airbnbTotal ? b : a)
-    : null;
-  const peorMes = activos.length > 0
-    ? activos.reduce((a, b) => b.airbnbTotal < a.airbnbTotal ? b : a)
-    : null;
+  const activos = monthlyData.filter((m) => m.airbnbTotal > 0);
+  const mejorMes =
+    activos.length > 0 ? activos.reduce((a, b) => (b.airbnbTotal > a.airbnbTotal ? b : a)) : null;
+  const peorMes =
+    activos.length > 0 ? activos.reduce((a, b) => (b.airbnbTotal < a.airbnbTotal ? b : a)) : null;
 
   const userPrompt = `
 Analiza el desempeño anual de ${year} de una propiedad en Airbnb en México.
 
 RESUMEN ANUAL:
-- Total ingresos netos: $${totalAnual.toLocaleString('es-MX', {minimumFractionDigits:2})} MXN
+- Total ingresos netos: $${totalAnual.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
 - Total noches ocupadas: ${totalNoches}
 - Meses con actividad: ${mesesActivos}/12
-- Mejor mes: ${mejorMes ? `${mejorMes.label} ($${mejorMes.airbnbTotal.toLocaleString('es-MX', {minimumFractionDigits:2})} MXN)` : 'N/A'}
-- Mes más bajo: ${peorMes ? `${peorMes.label} ($${(peorMes.airbnbTotal || 0).toLocaleString('es-MX', {minimumFractionDigits:2})} MXN)` : 'N/A'}
+- Mejor mes: ${mejorMes ? `${mejorMes.label} ($${mejorMes.airbnbTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN)` : 'N/A'}
+- Mes más bajo: ${peorMes ? `${peorMes.label} ($${(peorMes.airbnbTotal || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN)` : 'N/A'}
 
 DETALLE POR MES:
-${monthlyData.map(m =>
-  `- ${m.label}: $${m.airbnbTotal.toLocaleString('es-MX', {minimumFractionDigits:2})} MXN | ${m.noches || '—'} noches`
-).join('\n')}
+${monthlyData
+  .map(
+    (m) =>
+      `- ${m.label}: $${m.airbnbTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN | ${m.noches || '—'} noches`
+  )
+  .join('\n')}
 
 Genera ÚNICAMENTE estas 3 secciones:
 
@@ -191,10 +187,10 @@ Cada punto en 1-2 líneas. Sin texto de relleno.]
 `;
 
   const response = await client.messages.create({
-    model:      MODEL,
+    model: MODEL,
     max_tokens: 2000,
-    system:     SYSTEM_PROMPT,
-    messages:   [{ role: 'user', content: userPrompt }],
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userPrompt }],
   });
 
   return response.content[0].text;
@@ -222,9 +218,9 @@ async function generatePriceAnalysis(prompt) {
   const client = getClient();
 
   const response = await client.messages.create({
-    model:      MODEL, // constante definida en este archivo: 'claude-opus-4-6'
+    model: MODEL, // constante definida en este archivo: 'claude-opus-4-6'
     max_tokens: 2000,
-    messages:   [{ role: 'user', content: prompt }],
+    messages: [{ role: 'user', content: prompt }],
   });
 
   return response.content[0]?.text || '';

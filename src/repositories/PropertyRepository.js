@@ -31,10 +31,10 @@ async function findByIdAndUser(id, userId) {
  * @returns {Promise<{ name: string } | null>}
  */
 async function findNameByIdAndUser(id, userId) {
-  const { rows } = await pool.query(
-    'SELECT name FROM properties WHERE id = $1 AND user_id = $2',
-    [id, userId]
-  );
+  const { rows } = await pool.query('SELECT name FROM properties WHERE id = $1 AND user_id = $2', [
+    id,
+    userId,
+  ]);
   return rows[0] || null;
 }
 
@@ -77,7 +77,7 @@ async function findNamesByUser(userId) {
     'SELECT name FROM properties WHERE user_id = $1 ORDER BY id ASC',
     [userId]
   );
-  return rows.map(p => p.name);
+  return rows.map((p) => p.name);
 }
 
 /**
@@ -101,10 +101,9 @@ async function findFirstByUser(userId) {
  * @returns {Promise<number>}
  */
 async function countByUser(userId) {
-  const { rows } = await pool.query(
-    'SELECT COUNT(*) AS n FROM properties WHERE user_id = $1',
-    [userId]
-  );
+  const { rows } = await pool.query('SELECT COUNT(*) AS n FROM properties WHERE user_id = $1', [
+    userId,
+  ]);
   // PostgreSQL devuelve COUNT como string; lo convertimos a entero.
   return parseInt(rows[0].n, 10);
 }
@@ -162,10 +161,7 @@ async function createDefault(userId) {
  * @returns {Promise<void>}
  */
 async function rename(id, name) {
-  await pool.query(
-    'UPDATE properties SET name = $1 WHERE id = $2',
-    [name, id]
-  );
+  await pool.query('UPDATE properties SET name = $1 WHERE id = $2', [name, id]);
 }
 
 /**

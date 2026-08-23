@@ -2,117 +2,112 @@
 // Maneja ambos modos en un solo componente para compartir estado de formulario
 // y evitar duplicación. El modo se controla con la prop initialMode.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react';
 
-export default function AuthModal({
-  isOpen,
-  onClose,
-  onSuccess,
-  initialMode = 'login',
-}) {
+export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }) {
   // Estado del formulario — compartido entre login y register
   // (email y password se reusan en ambos modos)
-  const [mode, setMode]         = useState(initialMode)
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [username, setUsername] = useState('')
+  const [mode, setMode] = useState(initialMode);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
 
   // Resetea formulario, error y modo al estado inicial
   // useCallback para que sea estable como dependencia del useEffect de Escape
   const resetForm = useCallback(() => {
-    setEmail('')
-    setPassword('')
-    setUsername('')
-    setError('')
-    setMode(initialMode)
-  }, [initialMode])
+    setEmail('');
+    setPassword('');
+    setUsername('');
+    setError('');
+    setMode(initialMode);
+  }, [initialMode]);
 
   // Cerrar con Escape — se registra solo cuando el modal está abierto
   // ¿Por qué useEffect? Necesitamos un event listener global (document),
   // que no podemos poner en un elemento JSX. useEffect lo registra cuando
   // isOpen=true y lo limpia cuando el modal se cierra o el componente se desmonta.
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        resetForm()
-        onClose()
+        resetForm();
+        onClose();
       }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose, resetForm])
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, resetForm]);
 
   // Cambiar de modo limpia el error (UX: el error de login no debe
   // seguir visible cuando el usuario cambia a registro)
   const switchMode = (newMode) => {
-    setError('')
-    setMode(newMode)
-  }
+    setError('');
+    setMode(newMode);
+  };
 
   // Cerrar desde botón × o desde overlay
   const handleClose = () => {
-    resetForm()
-    onClose()
-  }
+    resetForm();
+    onClose();
+  };
 
   // Clic en el overlay — solo cierra si el clic fue directamente sobre
   // el overlay, no sobre el modal interior (e.target === e.currentTarget)
   const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) handleClose()
-  }
+    if (e.target === e.currentTarget) handleClose();
+  };
 
   // Submit login — POST /api/auth/login
   const handleLoginSubmit = async () => {
-    if (loading) return
-    setLoading(true)
-    setError('')
+    if (loading) return;
+    setLoading(true);
+    setError('');
     try {
-      const res  = await fetch('/api/auth/login', {
-        method:  'POST',
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ email, password }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión')
-      onSuccess(data.user)
-      resetForm()
-      onClose()
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
+      onSuccess(data.user);
+      resetForm();
+      onClose();
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Submit register — POST /api/auth/register
   const handleRegisterSubmit = async () => {
-    if (loading) return
-    setLoading(true)
-    setError('')
+    if (loading) return;
+    setLoading(true);
+    setError('');
     try {
-      const res  = await fetch('/api/auth/register', {
-        method:  'POST',
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ username, email, password }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al registrarse')
-      onSuccess(data.user)
-      resetForm()
-      onClose()
+        body: JSON.stringify({ username, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al registrarse');
+      onSuccess(data.user);
+      resetForm();
+      onClose();
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // No renderizar nada si el modal está cerrado — desmonta el componente
   // y resetea el estado de React automáticamente en el próximo montaje
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div
@@ -123,15 +118,10 @@ export default function AuthModal({
       aria-labelledby="auth-title"
     >
       <div className="auth-modal">
-
         {/* Header — igual en ambos modos */}
         <div className="auth-modal__header">
           <span className="auth-modal__brand">✦ Airbnb Finance</span>
-          <button
-            className="auth-modal__close"
-            onClick={handleClose}
-            aria-label="Cerrar"
-          >
+          <button className="auth-modal__close" onClick={handleClose} aria-label="Cerrar">
             ×
           </button>
         </div>
@@ -161,7 +151,9 @@ export default function AuthModal({
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleLoginSubmit() }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleLoginSubmit();
+                    }}
                   />
                 </div>
                 <div className="auth-field">
@@ -176,7 +168,9 @@ export default function AuthModal({
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleLoginSubmit() }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleLoginSubmit();
+                    }}
                   />
                 </div>
                 {error && <p className="auth-error">{error}</p>}
@@ -226,7 +220,9 @@ export default function AuthModal({
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleRegisterSubmit() }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleRegisterSubmit();
+                    }}
                   />
                 </div>
                 <div className="auth-field">
@@ -241,7 +237,9 @@ export default function AuthModal({
                     autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleRegisterSubmit() }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleRegisterSubmit();
+                    }}
                   />
                 </div>
                 {error && <p className="auth-error">{error}</p>}
@@ -262,27 +260,20 @@ export default function AuthModal({
           {mode === 'login' ? (
             <>
               <span className="auth-modal__footer-text">¿No tienes cuenta?</span>
-              <button
-                className="auth-modal__footer-link"
-                onClick={() => switchMode('register')}
-              >
+              <button className="auth-modal__footer-link" onClick={() => switchMode('register')}>
                 Crear cuenta
               </button>
             </>
           ) : (
             <>
               <span className="auth-modal__footer-text">¿Ya tienes cuenta?</span>
-              <button
-                className="auth-modal__footer-link"
-                onClick={() => switchMode('login')}
-              >
+              <button className="auth-modal__footer-link" onClick={() => switchMode('login')}>
                 Iniciar sesión
               </button>
             </>
           )}
         </div>
-
       </div>
     </div>
-  )
+  );
 }

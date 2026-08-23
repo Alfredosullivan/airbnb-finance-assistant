@@ -9,8 +9,8 @@
 // TODO: Conectar con el servicio de exportación Excel para generar
 //       automáticamente el reporte anual y enviarlo por email.
 
-const log       = require('../logger');
-const { pool }  = require('../../database/client');
+const log = require('../logger');
+const { pool } = require('../../database/client');
 
 // Expresión cron: "0 7 1 1 *"
 // minuto=0, hora=7, día=1, mes=1 (enero), día_semana=* (cualquiera)
@@ -50,7 +50,7 @@ async function runAnnualSummary() {
     }
 
     log('info', `─── Resumen por usuario (${previousYear}) ───`);
-    byUser.forEach(row => {
+    byUser.forEach((row) => {
       log('info', `  ${row.email}: ${row.total_reportes} reporte(s)`);
     });
 
@@ -70,14 +70,16 @@ async function runAnnualSummary() {
     );
 
     log('info', `─── Resumen por propiedad (${previousYear}) ───`);
-    byProp.forEach(row => {
+    byProp.forEach((row) => {
       log('info', `  ${row.propiedad} (${row.propietario}): ${row.total_reportes} reporte(s)`);
     });
 
     // Totales globales para el log de cierre
     const totalReportes = byUser.reduce((acc, r) => acc + parseInt(r.total_reportes, 10), 0);
-    log('info', `Resumen anual ${previousYear} completo — ${totalReportes} reporte(s) en total, ${byUser.length} usuario(s)`);
-
+    log(
+      'info',
+      `Resumen anual ${previousYear} completo — ${totalReportes} reporte(s) en total, ${byUser.length} usuario(s)`
+    );
   } catch (err) {
     log('error', `Error al generar resumen anual ${previousYear}: ${err.message}`);
   }

@@ -26,7 +26,7 @@ const queue = require('../queue/MemoryQueue');
  */
 const getJobStatus = (req, res) => {
   const { jobId } = req.params;
-  const job       = queue.getJob(jobId);
+  const job = queue.getJob(jobId);
 
   if (!job) {
     // 404 si el job no existe o ya fue limpiado por cleanup()
@@ -36,13 +36,13 @@ const getJobStatus = (req, res) => {
   // Nunca incluir job.result.buffer en esta respuesta (puede ser pesado).
   // Solo filename cuando está listo — para que el frontend sepa qué mostrar.
   res.json({
-    id:        job.id,
-    type:      job.type,
-    status:    job.status,        // pending | active | completed | failed
-    error:     job.error || null,
+    id: job.id,
+    type: job.type,
+    status: job.status, // pending | active | completed | failed
+    error: job.error || null,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
-    filename:     job.result?.filename     || null,
+    filename: job.result?.filename || null,
     analysisText: job.result?.analysisText || null,
   });
 };
@@ -58,7 +58,7 @@ const getJobStatus = (req, res) => {
  */
 const downloadJobResult = (req, res) => {
   const { jobId } = req.params;
-  const job       = queue.getJob(jobId);
+  const job = queue.getJob(jobId);
 
   if (!job) {
     return res.status(404).json({ error: 'Job no encontrado o expirado' });
@@ -67,7 +67,7 @@ const downloadJobResult = (req, res) => {
   if (job.status !== 'completed') {
     // Incluir el status actual para que el cliente pueda decidir si reintentar
     return res.status(409).json({
-      error:  'El job aún no está listo para descargar',
+      error: 'El job aún no está listo para descargar',
       status: job.status,
     });
   }
@@ -75,9 +75,9 @@ const downloadJobResult = (req, res) => {
   // Reconstruir el Buffer desde la representación base64 guardada en memoria
   const buffer = Buffer.from(job.result.buffer, 'base64');
 
-  res.setHeader('Content-Type',        job.result.contentType);
+  res.setHeader('Content-Type', job.result.contentType);
   res.setHeader('Content-Disposition', `attachment; filename="${job.result.filename}"`);
-  res.setHeader('Content-Length',      buffer.length);
+  res.setHeader('Content-Length', buffer.length);
   res.send(buffer);
 };
 

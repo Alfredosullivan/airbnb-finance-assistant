@@ -157,19 +157,19 @@
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 
-const express                                   = require('express');
-const router                                    = express.Router();
-const rateLimit                                 = require('express-rate-limit');
+const express = require('express');
+const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { register, login, logout, me, getToken } = require('../controllers/auth.controller');
-const { requireAuth }                           = require('../middleware/auth.middleware');
+const { requireAuth } = require('../middleware/auth.middleware');
 
 // Límite de intentos en endpoints de autenticación (protección anti-fuerza-bruta)
 const authLimiter = rateLimit({
-  windowMs:        15 * 60 * 1000, // ventana de 15 minutos
-  max:             20,              // máximo 20 intentos por IP en la ventana
-  standardHeaders: true,           // incluye RateLimit-* headers en la respuesta
-  legacyHeaders:   false,
-  message:         { error: 'Demasiados intentos. Espera 15 minutos antes de volver a intentarlo.' },
+  windowMs: 15 * 60 * 1000, // ventana de 15 minutos
+  max: 20, // máximo 20 intentos por IP en la ventana
+  standardHeaders: true, // incluye RateLimit-* headers en la respuesta
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Espera 15 minutos antes de volver a intentarlo.' },
 });
 
 // POST /api/auth/register  → Crea un nuevo usuario y abre sesión

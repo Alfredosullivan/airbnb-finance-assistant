@@ -153,38 +153,49 @@
  *         description: Report not found
  */
 
-const express                              = require('express');
-const router                               = express.Router();
-const { requireAuth }                      = require('../middleware/auth.middleware');
-const { saveReport, listReports, getReport, generateAnnualReport, deleteReport, updatePrevYearRef, getAnalysisFromSaved, getAnalysisPDFFromSaved, getDashboard, getExecutivePDF } = require('../controllers/reports.controller');
+const express = require('express');
+const router = express.Router();
+const { requireAuth } = require('../middleware/auth.middleware');
+const {
+  saveReport,
+  listReports,
+  getReport,
+  generateAnnualReport,
+  deleteReport,
+  updatePrevYearRef,
+  getAnalysisFromSaved,
+  getAnalysisPDFFromSaved,
+  getDashboard,
+  getExecutivePDF,
+} = require('../controllers/reports.controller');
 
 // POST   /api/reports/save                → Guarda o sobreescribe el reporte del mes actual
-router.post('/save',                requireAuth, saveReport);
+router.post('/save', requireAuth, saveReport);
 
 // POST   /api/reports/update-prev-year-ref → Inyecta prevYearData en un reporte del año siguiente
 // IMPORTANTE: debe estar antes de /:month para evitar conflicto de ruta
 router.post('/update-prev-year-ref', requireAuth, updatePrevYearRef);
 
 // GET    /api/reports/list          → Lista todos los reportes del usuario (solo metadatos + totales)
-router.get('/list',           requireAuth, listReports);
+router.get('/list', requireAuth, listReports);
 
 // GET    /api/reports/annual/:year    → Descarga el reporte anual en Excel
 // GET    /api/reports/dashboard/:year → Métricas del dashboard anual
 // IMPORTANTE: deben estar antes de /:month
-router.get('/annual/:year',        requireAuth, generateAnnualReport);
-router.get('/dashboard/:year',     requireAuth, getDashboard);
+router.get('/annual/:year', requireAuth, generateAnnualReport);
+router.get('/dashboard/:year', requireAuth, getDashboard);
 router.get('/executive-pdf/:year', requireAuth, getExecutivePDF);
 
 // POST   /api/reports/:month/analysis     → Análisis IA de un reporte guardado (ej: /api/reports/2026-02/analysis)
 // POST   /api/reports/:month/analysis/pdf → Descarga el análisis como PDF
 // IMPORTANTE: deben estar antes de GET /:month para que no haya conflicto de ruta
-router.post('/:month/analysis',     requireAuth, getAnalysisFromSaved);
+router.post('/:month/analysis', requireAuth, getAnalysisFromSaved);
 router.post('/:month/analysis/pdf', requireAuth, getAnalysisPDFFromSaved);
 
 // GET    /api/reports/:month        → Devuelve el JSON completo de un mes (ej: /api/reports/2026-02)
-router.get('/:month',         requireAuth, getReport);
+router.get('/:month', requireAuth, getReport);
 
 // DELETE /api/reports/:month        → Elimina el reporte de un mes (?propertyId=N)
-router.delete('/:month',      requireAuth, deleteReport);
+router.delete('/:month', requireAuth, deleteReport);
 
 module.exports = router;

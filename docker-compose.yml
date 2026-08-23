@@ -14,7 +14,6 @@
 #   docker compose logs -f app    # ver logs en tiempo real
 
 services:
-
   # ── Servicio de base de datos ─────────────────────────────────
   db:
     image: postgres:18-alpine
@@ -27,9 +26,9 @@ services:
     environment:
       # Estas variables las lee la imagen oficial de postgres para crear la DB inicial.
       # Los valores vienen de tu .env — nunca escribas contraseñas directamente aquí.
-      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       # Volumen nombrado: los datos de la DB sobreviven aunque el contenedor se elimine.
       # "postgres_data" es el nombre del volumen; se define abajo en la sección "volumes".
@@ -39,7 +38,7 @@ services:
     # Healthcheck: Docker esperará a que Postgres esté listo antes de iniciar la app.
     # pg_isready verifica que el servidor acepta conexiones — más confiable que "just started".
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -48,14 +47,14 @@ services:
   # ── Servicio de la aplicación Node.js ────────────────────────
   app:
     build:
-      context: .        # busca el Dockerfile en la raíz del proyecto
+      context: . # busca el Dockerfile en la raíz del proyecto
       dockerfile: Dockerfile
     ports:
       # 127.0.0.1:3000:3000 — solo escucha en localhost del host.
       # Si usáramos "3000:3000" (sin IP), Docker escucharía en 0.0.0.0
       # y la app quedaría expuesta en todas las interfaces de red de la máquina.
       # Restringir a 127.0.0.1 es la práctica correcta en desarrollo local.
-      - "127.0.0.1:3000:3000"
+      - '127.0.0.1:3000:3000'
     env_file:
       # Carga todas las variables de .env al contenedor.
       # DATABASE_URL debe apuntar al host "db" (nombre del servicio arriba),

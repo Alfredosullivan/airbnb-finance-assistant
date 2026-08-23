@@ -13,9 +13,9 @@
 'use strict';
 
 const { initSchema } = require('../../src/database/schema');
-const express          = require('express');
-const cookieParser     = require('cookie-parser');
-const authRoutes       = require('../../src/routes/auth.routes');
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const authRoutes = require('../../src/routes/auth.routes');
 const propertiesRoutes = require('../../src/routes/properties.routes');
 const { errorHandler } = require('../../src/middleware/errorHandler');
 
@@ -24,7 +24,7 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 
-app.use('/api/auth',       authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertiesRoutes);
 
 // 404 handler for unknown API routes

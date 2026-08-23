@@ -1,23 +1,25 @@
 // upload.controller.js — Controlador de uploads de PDFs y CSVs
 // Recibe los archivos subidos por multer, los valida y guarda sus rutas en memoria
 
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
-const { validatePDF }  = require('../utils/validator');
+const { validatePDF } = require('../utils/validator');
 
 /** Elimina un archivo del disco sin lanzar excepción si no existe */
 function tryUnlink(filePath) {
   if (!filePath) return;
-  try { fs.unlinkSync(filePath); } catch (_) {}
+  try {
+    fs.unlinkSync(filePath);
+  } catch (_) {}
 }
 
 // Almacén en memoria de las rutas de los PDFs y el último reporte generado.
 // En una versión con múltiples usuarios se reemplazaría por sesiones o una BD.
 const store = {
-  airbnbPath:     null,
-  airbnbFileType: null,  // 'csv' | 'pdf' — detectado por extensión al subir
-  bankPaths:      [],    // Acepta 1 o 2 PDFs bancarios
-  reportData:     null,  // Último reporte generado; se limpia con resetReport()
+  airbnbPath: null,
+  airbnbFileType: null, // 'csv' | 'pdf' — detectado por extensión al subir
+  bankPaths: [], // Acepta 1 o 2 PDFs bancarios
+  reportData: null, // Último reporte generado; se limpia con resetReport()
 };
 
 /**
@@ -57,11 +59,11 @@ async function uploadAirbnb(req, res) {
     // Eliminar archivo anterior de Airbnb si existe
     tryUnlink(store.airbnbPath);
 
-    store.airbnbPath     = req.file.path;
+    store.airbnbPath = req.file.path;
     store.airbnbFileType = fileType;
 
     res.json({
-      message:  `Reporte Airbnb recibido correctamente (${fileType.toUpperCase()})`,
+      message: `Reporte Airbnb recibido correctamente (${fileType.toUpperCase()})`,
       filename: req.file.originalname,
       fileType,
     });
@@ -92,7 +94,7 @@ async function uploadBank(req, res) {
     }
 
     // slot indica qué posición del arreglo ocupa este archivo (1-based desde el cliente)
-    const slot  = parseInt(req.body.slot, 10) || 1;
+    const slot = parseInt(req.body.slot, 10) || 1;
     const index = slot - 1; // Convertir a 0-based
 
     // Eliminar archivo bancario anterior del mismo slot si existe
@@ -101,10 +103,10 @@ async function uploadBank(req, res) {
     store.bankPaths[index] = files[0].path;
 
     res.json({
-      success:       true,
+      success: true,
       filesReceived: files.length,
       slot,
-      filename:      files[0].originalname,
+      filename: files[0].originalname,
     });
   } catch (err) {
     res.status(500).json({ error: `Error al procesar el archivo bancario: ${err.message}` });
@@ -123,12 +125,12 @@ async function resetReport(req, res) {
     console.log(`[uploads] ${pathsToDelete.length} archivo(s) eliminados al hacer reset`);
 
     // Limpiar todo el store
-    store.reportData    = null;
-    store.airbnbData    = null;
+    store.reportData = null;
+    store.airbnbData = null;
     store.compareResult = null;
-    store.airbnbPath    = null;
+    store.airbnbPath = null;
     store.airbnbFileType = null;
-    store.bankPaths     = [];
+    store.bankPaths = [];
 
     res.json({ success: true, message: 'Resultados limpiados' });
   } catch (err) {

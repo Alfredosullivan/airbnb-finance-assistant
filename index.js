@@ -3,70 +3,62 @@
 
 require('dotenv').config();
 
-const express        = require('express');
-const helmet         = require('helmet');
-const cors           = require('cors');
-const cookieParser   = require('cookie-parser');
-const path           = require('path');
-const swaggerUi      = require('swagger-ui-express');
-const { PORT }       = require('./config');
+const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const { PORT } = require('./config');
 const { initSchema } = require('./src/database/schema');
-const swaggerSpec       = require('./src/config/swagger');
-const financeRoutes     = require('./src/routes/finance.routes');
-const authRoutes        = require('./src/routes/auth.routes');
-const reportsRoutes     = require('./src/routes/reports.routes');
-const propertiesRoutes  = require('./src/routes/properties.routes');
-const { errorHandler }  = require('./src/middleware/errorHandler');
+const swaggerSpec = require('./src/config/swagger');
+const financeRoutes = require('./src/routes/finance.routes');
+const authRoutes = require('./src/routes/auth.routes');
+const reportsRoutes = require('./src/routes/reports.routes');
+const propertiesRoutes = require('./src/routes/properties.routes');
+const { errorHandler } = require('./src/middleware/errorHandler');
 const { initScheduler } = require('./src/scheduler');
-const { initQueue }     = require('./src/queue');
-const jobsRoutes        = require('./src/routes/jobs.routes');
-const crawlerRoutes     = require('./src/routes/crawler.routes');
+const { initQueue } = require('./src/queue');
+const jobsRoutes = require('./src/routes/jobs.routes');
+const crawlerRoutes = require('./src/routes/crawler.routes');
 
 // Raíz del proyecto — resuelve correctamente tanto en dev como en prod.
 // Dev: "node index.js"       → __dirname = /proyecto       → PROJECT_ROOT = /proyecto
 // Prod: "node dist/index.js" → __dirname = /proyecto/dist  → PROJECT_ROOT = /proyecto
 // Sin esto, express.static apuntaba a 'dist/public/' (inexistente) en producción
 // y el servidor servía el shell de React vacío en vez de la landing.
-const PROJECT_ROOT = path.basename(__dirname) === 'dist'
-  ? path.join(__dirname, '..')
-  : __dirname;
+const PROJECT_ROOT = path.basename(__dirname) === 'dist' ? path.join(__dirname, '..') : __dirname;
 
 const app = express();
 
 // Avisar si falta la API key de Anthropic (análisis IA no disponible)
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.warn('[config] ANTHROPIC_API_KEY no definida — análisis IA no disponible (ver .env.example)');
+  console.warn(
+    '[config] ANTHROPIC_API_KEY no definida — análisis IA no disponible (ver .env.example)'
+  );
 }
 
 // Cabeceras de seguridad HTTP (XSS, clickjacking, MIME sniffing, etc.)
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: [
-        "'self'",
-        "https://cdnjs.cloudflare.com"
-      ],
-      scriptSrcAttr: ["'unsafe-inline'"],  // ← agrega esta línea
-      styleSrc: [
-        "'self'",
-        "'unsafe-inline'",
-        "https://fonts.googleapis.com"
-      ],
-      fontSrc: [
-        "'self'",
-        "https://fonts.gstatic.com"
-      ],
-      imgSrc: ["'self'", "data:"],
-      connectSrc: ["'self'"]
-    }
-  }
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://cdnjs.cloudflare.com'],
+        scriptSrcAttr: ["'unsafe-inline'"], // ← agrega esta línea
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+      },
+    },
+  })
+);
 
 // Habilitar CORS solo para el origen del frontend (no wildcard en producción)
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
   .split(',')
-  .map(o => o.trim());
+  .map((o) => o.trim());
 app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 
 // Parsear cookies (necesario para leer el JWT de sesión)
@@ -103,15 +95,19 @@ app.use('/api/properties', propertiesRoutes);
 app.use('/api/crawler', crawlerRoutes);
 
 // GET /api/docs — Swagger UI (interactive API reference, no auth required)
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: 'Airbnb Finance Assistant — API Docs',
-}));
+app.use(
+  '/api/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'Airbnb Finance Assistant — API Docs',
+  })
+);
 
 // GET /health — Liveness / readiness probe (no auth, no API prefix)
 app.get('/health', (_req, res) => {
   res.json({
-    status:    'ok',
-    uptime:    process.uptime(),
+    status: 'ok',
+    uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });
 });
@@ -154,7 +150,7 @@ initSchema()
       initQueue();
     });
   })
-  .catch(err => {
+  .catch((err) => {
     console.error('[DB] Error al inicializar el esquema:', err.message);
     process.exit(1);
   });

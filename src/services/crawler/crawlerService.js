@@ -8,7 +8,7 @@
 //   2. Calcular estadísticas agregadas (avg, min, max)
 //   3. Devolver resultado estructurado con listings, stats y errores
 
-const { fetchPage }    = require('./httpClient');
+const { fetchPage } = require('./httpClient');
 const { parseListings: parseLamudiListings } = require('./parsers/lamudiParser');
 
 // ── Fuentes configuradas ────────────────────────────────────────
@@ -25,8 +25,8 @@ const { parseListings: parseLamudiListings } = require('./parsers/lamudiParser')
 // más robusto que selectores CSS (ver lamudiParser.js para detalles).
 const TARGETS = [
   {
-    name:   'lamudi',
-    url:    'https://www.lamudi.com.mx/yucatan/merida/casa/for-rent/',
+    name: 'lamudi',
+    url: 'https://www.lamudi.com.mx/yucatan/merida/casa/for-rent/',
     parser: parseLamudiListings,
   },
 ];
@@ -41,10 +41,10 @@ const TARGETS = [
 const crawlMeridaRentals = async () => {
   const results = {
     crawledAt: new Date().toISOString(),
-    sources:   [],
-    listings:  [],
-    errors:    [],
-    stats:     {},
+    sources: [],
+    listings: [],
+    errors: [],
+    stats: {},
   };
 
   // Procesamos fuentes secuencialmente (no en paralelo) para respetar al servidor
@@ -55,14 +55,14 @@ const crawlMeridaRentals = async () => {
   for (const target of TARGETS) {
     try {
       console.log(`[CRAWLER] Scrapeando ${target.name}...`);
-      const html     = await fetchPage(target.url);
+      const html = await fetchPage(target.url);
       const listings = target.parser(html);
 
       results.listings.push(...listings);
       results.sources.push({
-        name:   target.name,
-        url:    target.url,
-        count:  listings.length,
+        name: target.name,
+        url: target.url,
+        count: listings.length,
         status: 'ok',
       });
 
@@ -76,16 +76,14 @@ const crawlMeridaRentals = async () => {
 
   // ── Calcular estadísticas agregadas ──────────────────────────
   // filter(Boolean) elimina nulls — precio puede ser null si extractPrice falló
-  const prices = results.listings.map(l => l.price).filter(Boolean);
+  const prices = results.listings.map((l) => l.price).filter(Boolean);
 
   results.stats = {
-    total:        results.listings.length,
-    avgPrice:     prices.length
-      ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
-      : 0,
-    minPrice:     prices.length ? Math.min(...prices) : 0,
-    maxPrice:     prices.length ? Math.max(...prices) : 0,
-    sourcesOk:    results.sources.filter(s => s.status === 'ok').length,
+    total: results.listings.length,
+    avgPrice: prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0,
+    minPrice: prices.length ? Math.min(...prices) : 0,
+    maxPrice: prices.length ? Math.max(...prices) : 0,
+    sourcesOk: results.sources.filter((s) => s.status === 'ok').length,
     sourcesError: results.errors.length,
   };
 
@@ -109,12 +107,13 @@ const crawlMeridaRentals = async () => {
  * @param {number} [propertyContext.currentRate] - Tarifa actual por noche
  * @returns {Promise<string>} Análisis en texto generado por Claude
  */
-const analyzePricesWithClaude = async (crawlResults, propertyContext = {}) => {
+const analyzePricesWithClaude = async (crawlResults, _propertyContext = {}) => {
   // Require dinámico — carga en tiempo de ejecución, no al importar el módulo
   const { generatePriceAnalysis } = require('../analysisGenerator');
 
-  const listings = crawlResults.listings.slice(0, 10)
-    .map(l => `- ${l.title}: $${l.price} MXN (${l.location})`)
+  const listings = crawlResults.listings
+    .slice(0, 10)
+    .map((l) => `- ${l.title}: $${l.price} MXN (${l.location})`)
     .join('\n');
 
   const prompt = `

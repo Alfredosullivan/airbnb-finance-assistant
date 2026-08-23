@@ -11,13 +11,13 @@
 // separately; here we test authentication logic only.
 jest.mock('express-rate-limit', () => () => (_req, _res, next) => next());
 
-const request      = require('supertest');
-const { pool }     = require('../../src/database/client');
+const request = require('supertest');
+const { pool } = require('../../src/database/client');
 
 // ── Fixtures ───────────────────────────────────────────────────
 const VALID_USER = {
   username: 'testuser',
-  email:    'test@example.com',
+  email: 'test@example.com',
   password: 'password123',
 };
 
@@ -32,9 +32,7 @@ beforeAll(async () => {
 
 /** Registers VALID_USER and returns the session cookie. */
 async function registerAndGetCookie(userData = VALID_USER) {
-  const res = await request(app)
-    .post('/api/auth/register')
-    .send(userData);
+  const res = await request(app).post('/api/auth/register').send(userData);
   return res.headers['set-cookie'];
 }
 
@@ -52,15 +50,13 @@ beforeEach(async () => {
 
 describe('POST /api/auth/register', () => {
   test('creates a new user and returns 201 with user data', async () => {
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send(VALID_USER);
+    const res = await request(app).post('/api/auth/register').send(VALID_USER);
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.user).toMatchObject({
       username: VALID_USER.username,
-      email:    VALID_USER.email,
+      email: VALID_USER.email,
     });
     // Password must never appear in the response
     expect(res.body.user.password).toBeUndefined();
@@ -68,9 +64,7 @@ describe('POST /api/auth/register', () => {
   });
 
   test('sets an httpOnly JWT cookie on successful registration', async () => {
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send(VALID_USER);
+    const res = await request(app).post('/api/auth/register').send(VALID_USER);
 
     expect(res.status).toBe(201);
     const cookies = res.headers['set-cookie'];
@@ -81,15 +75,11 @@ describe('POST /api/auth/register', () => {
 
   test('rejects duplicate username or email with 409', async () => {
     // First registration must succeed
-    const first = await request(app)
-      .post('/api/auth/register')
-      .send(VALID_USER);
+    const first = await request(app).post('/api/auth/register').send(VALID_USER);
     expect(first.status).toBe(201);
 
     // Second registration with the exact same credentials must fail
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send(VALID_USER);
+    const res = await request(app).post('/api/auth/register').send(VALID_USER);
 
     expect(res.status).toBe(409);
     expect(res.body.error).toMatch(/ya está registrado/i);
@@ -185,9 +175,7 @@ describe('POST /api/auth/login', () => {
   });
 
   test('rejects request with missing password field with 400', async () => {
-    const res = await request(app)
-      .post('/api/auth/login')
-      .send({ email: VALID_USER.email });   // password omitted
+    const res = await request(app).post('/api/auth/login').send({ email: VALID_USER.email }); // password omitted
 
     expect(res.status).toBe(400);
   });
@@ -228,9 +216,7 @@ describe('GET /api/auth/me', () => {
   });
 
   test('returns the current user data when authenticated', async () => {
-    const res = await request(app)
-      .get('/api/auth/me')
-      .set('Cookie', authCookie);
+    const res = await request(app).get('/api/auth/me').set('Cookie', authCookie);
 
     expect(res.status).toBe(200);
     expect(res.body.user.email).toBe(VALID_USER.email);
@@ -239,9 +225,7 @@ describe('GET /api/auth/me', () => {
   });
 
   test('returns a boolean needsPropertyName flag', async () => {
-    const res = await request(app)
-      .get('/api/auth/me')
-      .set('Cookie', authCookie);
+    const res = await request(app).get('/api/auth/me').set('Cookie', authCookie);
 
     expect(res.status).toBe(200);
     expect(typeof res.body.needsPropertyName).toBe('boolean');

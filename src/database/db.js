@@ -2,8 +2,8 @@
 // Usa better-sqlite3 (API síncrona) para simplicidad en un servidor de un solo hilo
 
 const Database = require('better-sqlite3');
-const path     = require('path');
-const fs       = require('fs');
+const path = require('path');
+const fs = require('fs');
 
 // Ruta a la carpeta data/ en la raíz del proyecto
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');

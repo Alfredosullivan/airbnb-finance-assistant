@@ -62,12 +62,13 @@ const parseListings = (html) => {
 
       // ── Precio ────────────────────────────────────────────────
       const priceText = card.find('[data-qa="POSTING_CARD_PRICE"]').text().trim();
-      const price     = extractPrice(priceText);
+      const price = extractPrice(priceText);
 
       // ── Título / descripción del listing ──────────────────────
       // Intenta el selector semántico primero; fallback al primer h2
-      const title = card.find('[data-qa="posting-card-title"]').text().trim()
-        || card.find('h2').first().text().trim();
+      const title =
+        card.find('[data-qa="posting-card-title"]').text().trim() ||
+        card.find('h2').first().text().trim();
 
       // ── Ubicación ─────────────────────────────────────────────
       const location = card.find('[data-qa="POSTING_CARD_LOCATION"]').text().trim();
@@ -78,19 +79,17 @@ const parseListings = (html) => {
       // ── URL del listing ────────────────────────────────────────
       // Algunos hrefs son relativos (/departamento-en-...) — completamos con el dominio
       const href = card.find('a').first().attr('href') || '';
-      const url  = href.startsWith('http')
-        ? href
-        : `https://www.inmuebles24.com${href}`;
+      const url = href.startsWith('http') ? href : `https://www.inmuebles24.com${href}`;
 
       // Solo agregamos listings con precio válido — descartamos "Consultar", vacíos, etc.
       if (price && price > 0) {
         listings.push({
-          source:    'inmuebles24',
-          title:     title    || 'Sin título',
+          source: 'inmuebles24',
+          title: title || 'Sin título',
           price,
           priceText,
-          location:  location || 'Mérida, Yucatán',
-          features:  features || '',
+          location: location || 'Mérida, Yucatán',
+          features: features || '',
           url,
           scrapedAt: new Date().toISOString(),
         });

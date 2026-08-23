@@ -3,54 +3,53 @@
 // Recibe user, onLogout y onOpenAuth como props desde App.jsx.
 // Aquí viven los estados y funciones que necesitan tanto props como Context.
 
-import { useState } from 'react'
-import { useAppContext } from '../context/AppContext'
-import PropertyBar from './PropertyBar'
-import Dashboard from './Dashboard'
-import HistoryDrawer from './HistoryDrawer'
-import AnalysisModal from './AnalysisModal'
-import UploadSection from './UploadSection'
-import ReportResults from './ReportResults'
-import MarketSection from './MarketSection'
+import { useState } from 'react';
+import { useAppContext } from '../context/AppContext';
+import PropertyBar from './PropertyBar';
+import Dashboard from './Dashboard';
+import HistoryDrawer from './HistoryDrawer';
+import AnalysisModal from './AnalysisModal';
+import UploadSection from './UploadSection';
+import ReportResults from './ReportResults';
+import MarketSection from './MarketSection';
 
 export default function AppShell({ user, onLogout, onOpenAuth }) {
-  const { currentProperty, setCurrentReport } = useAppContext()
+  const { currentProperty, setCurrentReport } = useAppContext();
 
   // Estado del drawer de historial — vive aquí y no en App.jsx porque
   // handleViewReport necesita setCurrentReport del Context, que solo
   // está disponible dentro del Provider
-  const [historyOpen,   setHistoryOpen]   = useState(false)
-  const [analysisModal, setAnalysisModal] = useState({ open: false, month: null, label: null })
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [analysisModal, setAnalysisModal] = useState({ open: false, month: null, label: null });
 
   // Cierra el drawer y carga el reporte guardado en el Context
   // para que ReportResults lo renderice automáticamente
   const handleViewReport = async (month) => {
     try {
-      const propParam = currentProperty?.id ? `?propertyId=${currentProperty.id}` : ''
-      const res  = await fetch(`/api/reports/${month}${propParam}`)
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al cargar el reporte')
-      setCurrentReport(data)
-      setHistoryOpen(false)
+      const propParam = currentProperty?.id ? `?propertyId=${currentProperty.id}` : '';
+      const res = await fetch(`/api/reports/${month}${propParam}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al cargar el reporte');
+      setCurrentReport(data);
+      setHistoryOpen(false);
     } catch (err) {
-      console.error('[AppShell] Error cargando reporte guardado:', err.message)
+      console.error('[AppShell] Error cargando reporte guardado:', err.message);
     }
-  }
+  };
 
   const handleViewAnalysis = (month, label) => {
-    setAnalysisModal({ open: true, month, label })
-    setHistoryOpen(false)
-  }
+    setAnalysisModal({ open: true, month, label });
+    setHistoryOpen(false);
+  };
 
   // Logout también cierra el drawer
   const handleLogout = async () => {
-    setHistoryOpen(false)
-    await onLogout()
-  }
+    setHistoryOpen(false);
+    await onLogout();
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
-
       {/* ── Navbar ── */}
       <nav>
         <span className="brand">✦ Airbnb Finance</span>
@@ -107,7 +106,6 @@ export default function AppShell({ user, onLogout, onOpenAuth }) {
         label={analysisModal.label}
         onClose={() => setAnalysisModal({ open: false, month: null, label: null })}
       />
-
     </div>
-  )
+  );
 }

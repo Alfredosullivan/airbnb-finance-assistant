@@ -18,9 +18,9 @@ const log = require('./logger');
 // Importamos cada job con su expresión cron y su función ejecutora.
 // Separar la EXPRESIÓN de la FUNCIÓN permite cambiar el horario sin
 // tocar la lógica del job — principio Open/Closed aplicado.
-const { runMonthlyReportCheck, CRON_EXPRESSION: MONTHLY  } = require('./jobs/monthlyReport.job');
-const { runWeeklyOccupancyCheck, CRON_EXPRESSION: WEEKLY  } = require('./jobs/weeklyOccupancy.job');
-const { runAnnualSummary, CRON_EXPRESSION: ANNUAL          } = require('./jobs/annualSummary.job');
+const { runMonthlyReportCheck, CRON_EXPRESSION: MONTHLY } = require('./jobs/monthlyReport.job');
+const { runWeeklyOccupancyCheck, CRON_EXPRESSION: WEEKLY } = require('./jobs/weeklyOccupancy.job');
+const { runAnnualSummary, CRON_EXPRESSION: ANNUAL } = require('./jobs/annualSummary.job');
 
 // ─── Registro de jobs ──────────────────────────────────────────────────────
 

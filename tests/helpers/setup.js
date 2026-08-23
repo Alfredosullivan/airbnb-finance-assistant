@@ -6,5 +6,5 @@
 
 'use strict';
 
-process.env.JWT_SECRET  = 'test_secret_jest_not_for_production';
-process.env.NODE_ENV    = 'test';
+process.env.JWT_SECRET = 'test_secret_jest_not_for_production';
+process.env.NODE_ENV = 'test';
