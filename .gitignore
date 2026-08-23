@@ -5,3 +5,8 @@ data/
 *.log
 dist/
 client/dist/
+
+# Instrucciones internas de AI — no pertenecen al repo público
+CLAUDE.md
+AGENTS.md
+.claude/
