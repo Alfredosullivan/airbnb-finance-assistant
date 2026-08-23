@@ -34,7 +34,10 @@ RUN npm run build
 
 # 3. Limpiar devDependencies para dejar la imagen lo más liviana posible.
 # El build ya terminó — typescript y vite ya no son necesarios en runtime.
-RUN npm ci --only=production
+# --omit=dev reemplaza al deprecado --only=production (deprecado desde npm 7).
+# --ignore-scripts evita que npm ejecute el lifecycle "prepare: husky", que
+# falla en Docker porque husky es devDependency y .git no existe en el contenedor.
+RUN npm ci --omit=dev --ignore-scripts
 
 # Documentamos el puerto que usa la app.
 # EXPOSE no publica el puerto — solo sirve de documentación para
