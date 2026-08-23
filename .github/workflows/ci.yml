@@ -52,3 +52,15 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: ci_test_secret_not_for_production
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Construir imagen Docker
+        run: docker build -t airbnb-finance-assistant:ci .
