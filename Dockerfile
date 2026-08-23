@@ -35,9 +35,15 @@ RUN npm ci --omit=dev --ignore-scripts
 
 # ── Etapa 2: Producción ─────────────────────────────────────────────────
 # Imagen limpia: solo copiamos los artefactos necesarios en runtime.
-# Al no copiar package.json ni package-lock.json, Trivy no puede ver las
-# devDependencies y solo reporta vulnerabilidades de lo que realmente corre.
+# Al no copiar package.json ni package-lock.json, Trivy solo escanea
+# las devDependencies y solo reporta vulnerabilidades de lo que realmente corre.
 FROM node:20-alpine
+
+# Parchear paquetes del sistema operativo Alpine al último estado de seguridad.
+# La imagen base node:20-alpine puede quedar desactualizada entre releases
+# de Node. Este paso asegura que librerías del OS (OpenSSL, libcrypto, etc.)
+# tengan los últimos parches sin esperar a que se publique una nueva imagen base.
+RUN apk upgrade --no-cache
 
 WORKDIR /app
 
