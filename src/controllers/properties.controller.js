@@ -3,6 +3,7 @@
 
 'use strict';
 
+const logger = require('../config/logger');
 const PropRepo = require('../repositories/PropertyRepository');
 const ReportRepo = require('../repositories/ReportRepository');
 const annualExcelGenerator = require('../services/annualExcelGenerator');
@@ -18,7 +19,7 @@ async function listProperties(req, res) {
     const props = await PropRepo.findAllByUser(req.user.userId);
     return res.json({ properties: props });
   } catch (err) {
-    console.error('[properties] Error en listProperties:', err.message);
+    logger.error('[properties] Error en listProperties:', err.message);
     return res.status(500).json({ error: 'Error al listar propiedades' });
   }
 }
@@ -38,14 +39,14 @@ async function createProperty(req, res) {
     const cleanName = String(name).trim();
 
     const id = await PropRepo.create(userId, cleanName);
-    console.log(`[properties] Nueva propiedad: "${cleanName}" (id=${id}, user=${userId})`);
+    logger.info(`[properties] Nueva propiedad: "${cleanName}" (id=${id}, user=${userId})`);
 
     return res.status(201).json({
       success: true,
       property: { id, name: cleanName },
     });
   } catch (err) {
-    console.error('[properties] Error en createProperty:', err.message);
+    logger.error('[properties] Error en createProperty:', err.message);
     return res.status(500).json({ error: 'Error al crear la propiedad' });
   }
 }
@@ -69,11 +70,11 @@ async function renameProperty(req, res) {
     if (!prop) return res.status(404).json({ error: 'Propiedad no encontrada' });
 
     await PropRepo.rename(id, cleanName);
-    console.log(`[properties] Propiedad ${id} renombrada a "${cleanName}"`);
+    logger.info(`[properties] Propiedad ${id} renombrada a "${cleanName}"`);
 
     return res.json({ success: true, name: cleanName });
   } catch (err) {
-    console.error('[properties] Error en renameProperty:', err.message);
+    logger.error('[properties] Error en renameProperty:', err.message);
     return res.status(500).json({ error: 'Error al renombrar la propiedad' });
   }
 }
@@ -105,11 +106,11 @@ async function deleteProperty(req, res) {
     }
 
     await PropRepo.remove(id);
-    console.log(`[properties] Propiedad ${id} eliminada (user=${userId})`);
+    logger.info(`[properties] Propiedad ${id} eliminada (user=${userId})`);
 
     return res.json({ success: true });
   } catch (err) {
-    console.error('[properties] Error en deleteProperty:', err.message);
+    logger.error('[properties] Error en deleteProperty:', err.message);
     return res.status(500).json({ error: 'Error al eliminar la propiedad' });
   }
 }
@@ -220,7 +221,7 @@ async function getCombinedReport(req, res) {
 
     const propNames = await PropRepo.findNamesByUser(userId);
 
-    console.log(
+    logger.info(
       `[properties] Reporte combinado ${year}: ${monthlyData.length} meses,` +
         ` ${propNames.length} propiedades`
     );
@@ -244,7 +245,7 @@ async function getCombinedReport(req, res) {
     );
     res.send(buffer);
   } catch (err) {
-    console.error('[properties] Error en getCombinedReport:', err.message);
+    logger.error('[properties] Error en getCombinedReport:', err.message);
     res.status(500).json({ error: `Error al generar el reporte combinado: ${err.message}` });
   }
 }

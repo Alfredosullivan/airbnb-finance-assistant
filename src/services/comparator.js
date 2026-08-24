@@ -2,6 +2,7 @@
 // Cruza Payouts de Airbnb con depósitos SPEI en el estado de cuenta BBVA.
 // Filtrado estricto por mes calendario (sin ventana de ±7 días).
 
+const logger = require('../config/logger');
 const AMOUNT_TOLERANCE = 1.0; // Tolerancia de monto en MXN (redondeos bancarios)
 
 /**
@@ -45,12 +46,12 @@ function compareTransactions(airbnbData, bankData, reportMonth = null) {
   const mesValido = !!(mesActivo && MONTH_RE.test(mesActivo));
 
   if (!mesValido && mesActivo) {
-    console.error('[comparator] reportMonth inválido, se ignorará el filtro:', mesActivo);
+    logger.error('[comparator] reportMonth inválido, se ignorará el filtro:', mesActivo);
   }
 
-  console.log('[comparator] reportMonth activo:', mesActivo, '| válido:', mesValido);
-  console.log('[comparator] Total payouts Airbnb:', payouts.length);
-  console.log('[comparator] Total depósitos bancarios combinados:', allBankDeposits.length);
+  logger.info('[comparator] reportMonth activo:', mesActivo, '| válido:', mesValido);
+  logger.info('[comparator] Total payouts Airbnb:', payouts.length);
+  logger.info('[comparator] Total depósitos bancarios combinados:', allBankDeposits.length);
 
   // ── Filtrar payouts al mes activo (filtro estricto por mes calendario) ──
   const payoutsActivos = mesValido
@@ -65,12 +66,12 @@ function compareTransactions(airbnbData, bankData, reportMonth = null) {
       })
     : allBankDeposits;
 
-  console.log(`[comparator] Payouts activos: ${payoutsActivos.length}/${payouts.length}`);
-  console.log(
+  logger.info(`[comparator] Payouts activos: ${payoutsActivos.length}/${payouts.length}`);
+  logger.info(
     `[comparator] Depósitos filtrados: ${depositosFiltrados.length}/${allBankDeposits.length}`
   );
   if (depositosFiltrados.length > 0) {
-    console.log(
+    logger.info(
       '[comparator] Muestra depósitos filtrados:',
       depositosFiltrados.slice(0, 3).map((d) => ({ date: d.date, amount: d.amount }))
     );
@@ -144,9 +145,9 @@ function compareTransactions(airbnbData, bankData, reportMonth = null) {
   }
 
   // Depósitos filtrados sin Payout → onlyInBank
-  console.log(`[comparator] onlyInBank candidates: ${depositosFiltrados.length}`);
+  logger.info(`[comparator] onlyInBank candidates: ${depositosFiltrados.length}`);
   const onlyInBank = depositosFiltrados.filter((_, idx) => !usedBankIdx.has(idx));
-  console.log(`[comparator] onlyInBank final: ${onlyInBank.length}`);
+  logger.info(`[comparator] onlyInBank final: ${onlyInBank.length}`);
 
   // Subconjunto de matched donde el monto Airbnb ≠ monto banco
   const differences = matched.filter((m) => Math.abs(m.amountDifference) > 0);

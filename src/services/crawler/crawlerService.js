@@ -8,6 +8,7 @@
 //   2. Calcular estadísticas agregadas (avg, min, max)
 //   3. Devolver resultado estructurado con listings, stats y errores
 
+const logger = require('../../config/logger');
 const { fetchPage } = require('./httpClient');
 const { parseListings: parseLamudiListings } = require('./parsers/lamudiParser');
 
@@ -54,7 +55,7 @@ const crawlMeridaRentals = async () => {
   // Secuencial + politeDelay() = comportamiento respetuoso.
   for (const target of TARGETS) {
     try {
-      console.log(`[CRAWLER] Scrapeando ${target.name}...`);
+      logger.info(`[CRAWLER] Scrapeando ${target.name}...`);
       const html = await fetchPage(target.url);
       const listings = target.parser(html);
 
@@ -66,9 +67,9 @@ const crawlMeridaRentals = async () => {
         status: 'ok',
       });
 
-      console.log(`[CRAWLER] ${target.name}: ${listings.length} propiedades encontradas`);
+      logger.info(`[CRAWLER] ${target.name}: ${listings.length} propiedades encontradas`);
     } catch (err) {
-      console.error(`[CRAWLER] Error en ${target.name}: ${err.message}`);
+      logger.error(`[CRAWLER] Error en ${target.name}: ${err.message}`);
       results.errors.push({ source: target.name, error: err.message });
       results.sources.push({ name: target.name, status: 'error', error: err.message });
     }

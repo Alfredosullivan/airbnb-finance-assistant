@@ -1,6 +1,7 @@
 // upload.controller.js — Controlador de uploads de PDFs y CSVs
 // Recibe los archivos subidos por multer, los valida y guarda sus rutas en memoria
 
+const logger = require('../config/logger');
 const fs = require('fs');
 const path = require('path');
 const { validatePDF } = require('../utils/validator');
@@ -122,7 +123,7 @@ async function resetReport(req, res) {
     // Eliminar archivos físicos del disco
     const pathsToDelete = [store.airbnbPath, ...store.bankPaths].filter(Boolean);
     pathsToDelete.forEach(tryUnlink);
-    console.log(`[uploads] ${pathsToDelete.length} archivo(s) eliminados al hacer reset`);
+    logger.info(`[uploads] ${pathsToDelete.length} archivo(s) eliminados al hacer reset`);
 
     // Limpiar todo el store
     store.reportData = null;

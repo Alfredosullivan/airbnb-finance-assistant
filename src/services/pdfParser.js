@@ -1,6 +1,7 @@
 // pdfParser.js — Parsers de PDFs bancarios y de Airbnb
 // Implementación real para BBVA México; stub para PDF de Airbnb
 
+const logger = require('../config/logger');
 const fs = require('fs');
 const pdfParse = require('pdf-parse');
 
@@ -71,7 +72,7 @@ async function parseBankPDF(filePath) {
 
     // Log individual de cada depósito detectado
     airbnbDeposits.forEach((d) =>
-      console.log(`[BBVA Parser] Depósito detectado: "${d.description}" → $${d.amount}`)
+      logger.info(`[BBVA Parser] Depósito detectado: "${d.description}" → $${d.amount}`)
     );
 
     // Calcular total de todos los abonos del período
@@ -79,10 +80,10 @@ async function parseBankPDF(filePath) {
       .filter((m) => m.type === 'abono')
       .reduce((s, m) => s + m.amount, 0);
 
-    console.log(`[BBVA Parser] Período: ${meta.period?.from} al ${meta.period?.to}`);
-    console.log(`[BBVA Parser] Total movimientos encontrados: ${movimientos.length}`);
-    console.log(`[BBVA Parser] Depósitos Airbnb encontrados: ${airbnbDeposits.length}`);
-    console.log(
+    logger.info(`[BBVA Parser] Período: ${meta.period?.from} al ${meta.period?.to}`);
+    logger.info(`[BBVA Parser] Total movimientos encontrados: ${movimientos.length}`);
+    logger.info(`[BBVA Parser] Depósitos Airbnb encontrados: ${airbnbDeposits.length}`);
+    logger.info(
       `[BBVA Parser] Montos:`,
       airbnbDeposits.map((d) => d.amount)
     );
@@ -99,7 +100,7 @@ async function parseBankPDF(filePath) {
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[BBVA Parser] Error al parsear PDF BBVA:', message);
+    logger.error('[BBVA Parser] Error al parsear PDF BBVA:', message);
     return { error: true, message: `Error al parsear PDF bancario: ${message}` };
   }
 }
@@ -297,7 +298,7 @@ function parseAmount(str) {
  * (El CSV se descarga desde: Airbnb → Perfil → Pagos → Historial de transacciones → Exportar CSV)
  */
 async function parseAirbnbPDF(_filePath) {
-  console.log(
+  logger.info(
     '[pdfParser] AVISO: parseAirbnbPDF usa datos de ejemplo. Usa el CSV para datos reales.'
   );
 

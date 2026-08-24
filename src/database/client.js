@@ -7,6 +7,7 @@
 'use strict';
 
 const { Pool } = require('pg');
+const logger = require('../config/logger');
 
 let pool;
 
@@ -31,7 +32,7 @@ if (process.env.NODE_ENV === 'test') {
 
   // Loguear errores del pool (conexiones caídas, timeouts) sin crashear el proceso
   pool.on('error', (err) => {
-    console.error('[DB] Error inesperado en cliente del pool:', err.message);
+    logger.error('[DB] Error inesperado en cliente del pool:', { err: err.message });
   });
 }
 

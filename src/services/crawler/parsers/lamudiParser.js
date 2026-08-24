@@ -34,6 +34,7 @@
 // Los listings con precios mayores son probablemente propiedades en VENTA
 // que aparecen mezcladas en los resultados. $200,000/mes es el techo realista
 // para rentas en Mérida.
+const logger = require('../../../config/logger');
 const MAX_RENTAL_PRICE_MXN = 200_000;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -121,7 +122,7 @@ const parseListings = (html) => {
   const scriptMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
   if (!scriptMatch) {
     // Si no hay JSON-LD, la página cambió estructura — devolvemos vacío en vez de lanzar
-    console.warn('[lamudiParser] No se encontró bloque JSON-LD en el HTML');
+    logger.warn('[lamudiParser] No se encontró bloque JSON-LD en el HTML');
     return [];
   }
 
@@ -130,7 +131,7 @@ const parseListings = (html) => {
   try {
     data = JSON.parse(scriptMatch[1]);
   } catch (err) {
-    console.warn('[lamudiParser] Error al parsear JSON-LD:', err.message);
+    logger.warn('[lamudiParser] Error al parsear JSON-LD:', err.message);
     return [];
   }
 
@@ -148,7 +149,7 @@ const parseListings = (html) => {
   const itemListElements = primaryList?.itemListElement;
 
   if (!Array.isArray(itemListElements) || itemListElements.length === 0) {
-    console.warn('[lamudiParser] No se encontraron itemListElement en el JSON-LD');
+    logger.warn('[lamudiParser] No se encontraron itemListElement en el JSON-LD');
     return [];
   }
 

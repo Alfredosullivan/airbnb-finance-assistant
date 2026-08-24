@@ -1,6 +1,7 @@
 // auth.controller.js — Controlador de autenticación de usuarios
 // Maneja registro, login, logout y verificación de sesión activa
 
+const logger = require('../config/logger');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const UserRepo = require('../repositories/UserRepository');
@@ -70,14 +71,14 @@ async function register(req, res) {
     const token = generarToken(userId, cleanUsername);
     res.cookie('token', token, COOKIE_OPTS);
 
-    console.log(`[auth] Nuevo usuario registrado: ${cleanUsername} (id=${userId})`);
+    logger.info(`[auth] Nuevo usuario registrado: ${cleanUsername} (id=${userId})`);
 
     return res.status(201).json({
       success: true,
       user: { id: userId, username: cleanUsername, email: cleanEmail },
     });
   } catch (err) {
-    console.error('[auth] Error en register:', err.message);
+    logger.error('[auth] Error en register:', err.message);
     return res.status(500).json({ error: 'Error interno al registrar usuario' });
   }
 }
@@ -112,14 +113,14 @@ async function login(req, res) {
     const token = generarToken(user.id, user.username);
     res.cookie('token', token, COOKIE_OPTS);
 
-    console.log(`[auth] Login exitoso: ${user.username}`);
+    logger.info(`[auth] Login exitoso: ${user.username}`);
 
     return res.json({
       success: true,
       user: { id: user.id, username: user.username, email: user.email },
     });
   } catch (err) {
-    console.error('[auth] Error en login:', err.message);
+    logger.error('[auth] Error en login:', err.message);
     return res.status(500).json({ error: 'Error interno al iniciar sesión' });
   }
 }
@@ -169,7 +170,7 @@ async function me(req, res) {
 
     return res.json({ user, needsPropertyName });
   } catch (err) {
-    console.error('[auth] Error en me:', err.message);
+    logger.error('[auth] Error en me:', err.message);
     return res.status(500).json({ error: 'Error interno' });
   }
 }

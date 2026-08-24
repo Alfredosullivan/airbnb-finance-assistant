@@ -4,6 +4,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const logger = require('../config/logger');
 
 // Ruta a la carpeta data/ en la raíz del proyecto
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
@@ -11,7 +12,7 @@ const DATA_DIR = path.join(__dirname, '..', '..', 'data');
 // Crear la carpeta si no existe (sucede en la primera ejecución)
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  console.log(`[DB] Carpeta de datos creada: ${DATA_DIR}`);
+  logger.info(`[DB] Carpeta de datos creada: ${DATA_DIR}`);
 }
 
 // In test environments (NODE_ENV=test), DB_PATH can be overridden via env var.
@@ -26,6 +27,6 @@ db.pragma('journal_mode = WAL');
 // Claves foráneas activas
 db.pragma('foreign_keys = ON');
 
-console.log(`[DB] Conectado a: ${DB_PATH}`);
+logger.info(`[DB] Conectado a: ${DB_PATH}`);
 
 module.exports = db;

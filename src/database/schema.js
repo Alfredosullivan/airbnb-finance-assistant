@@ -5,6 +5,7 @@
 'use strict';
 
 const { pool } = require('./client');
+const logger = require('../config/logger');
 
 /**
  * initSchema — Inicializa las tablas users, properties y reports en PostgreSQL.
@@ -58,7 +59,7 @@ async function initSchema() {
     ON reports (user_id, property_id, month)
   `);
 
-  console.log('[DB] Esquema PostgreSQL verificado/inicializado correctamente');
+  logger.info('[DB] Esquema PostgreSQL verificado/inicializado correctamente');
 }
 
 module.exports = { initSchema };
