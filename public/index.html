@@ -504,6 +504,19 @@
         margin-bottom: 4rem;
       }
 
+      /* Modificador de 2 columnas — sección DevOps & Security */
+      .cards-grid--2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      /* Separador visual entre features y DevOps */
+      .devsec-section {
+        margin-top: 4rem;
+        padding-top: 4rem;
+        border-top: 1px solid var(--ink-20);
+        margin-bottom: 4rem;
+      }
+
       /* Card — idéntica a .history-card / .total-card del proyecto */
       .feature-card {
         background: #fff;
@@ -771,28 +784,49 @@
       }
 
       /* ═══════════════════════════════════════════════════════════════
-       RESPONSIVE
+       RESPONSIVE — Desktop > Laptop > Tablet > Mobile
+       Desktop (base): >1280px — 4 stats en fila, grids de 3 col
+       Laptop:  ≤1280px — padding reducido, stats siguen en fila
+       Tablet:  ≤768px  — hamburger, stats 2×2, grids de 2 col
+       Mobile:  ≤540px  — 1 columna, botones full-width
+       Mobile S: ≤380px — ajustes finales de tipografía
     ═══════════════════════════════════════════════════════════════ */
-      @media (max-width: 900px) {
-        .cards-grid {
-          grid-template-columns: repeat(2, 1fr);
-        }
+
+      /* ── Laptop (≤1280px) ── */
+      @media (max-width: 1280px) {
         .hero__stat {
-          padding: 0 1.5rem;
+          padding: 0 1.75rem;
         }
         .hero__stat:first-child {
           padding-left: 0;
         }
       }
 
+      /* ── Tablet horizontal / laptop pequeño (≤900px) ── */
+      @media (max-width: 900px) {
+        .cards-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .hero__stat {
+          padding: 0 1.1rem;
+        }
+        .hero__stat:first-child {
+          padding-left: 0;
+        }
+        .hero__stat-value {
+          font-size: 2rem;
+        }
+      }
+
+      /* ── Tablet vertical / mobile grande (≤768px) ── */
       @media (max-width: 768px) {
-        /* Mostrar el hamburger */
+        /* Hamburger visible */
         .nav__hamburger {
           display: flex;
           align-items: center;
         }
 
-        /* Dropdown — posición absoluta justo debajo del navbar (top: 52px) */
+        /* Nav dropdown */
         .nav__links {
           display: flex;
           flex-direction: column;
@@ -805,46 +839,41 @@
           background: rgba(15, 15, 15, 0.98);
           border-bottom: 2px solid var(--coral);
           padding: 0 2rem;
-          /* Estado cerrado: colapsado e invisible */
           max-height: 0;
           overflow: hidden;
           opacity: 0;
           pointer-events: none;
-          /* Slide-down + fade simultáneos */
           transition:
             max-height 0.32s ease,
             opacity 0.22s ease;
         }
-
-        /* Estado abierto — JS añade .is-open al <nav> */
         .nav.is-open .nav__links {
           max-height: 300px;
           opacity: 1;
           pointer-events: auto;
         }
-
-        /* Links individuales: más espacio, separador sutil */
         .nav__link {
           padding: 0.9rem 0;
           border-bottom: 1px solid rgba(255, 255, 255, 0.07);
           font-size: 0.8rem;
           text-align: center;
         }
-
-        /* CTA "Ver App": bloque centrado con margen */
         .nav__cta {
           display: block;
           text-align: center;
           margin: 0.85rem 0 1rem;
         }
 
-        /* Resto de estilos responsive sin cambios */
+        /* Hero */
         .hero {
           padding: 7rem 1.5rem 5rem;
         }
+
+        /* Stats → grid 2×2 simétrico */
         .hero__stats {
-          flex-wrap: wrap;
-          gap: 1.25rem;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1.75rem 0;
         }
         .hero__stat {
           padding: 0;
@@ -855,6 +884,8 @@
         .hero__stat-value {
           font-size: 1.85rem;
         }
+
+        /* Sección técnica */
         .technical {
           padding: 4rem 1.5rem 5rem;
         }
@@ -863,11 +894,16 @@
         }
       }
 
+      /* ── Mobile (≤540px) ── */
       @media (max-width: 540px) {
         .hero__title {
           font-size: 2.75rem;
         }
-        .cards-grid {
+        .hero__stat-value {
+          font-size: 1.65rem;
+        }
+        .cards-grid,
+        .cards-grid--2 {
           grid-template-columns: 1fr;
         }
         .hero__ctas {
@@ -882,6 +918,22 @@
         .btn-secondary-dark,
         .btn-secondary-light {
           width: 100%;
+        }
+      }
+
+      /* ── Mobile pequeño (≤380px) ── */
+      @media (max-width: 380px) {
+        .hero__title {
+          font-size: 2.25rem;
+        }
+        .hero {
+          padding: 6.5rem 1.25rem 4rem;
+        }
+        .technical {
+          padding: 3rem 1.25rem 4rem;
+        }
+        .hero__stat-value {
+          font-size: 1.5rem;
         }
       }
     </style>
@@ -947,6 +999,11 @@
             <div class="hero__stat-value">Claude</div>
             <div class="hero__stat-label">AI — Anthropic SDK</div>
           </div>
+          <div class="hero__stat-divider" aria-hidden="true"></div>
+          <div class="hero__stat" role="listitem">
+            <div class="hero__stat-value"><span>4</span></div>
+            <div class="hero__stat-label">Jobs — CI/CD GitHub Actions</div>
+          </div>
         </div>
 
         <!-- CTAs -->
@@ -1004,6 +1061,10 @@
           <span class="pill" role="listitem">Swagger / OpenAPI</span>
           <span class="pill" role="listitem">Claude AI</span>
           <span class="pill" role="listitem">Docker</span>
+          <span class="pill pill--accent" role="listitem">GitHub Actions</span>
+          <span class="pill" role="listitem">Gitleaks</span>
+          <span class="pill" role="listitem">Trivy</span>
+          <span class="pill" role="listitem">Winston</span>
         </div>
       </div>
     </section>
@@ -1183,6 +1244,85 @@
           </article>
         </div>
 
+        <!-- DevOps & Security -->
+        <div class="devsec-section">
+          <div class="section-label" aria-hidden="true">DevOps &amp; Security</div>
+          <h3 class="section-title">Pipeline seguro,<br /><em>desde el primer commit.</em></h3>
+          <p class="section-subtitle">
+            CI/CD con 4 jobs en GitHub Actions, secret scanning en cada push y una imagen Docker
+            sin dependencias de desarrollo.
+          </p>
+          <div class="cards-grid cards-grid--2" role="list">
+
+            <!-- CI/CD Pipeline -->
+            <article class="feature-card" role="listitem">
+              <div class="feature-card__icon feature-card__icon--blue" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/>
+                  <path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/>
+                </svg>
+              </div>
+              <span class="feature-card__badge feature-card__badge--blue">DevOps</span>
+              <h3 class="feature-card__title">CI/CD Pipeline — GitHub Actions</h3>
+              <p class="feature-card__desc">
+                4 jobs: lint + tests corren en paralelo; secret scanning también en paralelo; Docker
+                build + Trivy scan se ejecutan en secuencia al final. Railway despliega
+                automáticamente cuando los 4 jobs pasan.
+              </p>
+            </article>
+
+            <!-- Secret Scanning -->
+            <article class="feature-card" role="listitem">
+              <div class="feature-card__icon feature-card__icon--coral" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
+              <span class="feature-card__badge feature-card__badge--coral">Security</span>
+              <h3 class="feature-card__title">Secret Scanning — Gitleaks</h3>
+              <p class="feature-card__desc">
+                Escaneo automático del historial completo de git (<code>fetch-depth: 0</code>) en
+                cada push y PR. Detecta claves API, tokens y credenciales hardcodeadas antes de
+                que lleguen a producción.
+              </p>
+            </article>
+
+            <!-- Container Security -->
+            <article class="feature-card" role="listitem">
+              <div class="feature-card__icon feature-card__icon--amber" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                </svg>
+              </div>
+              <span class="feature-card__badge feature-card__badge--amber">Security</span>
+              <h3 class="feature-card__title">Docker Multi-stage + Trivy</h3>
+              <p class="feature-card__desc">
+                Imagen de producción sin devDependencies ni <code>package-lock.json</code>. Trivy
+                escanea la imagen final en busca de CVEs antes de hacer deploy en Railway.
+                <code>apk upgrade</code> parchea paquetes del OS Alpine en cada build.
+              </p>
+            </article>
+
+            <!-- Input Validation -->
+            <article class="feature-card" role="listitem">
+              <div class="feature-card__icon feature-card__icon--green" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 11 12 14 22 4"/>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+              </div>
+              <span class="feature-card__badge feature-card__badge--green">Validation</span>
+              <h3 class="feature-card__title">Zod Input Validation</h3>
+              <p class="feature-card__desc">
+                Middleware factory <code>validate(schema)</code> valida y transforma todos los
+                inputs antes de llegar al controller. Schemas centralizados en
+                <code>src/schemas/</code>. El controller recibe datos ya limpios.
+              </p>
+            </article>
+
+          </div>
+        </div>
+
         <!-- Stack tags -->
         <div class="stack-section">
           <div class="stack-label">Stack completo del proyecto</div>
@@ -1203,6 +1343,11 @@
             <span class="stack-tag">Docker</span>
             <span class="stack-tag">Railway</span>
             <span class="stack-tag">Vercel</span>
+            <span class="stack-tag stack-tag--core">GitHub Actions</span>
+            <span class="stack-tag">Gitleaks</span>
+            <span class="stack-tag">Trivy</span>
+            <span class="stack-tag">Winston</span>
+            <span class="stack-tag">ESLint + Husky</span>
           </div>
         </div>
 
