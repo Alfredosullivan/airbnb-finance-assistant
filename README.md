@@ -32,6 +32,131 @@ App web full stack para reconciliar automáticamente reportes de Airbnb contra e
 
 ---
 
+## Stack por Capa
+
+### Frontend
+
+| Tecnología      | Rol                                            |
+| --------------- | ---------------------------------------------- |
+| JavaScript ES6+ | Lenguaje principal                             |
+| React 19        | Framework UI                                   |
+| Context API     | Estado global (propiedades, reporte activo)    |
+| Vite 8          | Build tool y dev server con proxy a la API     |
+| Chart.js        | Gráficas del dashboard (comparativo año a año) |
+| CSS3            | Estilos propios (sin framework CSS)            |
+
+### Backend — Core
+
+| Tecnología | Rol                                                                                                |
+| ---------- | -------------------------------------------------------------------------------------------------- |
+| Node.js 20 | Runtime                                                                                            |
+| Express 5  | Framework HTTP                                                                                     |
+| TypeScript | Migración incremental — `csvParser.ts`, `pdfParser.ts`, `comparator.ts` + 10 interfaces de dominio |
+
+### Backend — Autenticación y Seguridad
+
+| Tecnología         | Rol                                                            |
+| ------------------ | -------------------------------------------------------------- |
+| jsonwebtoken       | Generación y verificación de JWT en httpOnly cookie            |
+| bcryptjs           | Hashing de contraseñas (12 salt rounds)                        |
+| cookie-parser      | Lectura de cookies httpOnly en cada request                    |
+| helmet             | Cabeceras HTTP de seguridad (XSS, clickjacking, MIME sniffing) |
+| cors               | Control de orígenes permitidos (lista blanca por env)          |
+| express-rate-limit | Protección anti-fuerza-bruta en endpoints de auth              |
+
+### Backend — Validación y Logging
+
+| Tecnología | Rol                                                                 |
+| ---------- | ------------------------------------------------------------------- |
+| Zod v3     | Validación y transformación de inputs por schema (`src/schemas/`)   |
+| Winston    | Logging estructurado — JSON en producción, colorizado en desarrollo |
+
+### Backend — Procesamiento de Archivos
+
+| Tecnología | Rol                                                  |
+| ---------- | ---------------------------------------------------- |
+| Multer 2.x | Upload de archivos PDF y CSV                         |
+| csv-parse  | Parseo de reportes Airbnb en CSV                     |
+| pdf-parse  | Extracción de texto de estados de cuenta BBVA en PDF |
+| ExcelJS    | Generación de reportes `.xlsx` con fórmulas reales   |
+| PDFKit     | Generación de reportes ejecutivos en PDF             |
+
+### Backend — Jobs y Scheduler
+
+| Tecnología  | Rol                                                                                      |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| node-cron   | Tareas programadas (resúmenes mensuales, reportes anuales, ocupación semanal)            |
+| MemoryQueue | Cola de jobs en memoria propia — patrón POST 202 + polling para operaciones lentas de IA |
+
+### Backend — IA y Crawler
+
+| Tecnología        | Rol                                                                  |
+| ----------------- | -------------------------------------------------------------------- |
+| @anthropic-ai/sdk | Análisis financiero mensual y de mercado con Claude                  |
+| node-fetch        | Cliente HTTP para el crawler de precios de renta                     |
+| cheerio           | Parsing de HTML de Lamudi (scraping de precios de mercado en Mérida) |
+
+### Backend — Documentación y Utilidades
+
+| Tecnología                         | Rol                                                |
+| ---------------------------------- | -------------------------------------------------- |
+| swagger-jsdoc + swagger-ui-express | Documentación interactiva de la API en `/api/docs` |
+| dotenv                             | Carga de variables de entorno desde `.env`         |
+| uuid                               | Generación de IDs únicos para jobs asíncronos      |
+
+### Base de Datos
+
+| Tecnología       | Rol                                                              |
+| ---------------- | ---------------------------------------------------------------- |
+| PostgreSQL       | Base de datos relacional principal                               |
+| pg               | Cliente PostgreSQL para Node.js (pool de conexiones)             |
+| Schema auto-init | Las tablas se crean automáticamente al arrancar (`initSchema()`) |
+
+### Testing
+
+| Tecnología | Rol                                                            |
+| ---------- | -------------------------------------------------------------- |
+| Jest       | Framework de tests                                             |
+| ts-jest    | Compilación de TypeScript dentro de Jest                       |
+| Supertest  | Tests de integración HTTP contra la app Express real           |
+| pg-mem     | PostgreSQL en memoria — los tests no tocan la DB de desarrollo |
+
+### Calidad de Código
+
+| Tecnología  | Rol                                               |
+| ----------- | ------------------------------------------------- |
+| ESLint 9    | Linting con Flat Config (`eslint.config.mjs`)     |
+| Prettier    | Formateo consistente de código                    |
+| Husky       | Git hooks — bloquea commits con errores de lint   |
+| lint-staged | Ejecuta ESLint y Prettier solo en archivos staged |
+
+### DevSecOps — Seguridad en CI
+
+| Tecnología     | Rol                                                           |
+| -------------- | ------------------------------------------------------------- |
+| Gitleaks       | Escaneo de secretos expuestos en el historial completo de git |
+| Trivy          | Escaneo de CVEs (vulnerabilidades) en la imagen Docker        |
+| .gitleaks.toml | Allowlist documentada para falsos positivos conocidos         |
+| .trivyignore   | Supresión documentada de CVEs de dependencias internas de npm |
+
+### Contenedores
+
+| Tecnología         | Rol                                                                                          |
+| ------------------ | -------------------------------------------------------------------------------------------- |
+| Docker multi-stage | Stage 1: compila TypeScript + React. Stage 2: imagen limpia sin devDeps ni package-lock.json |
+| Docker Compose     | Orquestación local — servicio `app` + servicio `db` (PostgreSQL)                             |
+| Alpine Linux       | Base de la imagen de producción (ligera, parcheada con `apk upgrade`)                        |
+
+### CI/CD y Deploy
+
+| Tecnología     | Rol                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------- |
+| GitHub Actions | Pipeline de 4 jobs: `lint` + `test` + `secrets` (paralelos) → `docker` (secuencial) |
+| Railway        | Hosting del backend Node.js + PostgreSQL en producción                              |
+| Auto-deploy    | Railway despliega automáticamente solo cuando los 4 jobs del CI pasan               |
+
+---
+
 ## Características
 
 - **Reconciliación automática** de reportes Airbnb (CSV/PDF) contra estados de cuenta BBVA (PDF)
