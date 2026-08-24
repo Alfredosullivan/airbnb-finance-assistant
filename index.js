@@ -4,6 +4,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const logger = require('./src/config/logger');
 const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -33,7 +34,7 @@ const app = express();
 
 // Avisar si falta la API key de Anthropic (análisis IA no disponible)
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.warn(
+  logger.warn(
     '[config] ANTHROPIC_API_KEY no definida — análisis IA no disponible (ver .env.example)'
   );
 }
@@ -142,7 +143,7 @@ app.use(errorHandler);
 initSchema()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Servidor corriendo en http://localhost:${PORT}`);
+      logger.info(`Servidor corriendo en http://localhost:${PORT}`);
       // Iniciamos scheduler y queue después de que el servidor esté listo y la
       // base de datos inicializada — así los jobs tienen pool disponible
       // desde el primer disparo.
@@ -151,6 +152,6 @@ initSchema()
     });
   })
   .catch((err) => {
-    console.error('[DB] Error al inicializar el esquema:', err.message);
+    logger.error('[DB] Error al inicializar el esquema:', { err: err.message });
     process.exit(1);
   });

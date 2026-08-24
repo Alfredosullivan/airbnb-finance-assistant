@@ -1,6 +1,7 @@
 // report.controller.js — Controlador del reporte comparativo
 // Orquesta el parseo de los archivos, la comparación y el formateo del resultado final
 
+const logger = require('../config/logger');
 const { store } = require('./upload.controller');
 const { parseAirbnbPDF, parseBankPDF } = require('../services/pdfParser');
 const { parseAirbnbCSV } = require('../services/csvParser');
@@ -195,7 +196,7 @@ async function generateExcel(req, res) {
                 },
                 excelData: { noches: pvd.noches || 0 },
               };
-              console.log('[excel] previousYearReport construido desde prevYearData inyectado');
+              logger.info('[excel] previousYearReport construido desde prevYearData inyectado');
             }
           }
         }
@@ -210,9 +211,9 @@ async function generateExcel(req, res) {
       try {
         const data = buildAnalysisData(compareResult, airbnbData);
         analysisText = await generateMonthlyAnalysis(data);
-        console.log('[excel] Análisis IA generado para Hoja 4');
+        logger.info('[excel] Análisis IA generado para Hoja 4');
       } catch (analysisErr) {
-        console.warn('[excel] Análisis IA no disponible:', analysisErr.message);
+        logger.warn('[excel] Análisis IA no disponible:', analysisErr.message);
       }
     }
 
@@ -233,7 +234,7 @@ async function generateExcel(req, res) {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(buffer);
   } catch (err) {
-    console.error('[excel] Error al generar Excel:', err.message);
+    logger.error('[excel] Error al generar Excel:', err.message);
     res.status(500).json({ error: `Error al generar el Excel: ${err.message}` });
   }
 }
@@ -263,7 +264,7 @@ async function getMonthlyAnalysis(req, res) {
     const analysis = await generateMonthlyAnalysis(data);
     return res.json({ success: true, analysis });
   } catch (err) {
-    console.error('[analysis] Error en getMonthlyAnalysis:', err.message);
+    logger.error('[analysis] Error en getMonthlyAnalysis:', err.message);
     return res.status(500).json({ error: `Error al generar el análisis: ${err.message}` });
   }
 }
@@ -333,7 +334,7 @@ async function getMonthlyAnalysisPDF(req, res) {
 
     doc.end();
   } catch (err) {
-    console.error('[analysis] Error en getMonthlyAnalysisPDF:', err.message);
+    logger.error('[analysis] Error en getMonthlyAnalysisPDF:', err.message);
     if (!res.headersSent) {
       res.status(500).json({ error: `Error al generar el PDF: ${err.message}` });
     }

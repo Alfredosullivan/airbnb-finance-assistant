@@ -17,6 +17,7 @@
 // queueExcelGeneration los captura del store al momento de encolar y los
 // incluye en job.data — así el worker es autosuficiente.
 
+const logger = require('../../config/logger');
 const queue = require('../MemoryQueue');
 const { generateMonthlyAnalysis } = require('../../services/analysisGenerator');
 const { generateMonthlyReport } = require('../../services/excelGenerator');
@@ -251,7 +252,7 @@ function startWorker() {
     } catch (unexpectedError) {
       // Error en la infraestructura (queue.getNextPending falla, etc.)
       // Logueamos pero no detenemos el worker
-      console.error('[QUEUE] Error inesperado en el worker:', unexpectedError.message);
+      logger.error('[QUEUE] Error inesperado en el worker:', { err: unexpectedError.message });
     }
 
     // Siguiente ciclo — siempre después de que este terminó
@@ -260,7 +261,7 @@ function startWorker() {
 
   // Iniciar el primer ciclo
   tick();
-  console.log(`[QUEUE] Worker de análisis iniciado — polling cada ${POLL_INTERVAL / 1000}s`);
+  logger.info(`[QUEUE] Worker de análisis iniciado — polling cada ${POLL_INTERVAL / 1000}s`);
 }
 
 module.exports = { startWorker };

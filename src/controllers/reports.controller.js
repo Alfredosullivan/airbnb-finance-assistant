@@ -1,6 +1,7 @@
 // reports.controller.js — Controlador del historial de reportes guardados
 // Permite guardar, listar y recuperar reportes por mes del usuario autenticado
 
+const logger = require('../config/logger');
 const { store } = require('./upload.controller');
 const annualExcelGenerator = require('../services/annualExcelGenerator');
 const PropRepo = require('../repositories/PropertyRepository');
@@ -87,7 +88,7 @@ async function saveReport(req, res) {
       } else {
         // Crear propiedad por defecto si el usuario no tiene ninguna
         propertyId = await PropRepo.createDefault(userId);
-        console.log(`[reports] Propiedad por defecto creada para user=${userId}`);
+        logger.info(`[reports] Propiedad por defecto creada para user=${userId}`);
       }
     } else {
       // Verificar que la propiedad pertenece al usuario
@@ -156,7 +157,7 @@ async function saveReport(req, res) {
       isrRetenido,
     };
 
-    console.log(
+    logger.info(
       `[reports] excelData (fuente: ${dataSource}):`,
       `noches=${noches}`,
       `comision=${comisionAirbnb.toFixed(2)}`,
@@ -176,7 +177,7 @@ async function saveReport(req, res) {
       JSON.stringify(reportToSave)
     );
 
-    console.log(
+    logger.info(
       `[reports] Reporte guardado: usuario=${userId}, propiedad=${propertyId}, mes=${monthKey}`
     );
 
@@ -195,7 +196,7 @@ async function saveReport(req, res) {
       nextYearLabel: canUpdateNextYear ? nextYearReport.label : null,
     });
   } catch (err) {
-    console.error('[reports] Error en saveReport:', err.message);
+    logger.error('[reports] Error en saveReport:', err.message);
     return res.status(500).json({ error: 'Error al guardar el reporte' });
   }
 }
@@ -245,7 +246,7 @@ async function listReports(req, res) {
 
     return res.json({ reports: reportList });
   } catch (err) {
-    console.error('[reports] Error en listReports:', err.message);
+    logger.error('[reports] Error en listReports:', err.message);
     return res.status(500).json({ error: 'Error al listar reportes' });
   }
 }
@@ -278,7 +279,7 @@ async function getReport(req, res) {
     const report = JSON.parse(row.summary);
     return res.json(report);
   } catch (err) {
-    console.error('[reports] Error en getReport:', err.message);
+    logger.error('[reports] Error en getReport:', err.message);
     return res.status(500).json({ error: 'Error al recuperar el reporte' });
   }
 }
@@ -392,7 +393,7 @@ async function generateAnnualReport(req, res) {
     const mesesFaltantes = todosMeses.filter((m) => !mesesGuardados.includes(m));
 
     const propTag = propertyName ? ` [${propertyName}]` : '';
-    console.log(
+    logger.info(
       `[reports] Reporte anual ${year}${propTag}: ${rows.length} meses, ${mesesFaltantes.length} faltantes`
     );
 
@@ -408,9 +409,9 @@ async function generateAnnualReport(req, res) {
           matchRate: d.matchRate,
         }));
         annualAnalysisText = await generateAnnualAnalysis(analysisInput, year);
-        console.log(`[reports] Análisis IA anual generado para ${year}`);
+        logger.info(`[reports] Análisis IA anual generado para ${year}`);
       } catch (analysisErr) {
-        console.warn('[reports] Análisis IA anual no disponible:', analysisErr.message);
+        logger.warn('[reports] Análisis IA anual no disponible:', analysisErr.message);
       }
     }
 
@@ -440,7 +441,7 @@ async function generateAnnualReport(req, res) {
     );
     res.send(buffer);
   } catch (err) {
-    console.error('[reports] Error en generateAnnualReport:', err.message);
+    logger.error('[reports] Error en generateAnnualReport:', err.message);
     res.status(500).json({ error: `Error al generar el reporte anual: ${err.message}` });
   }
 }
@@ -474,12 +475,12 @@ async function deleteReport(req, res) {
       return res.status(404).json({ error: `No se encontró reporte para ${month}` });
     }
 
-    console.log(
+    logger.info(
       `[reports] Reporte eliminado: usuario=${userId}, propiedad=${resolvedPropertyId}, mes=${month}`
     );
     return res.json({ success: true, message: `Reporte ${month} eliminado` });
   } catch (err) {
-    console.error('[reports] Error en deleteReport:', err.message);
+    logger.error('[reports] Error en deleteReport:', err.message);
     return res.status(500).json({ error: 'Error al eliminar el reporte' });
   }
 }
@@ -566,7 +567,7 @@ async function updatePrevYearRef(req, res) {
     await ReportRepo.updateSummary(targetRow.id, JSON.stringify(targetReport), true);
 
     const mesNombre = MESES_ES[targetMM] || targetMonth;
-    console.log(
+    logger.info(
       `[reports] prevYearData inyectado: fuente=${sourceMonth} → destino=${targetMonth} (propiedad=${propertyId})`
     );
 
@@ -577,7 +578,7 @@ async function updatePrevYearRef(req, res) {
       sourceMonth,
     });
   } catch (err) {
-    console.error('[reports] Error en updatePrevYearRef:', err.message);
+    logger.error('[reports] Error en updatePrevYearRef:', err.message);
     return res.status(500).json({ error: 'Error al actualizar referencia del año anterior' });
   }
 }
@@ -649,7 +650,7 @@ async function getAnalysisFromSaved(req, res) {
 
     // ── Devolver análisis cacheado si existe y no se fuerza regeneración ──
     if (reportData.cachedAnalysis && !forceRegen) {
-      console.log(`[analysis] Usando análisis cacheado para ${month}`);
+      logger.info(`[analysis] Usando análisis cacheado para ${month}`);
       return res.json({
         success: true,
         analysis: reportData.cachedAnalysis,
@@ -668,10 +669,10 @@ async function getAnalysisFromSaved(req, res) {
     reportData.cachedAnalysisAt = new Date().toISOString();
     await ReportRepo.updateSummary(row.id, JSON.stringify(reportData));
 
-    console.log(`[analysis] Análisis generado y cacheado para ${month}`);
+    logger.info(`[analysis] Análisis generado y cacheado para ${month}`);
     return res.json({ success: true, analysis, cached: false });
   } catch (err) {
-    console.error('[analysis] Error desde guardado:', err.message);
+    logger.error('[analysis] Error desde guardado:', err.message);
     return res.status(500).json({ error: `Error al generar el análisis: ${err.message}` });
   }
 }
@@ -708,14 +709,14 @@ async function getAnalysisPDFFromSaved(req, res) {
     let analysisText;
     if (reportData.cachedAnalysis) {
       analysisText = reportData.cachedAnalysis;
-      console.log(`[analysis-pdf] Usando análisis cacheado para ${month}`);
+      logger.info(`[analysis-pdf] Usando análisis cacheado para ${month}`);
     } else {
       const { generateMonthlyAnalysis } = require('../services/analysisGenerator');
       analysisText = await generateMonthlyAnalysis(analysisData);
       reportData.cachedAnalysis = analysisText;
       reportData.cachedAnalysisAt = new Date().toISOString();
       await ReportRepo.updateSummary(row.id, JSON.stringify(reportData));
-      console.log(`[analysis-pdf] Análisis generado y cacheado para ${month}`);
+      logger.info(`[analysis-pdf] Análisis generado y cacheado para ${month}`);
     }
 
     const PDFDocument = require('pdfkit');
@@ -760,7 +761,7 @@ async function getAnalysisPDFFromSaved(req, res) {
 
     doc.end();
   } catch (err) {
-    console.error('[analysis] Error PDF desde guardado:', err.message);
+    logger.error('[analysis] Error PDF desde guardado:', err.message);
     if (!res.headersSent) {
       res.status(500).json({ error: `Error al generar el PDF: ${err.message}` });
     }
@@ -937,7 +938,7 @@ async function getDashboard(req, res) {
       mesesData,
     });
   } catch (err) {
-    console.error('[dashboard] Error:', err.message);
+    logger.error('[dashboard] Error:', err.message);
     res.status(500).json({ error: err.message });
   }
 }
@@ -1285,7 +1286,7 @@ async function getExecutivePDF(req, res) {
 
     doc.end();
   } catch (err) {
-    console.error('[executive-pdf] Error:', err.message);
+    logger.error('[executive-pdf] Error:', err.message);
     if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 }

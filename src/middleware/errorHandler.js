@@ -2,6 +2,8 @@
 // Captura todos los errores propagados via next(err) desde controladores y rutas.
 // DEBE registrarse como último middleware en index.js (después de todas las rutas).
 
+const logger = require('../config/logger');
+
 /**
  * errorHandler — Middleware de 4 argumentos que Express reconoce como error handler.
  * Devuelve una respuesta JSON estructurada y nunca expone el stack en producción.
@@ -25,9 +27,8 @@ function errorHandler(err, req, res, next) {
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   };
 
-  // Log interno (reemplazable por Winston/Pino en fases futuras)
   if (status >= 500) {
-    console.error(`[errorHandler] ${status} — ${message}`, err.stack || '');
+    logger.error(`[errorHandler] ${status} — ${message}`, { stack: err.stack });
   }
 
   res.status(status).json(body);

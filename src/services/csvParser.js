@@ -2,6 +2,7 @@
 // Extrae Payouts y los agrupa con sus reservaciones asociadas por fecha.
 // También detecta el mes predominante del CSV para etiquetar el reporte.
 
+const logger = require('../config/logger');
 const fs = require('fs');
 const { parse } = require('csv-parse/sync');
 
@@ -71,7 +72,7 @@ async function parseAirbnbCSV(filePath) {
       return { error: true, message: 'El CSV está vacío o no tiene filas de datos' };
     }
 
-    console.log(`[csvParser] Total de filas en CSV: ${rows.length}`);
+    logger.info(`[csvParser] Total de filas en CSV: ${rows.length}`);
 
     // ── Agrupar filas por fecha ────────────────────────────────
     // Cada fecha agrupa: un Payout + sus reservaciones + retenciones de ese día
@@ -136,15 +137,15 @@ async function parseAirbnbCSV(filePath) {
     // Se usa para etiquetar el reporte y guardar en el historial
     const { reportMonth, reportLabel } = detectarMesPredominante(payouts);
 
-    console.log(
+    logger.info(
       `[csvParser] Payouts encontrados: ${payouts.length}, total: ${totalAmount.toFixed(2)} MXN`
     );
-    console.log(`[csvParser] Mes predominante del CSV: ${reportMonth} (${reportLabel})`);
+    logger.info(`[csvParser] Mes predominante del CSV: ${reportMonth} (${reportLabel})`);
 
     return { payouts, period, totalAmount, reportMonth, reportLabel, source: 'airbnb_csv' };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[csvParser] Error al parsear CSV de Airbnb:', message);
+    logger.error('[csvParser] Error al parsear CSV de Airbnb:', message);
     return { error: true, message: `Error al parsear CSV: ${message}` };
   }
 }
@@ -287,7 +288,7 @@ function detectarMesPredominante(payouts) {
   const [anio, mes] = reportMonth.split('-');
   const reportLabel = `${MESES_ES[mes] || mes} ${anio}`;
 
-  console.log(`[csvParser] Mes predominante: ${reportMonth} → ${reportLabel}`);
+  logger.info(`[csvParser] Mes predominante: ${reportMonth} → ${reportLabel}`);
 
   return { reportMonth, reportLabel };
 }
