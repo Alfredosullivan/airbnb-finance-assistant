@@ -26,24 +26,19 @@ async function listProperties(req, res) {
 
 /**
  * createProperty — Crea una nueva propiedad para el usuario
- * POST /api/properties  { name }
+ * POST /api/properties  { name } — ya validado y transformado por PropertyNameSchema
  */
 async function createProperty(req, res) {
   try {
     const userId = req.user.userId;
-    const { name } = req.body || {};
+    const { name } = req.body;
 
-    if (!name || !String(name).trim()) {
-      return res.status(400).json({ error: 'El nombre de la propiedad es requerido' });
-    }
-    const cleanName = String(name).trim();
-
-    const id = await PropRepo.create(userId, cleanName);
-    logger.info(`[properties] Nueva propiedad: "${cleanName}" (id=${id}, user=${userId})`);
+    const id = await PropRepo.create(userId, name);
+    logger.info(`[properties] Nueva propiedad: "${name}" (id=${id}, user=${userId})`);
 
     return res.status(201).json({
       success: true,
-      property: { id, name: cleanName },
+      property: { id, name },
     });
   } catch (err) {
     logger.error('[properties] Error en createProperty:', err.message);
@@ -53,26 +48,21 @@ async function createProperty(req, res) {
 
 /**
  * renameProperty — Cambia el nombre de una propiedad del usuario
- * PUT /api/properties/:id  { name }
+ * PUT /api/properties/:id  { name } — ya validado y transformado por PropertyNameSchema
  */
 async function renameProperty(req, res) {
   try {
     const userId = req.user.userId;
     const id = parseInt(req.params.id, 10);
-    const { name } = req.body || {};
-
-    if (!name || !String(name).trim()) {
-      return res.status(400).json({ error: 'El nombre de la propiedad es requerido' });
-    }
-    const cleanName = String(name).trim();
+    const { name } = req.body;
 
     const prop = await PropRepo.findByIdAndUser(id, userId);
     if (!prop) return res.status(404).json({ error: 'Propiedad no encontrada' });
 
-    await PropRepo.rename(id, cleanName);
-    logger.info(`[properties] Propiedad ${id} renombrada a "${cleanName}"`);
+    await PropRepo.rename(id, name);
+    logger.info(`[properties] Propiedad ${id} renombrada a "${name}"`);
 
-    return res.json({ success: true, name: cleanName });
+    return res.json({ success: true, name });
   } catch (err) {
     logger.error('[properties] Error en renameProperty:', err.message);
     return res.status(500).json({ error: 'Error al renombrar la propiedad' });

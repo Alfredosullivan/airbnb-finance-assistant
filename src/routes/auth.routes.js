@@ -162,6 +162,8 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { register, login, logout, me, getToken } = require('../controllers/auth.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
+const { validate } = require('../middleware/validate.middleware');
+const { RegisterSchema, LoginSchema } = require('../schemas/auth.schema');
 
 // Límite de intentos en endpoints de autenticación (protección anti-fuerza-bruta)
 const authLimiter = rateLimit({
@@ -173,10 +175,10 @@ const authLimiter = rateLimit({
 });
 
 // POST /api/auth/register  → Crea un nuevo usuario y abre sesión
-router.post('/register', authLimiter, register);
+router.post('/register', authLimiter, validate(RegisterSchema), register);
 
 // POST /api/auth/login     → Inicia sesión y devuelve cookie JWT
-router.post('/login', authLimiter, login);
+router.post('/login', authLimiter, validate(LoginSchema), login);
 
 // POST /api/auth/logout    → Cierra sesión limpiando la cookie
 router.post('/logout', logout);
