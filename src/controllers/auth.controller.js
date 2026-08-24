@@ -9,7 +9,6 @@ const PropRepo = require('../repositories/PropertyRepository');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_local';
 
-// Opciones de la cookie de sesión
 const COOKIE_OPTS = {
   httpOnly: true, // No accesible desde JS del cliente (protección XSS)
   secure: false, // false en desarrollo (sin HTTPS)
@@ -19,63 +18,36 @@ const COOKIE_OPTS = {
 
 // ── Helpers internos ────────────────────────────────────────────
 
-/** Genera un JWT firmado con el userId y username */
 function generarToken(userId, username) {
   return jwt.sign({ userId, username }, JWT_SECRET, { expiresIn: '7d' });
-}
-
-/** Valida formato básico de email */
-function esEmailValido(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 // ── Controllers públicos ────────────────────────────────────────
 
 /**
  * register — Crea un nuevo usuario
- * Body esperado: { username, email, password }
+ * Body esperado: { username, email, password } — ya validado y transformado por RegisterSchema
  */
 async function register(req, res) {
   try {
-    const { username, email, password } = req.body || {};
+    const { username, email, password } = req.body;
 
-    // Validaciones de entrada
-    if (!username || username.trim().length < 3) {
-      return res
-        .status(400)
-        .json({ error: 'El nombre de usuario debe tener al menos 3 caracteres' });
-    }
-    if (!email || !esEmailValido(email)) {
-      return res.status(400).json({ error: 'El email no tiene un formato válido' });
-    }
-    if (!password || password.length < 6) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
-    }
-
-    const cleanUsername = username.trim();
-    const cleanEmail = email.toLowerCase().trim();
-
-    // Verificar que username y email no estén ya registrados
-    const existente = await UserRepo.findByUsernameOrEmail(cleanUsername, cleanEmail);
+    const existente = await UserRepo.findByUsernameOrEmail(username, email);
     if (existente) {
       return res.status(409).json({ error: 'El nombre de usuario o email ya está registrado' });
     }
 
-    // Hashear la contraseña con bcrypt (saltRounds: 12 — mínimo recomendado CLAUDE.md)
     const passwordHash = await bcrypt.hash(password, 12);
+    const userId = await UserRepo.create(username, email, passwordHash);
 
-    // Insertar usuario en la DB
-    const userId = await UserRepo.create(cleanUsername, cleanEmail, passwordHash);
-
-    // Generar JWT y setear cookie de sesión
-    const token = generarToken(userId, cleanUsername);
+    const token = generarToken(userId, username);
     res.cookie('token', token, COOKIE_OPTS);
 
-    logger.info(`[auth] Nuevo usuario registrado: ${cleanUsername} (id=${userId})`);
+    logger.info(`[auth] Nuevo usuario registrado: ${username} (id=${userId})`);
 
     return res.status(201).json({
       success: true,
-      user: { id: userId, username: cleanUsername, email: cleanEmail },
+      user: { id: userId, username, email },
     });
   } catch (err) {
     logger.error('[auth] Error en register:', err.message);
@@ -85,18 +57,14 @@ async function register(req, res) {
 
 /**
  * login — Inicia sesión con email y contraseña
- * Body esperado: { email, password }
+ * Body esperado: { email, password } — ya validado y transformado por LoginSchema
  */
 async function login(req, res) {
   try {
-    const { email, password } = req.body || {};
+    const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email y contraseña son requeridos' });
-    }
-
-    // Buscar usuario por email
-    const user = await UserRepo.findByEmail(email.toLowerCase().trim());
+    // Buscar usuario por email (ya lowercased y trimmed por LoginSchema)
+    const user = await UserRepo.findByEmail(email);
 
     if (!user) {
       // Respuesta genérica para no revelar si el email existe

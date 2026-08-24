@@ -158,6 +158,8 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth.middleware');
+const { validate } = require('../middleware/validate.middleware');
+const { PropertyNameSchema } = require('../schemas/property.schema');
 const {
   listProperties,
   createProperty,
@@ -170,14 +172,14 @@ const {
 router.get('/', requireAuth, listProperties);
 
 // POST /api/properties               → Crea una nueva propiedad  { name }
-router.post('/', requireAuth, createProperty);
+router.post('/', requireAuth, validate(PropertyNameSchema), createProperty);
 
 // GET  /api/properties/combined/:year → Reporte anual combinado (todas las propiedades)
 // IMPORTANTE: debe estar antes de /:id para que "combined" no sea interpretado como un id
 router.get('/combined/:year', requireAuth, getCombinedReport);
 
 // PUT  /api/properties/:id           → Renombra una propiedad  { name }
-router.put('/:id', requireAuth, renameProperty);
+router.put('/:id', requireAuth, validate(PropertyNameSchema), renameProperty);
 
 // DELETE /api/properties/:id         → Elimina una propiedad y sus reportes
 router.delete('/:id', requireAuth, deleteProperty);
