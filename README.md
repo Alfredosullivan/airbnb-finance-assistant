@@ -10,20 +10,25 @@ App web full stack para reconciliar automáticamente reportes de Airbnb contra e
 
 ## Stack
 
-| Capa          | Tecnología                                          |
-| ------------- | --------------------------------------------------- |
-| Runtime       | Node.js 20                                          |
-| Framework     | Express 5                                           |
-| Lenguaje      | TypeScript (migración incremental — servicios core) |
-| Base de datos | PostgreSQL (via `pg`)                               |
-| Auth          | JWT en httpOnly cookie                              |
-| Archivos      | Multer — PDF y CSV                                  |
-| Reportes      | ExcelJS, PDFKit                                     |
-| Frontend      | React 19 + Vite 8 + Context API                     |
-| Gráficas      | Chart.js                                            |
-| IA            | Claude API — Anthropic                              |
-| Tests         | Jest + ts-jest — 69 tests                           |
-| Deploy        | Railway (backend + PostgreSQL)                      |
+| Capa          | Tecnología                                            |
+| ------------- | ----------------------------------------------------- |
+| Runtime       | Node.js 20                                            |
+| Framework     | Express 5                                             |
+| Lenguaje      | TypeScript (migración incremental — servicios core)   |
+| Base de datos | PostgreSQL (via `pg`)                                 |
+| Auth          | JWT en httpOnly cookie + bcrypt (12 salt rounds)      |
+| Validación    | Zod v3 — schemas por endpoint                         |
+| Logging       | Winston — JSON en producción, colorized en dev        |
+| Archivos      | Multer — PDF y CSV                                    |
+| Reportes      | ExcelJS, PDFKit                                       |
+| Frontend      | React 19 + Vite 8 + Context API                       |
+| Gráficas      | Chart.js                                              |
+| IA            | Claude API — Anthropic                                |
+| Tests         | Jest + ts-jest — 69 tests                             |
+| Linting       | ESLint 9 Flat Config + Prettier + Husky + lint-staged |
+| CI/CD         | GitHub Actions (4 jobs) → Railway (auto-deploy)       |
+| Contenedores  | Docker multi-stage build                              |
+| Seguridad     | Trivy (CVE scan) + Gitleaks (secret scan)             |
 
 ---
 
@@ -41,6 +46,10 @@ App web full stack para reconciliar automáticamente reportes de Airbnb contra e
 - **Job queue asíncrono** — patrón POST 202 + polling para operaciones lentas de IA
 - **Swagger UI** en `/api/docs` — documentación interactiva de todos los endpoints
 - **69 tests** — unitarios e integración con PostgreSQL en memoria (`pg-mem`)
+- **Validación de inputs con Zod** — schemas declarativos en `src/schemas/`, middleware `validate()` reutilizable
+- **Logging estructurado con Winston** — JSON en producción, texto colorizado en desarrollo, nivel configurable vía `LOG_LEVEL`
+- **Pipeline CI/CD completo** — lint, tests, secret scanning y vulnerability scanning en paralelo antes de cada deploy
+- **Docker multi-stage** — imagen de producción sin devDependencies ni archivos de configuración sensibles
 
 ---
 
@@ -113,6 +122,7 @@ docker compose down -v   # detiene Y borra el volumen de PostgreSQL
 | `PORT`              | Puerto del servidor                 | No (default: `3000`)                  |
 | `DATABASE_URL`      | Connection string de PostgreSQL     | **Sí**                                |
 | `JWT_SECRET`        | Clave para firmar tokens JWT        | **Sí**                                |
+| `LOG_LEVEL`         | Nivel de log de Winston             | No (default: `info`)                  |
 | `POSTGRES_USER`     | Usuario de PostgreSQL (Docker)      | **Sí (Docker)**                       |
 | `POSTGRES_PASSWORD` | Contraseña de PostgreSQL (Docker)   | **Sí (Docker)**                       |
 | `POSTGRES_DB`       | Nombre de la base de datos (Docker) | **Sí (Docker)**                       |
@@ -128,6 +138,7 @@ docker compose down -v   # detiene Y borra el volumen de PostgreSQL
 
 ```bash
 npm test
+npm run test:coverage
 ```
 
 | Suite                    | Archivo                                |  Tests |
@@ -142,6 +153,43 @@ Los tests corren contra PostgreSQL en memoria (`pg-mem`) — no tocan la base de
 
 ---
 
+## Pipeline CI/CD
+
+Cada push a `main` dispara el pipeline en GitHub Actions:
+
+```
+┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐
+│    lint      │  │    test     │  │  secrets (Gitleaks)     │
+│  ESLint +   │  │  Jest 69   │  │  Escanea historial git  │
+│  Prettier   │  │  tests +   │  │  en busca de secretos   │
+│             │  │  coverage  │  │  expuestos              │
+└──────┬──────┘  └──────┬──────┘  └───────────┬─────────────┘
+       │                │                      │
+       └────────────────┴──────────────────────┘
+                              │
+                              ▼
+                   ┌─────────────────────┐
+                   │       docker        │
+                   │  Build imagen +    │
+                   │  Trivy CVE scan    │
+                   │  (HIGH/CRITICAL)   │
+                   └──────────┬──────────┘
+                              │
+                              ▼
+                   ┌─────────────────────┐
+                   │      Railway        │
+                   │  Auto-deploy solo  │
+                   │  si los 4 jobs     │
+                   │  pasan ✅          │
+                   └─────────────────────┘
+```
+
+- **lint** y **test** y **secrets** corren en paralelo
+- **docker** solo corre si los tres anteriores pasan
+- Railway despliega automáticamente al detectar el CI verde
+
+---
+
 ## Arquitectura
 
 ```
@@ -149,7 +197,7 @@ HTTP Request
     ↓
 Routes (src/routes/)
     ↓
-Middleware (src/middleware/)      — JWT auth, error handler centralizado
+Middleware (src/middleware/)      — JWT auth, Zod validation, error handler centralizado
     ↓
 Controllers (src/controllers/)   — HTTP request/response, sin lógica de negocio
     ↓
