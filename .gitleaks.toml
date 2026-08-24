@@ -1,0 +1,29 @@
+title = "Gitleaks — airbnb-finance-assistant"
+
+# ── Allowlist global ────────────────────────────────────────────────────────
+# Cada excepción tiene su razón. No se suprime nada sin documentación.
+
+[allowlist]
+  description = "Placeholders documentados y valores de test conocidos"
+
+  # Archivos excluidos del escaneo por completo:
+  # - package-lock.json: contiene hashes SHA de integridad de paquetes npm
+  #   que los detectores de "api key" confunden con secretos reales.
+  # - airbnb_finance_portfolio_v11.html: HTML estático de portfolio, sin secretos.
+  paths = [
+    '''package-lock\.json''',
+    '''client/package-lock\.json''',
+    '''airbnb_finance_portfolio_v11\.html''',
+  ]
+
+  # Valores que parecen secretos pero son placeholders o fixtures de test:
+  # - 'test_secret_jest_not_for_production': fixture de tests unitarios (setup.js)
+  # - 'ci_test_secret_not_for_production': valor fijo en el job de CI (ci.yml)
+  # - 'cambia_esto_en_produccion': placeholder explícito en .env.example
+  # - 'password@db': contraseña de ejemplo en la URL de .env.example
+  regexes = [
+    '''test_secret_jest_not_for_production''',
+    '''ci_test_secret_not_for_production''',
+    '''cambia_esto_en_produccion''',
+    '''postgres:password@''',
+  ]
