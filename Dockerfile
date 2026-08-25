@@ -14,6 +14,10 @@
 # luego re-instala solo las dependencias de producción.
 FROM node:22-alpine AS builder
 
+# Actualizar npm a la versión más reciente para parchear dependencias internas
+# (picomatch, etc.) que Trivy detecta en el npm bundleado con la imagen base.
+RUN npm install -g npm@latest --quiet
+
 WORKDIR /app
 
 # Copiar primero los manifests para aprovechar el cache de capas de Docker.
@@ -40,10 +44,11 @@ RUN npm ci --omit=dev --ignore-scripts
 FROM node:22-alpine
 
 # Parchear paquetes del sistema operativo Alpine al último estado de seguridad.
-# La imagen base node:20-alpine puede quedar desactualizada entre releases
-# de Node. Este paso asegura que librerías del OS (OpenSSL, libcrypto, etc.)
-# tengan los últimos parches sin esperar a que se publique una nueva imagen base.
 RUN apk upgrade --no-cache
+
+# Actualizar npm para eliminar dependencias internas vulnerables (ej: picomatch@4.0.3)
+# que Trivy detecta en el npm bundleado con node:22-alpine.
+RUN npm install -g npm@latest --quiet
 
 WORKDIR /app
 
