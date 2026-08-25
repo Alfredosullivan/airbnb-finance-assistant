@@ -69,3 +69,26 @@ CVE-2024-21538
 CVE-2026-26996
 CVE-2026-27903
 CVE-2026-27904
+
+# picomatch@4.0.3 — ReDoS via crafted extglob patterns (CVE-2026-33671).
+# Dependencia interna de npm@10.9.8 (bundleado con node:22-alpine).
+# npm la usa para matching de patrones durante la instalación de paquetes,
+# no es ejecutada por el runtime de la aplicación.
+# No existe versión de npm@10.x que incluya picomatch@4.0.4.
+# Actualizar a npm@11.x resuelve picomatch pero introduce undici y
+# nuevas variantes de ip-address con 5 CVEs Medium en total — trade-off
+# desfavorable. Se mantiene npm@10.9.8 oficial de node:22-alpine.
+# Revisión: 2026-08-25. Reassessar cuando node:22-alpine actualice npm@10.x.
+CVE-2026-33671
+
+# uuid@8.3.2 — Missing buffer bounds check in v3/v5/v6 when buf is provided.
+# Dependencia transitiva de exceljs@4.4.0 (nuestra dep de producción).
+# La vulnerabilidad requiere llamar uuid.v3(), v5() o v6() con un buffer
+# controlado por el atacante. ExcelJS usa uuid internamente para IDs de
+# celdas sin exponer el parámetro buf a ninguna entrada externa.
+# Actualizar uuid independientemente no es compatible con el árbol de
+# dependencias (exceljs declara uuid@^8.3.0). Bajar exceljs introduce
+# regresiones innecesarias. Dismissado también en Dependabot por la misma
+# razón técnica. Revisión: 2026-08-25. Reassessar cuando exceljs publique
+# una versión compatible con uuid>=11.1.1.
+GHSA-w5hq-g745-h8pq
