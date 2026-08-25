@@ -12,7 +12,7 @@
 # ── Etapa 1: Build ──────────────────────────────────────────────────────
 # Instala todo (incluyendo devDeps), compila TypeScript y el frontend React,
 # luego re-instala solo las dependencias de producción.
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -37,7 +37,7 @@ RUN npm ci --omit=dev --ignore-scripts
 # Imagen limpia: solo copiamos los artefactos necesarios en runtime.
 # Al no copiar package.json ni package-lock.json, Trivy solo escanea
 # las devDependencies y solo reporta vulnerabilidades de lo que realmente corre.
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Parchear paquetes del sistema operativo Alpine al último estado de seguridad.
 # La imagen base node:20-alpine puede quedar desactualizada entre releases
