@@ -15,7 +15,8 @@ function formatMXN(n) {
 }
 
 export default function ReportResults() {
-  const { currentReport, currentProperty, user, setCurrentReport } = useAppContext();
+  const { currentReport, currentProperty, user, setCurrentReport, sessionId, setSessionId } =
+    useAppContext();
 
   const [activeTab, setActiveTab] = useState('matched');
   const [saving, setSaving] = useState(false);
@@ -34,9 +35,14 @@ export default function ReportResults() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // X-Session-Id permite que saveReport lea airbnbData de la sesión activa
+      // para calcular noches y comisión con precisión antes de destruir la sesión
+      const headers = { 'Content-Type': 'application/json' };
+      if (sessionId) headers['X-Session-Id'] = sessionId;
+
       const res = await fetch('/api/reports/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           month: reportMonth,
           label: reportLabel,
@@ -50,6 +56,8 @@ export default function ReportResults() {
         throw new Error(data.error || 'Error al guardar');
       }
       setSaved(true);
+      // El servidor destruye la sesión al guardar — limpiar el estado del contexto
+      setSessionId(null);
     } catch (err) {
       console.error('[ReportResults] Error al guardar:', err.message);
     } finally {
@@ -267,7 +275,13 @@ export default function ReportResults() {
 
             <button
               className="btn btn--secondary"
-              onClick={() => window.open('/api/report/excel', '_blank')}
+              onClick={() => {
+                // window.open no puede enviar headers — se pasa el sessionId como query param
+                const url = sessionId
+                  ? `/api/report/excel?sessionId=${sessionId}`
+                  : '/api/report/excel';
+                window.open(url, '_blank');
+              }}
             >
               Descargar Excel
             </button>
