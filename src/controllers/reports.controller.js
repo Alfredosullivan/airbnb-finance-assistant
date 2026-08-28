@@ -2,7 +2,7 @@
 // Permite guardar, listar y recuperar reportes por mes del usuario autenticado
 
 const logger = require('../config/logger');
-const { store } = require('./upload.controller');
+const SessionStore = require('../store/SessionStore');
 const annualExcelGenerator = require('../services/annualExcelGenerator');
 const PropRepo = require('../repositories/PropertyRepository');
 const ReportRepo = require('../repositories/ReportRepository');
@@ -100,16 +100,20 @@ async function saveReport(req, res) {
 
     // ── Construir excelData desde múltiples fuentes ──────────────
     // Permite que el reporte anual tenga datos de noches, IVA e ISR retenidos.
-    // Siempre se adjunta: si el store está vacío se usan los datos del propio body.
+    // Siempre se adjunta: si la sesión ya no está disponible se usan los datos del propio body.
     const reportToSave = { ...report };
 
     let noches = 0,
       comisionAirbnb = 0;
     let dataSource = 'none';
 
-    // Fuente 1: store.airbnbData en memoria (más preciso — incluye noches y comisión real)
-    if (store.airbnbData?.payouts?.length > 0) {
-      const payouts = store.airbnbData.payouts;
+    // Leer la sesión de procesamiento activa del usuario (si existe)
+    const sessionId = req.headers['x-session-id'] || req.query.sessionId || null;
+    const session = sessionId ? SessionStore.get(userId, sessionId) : null;
+
+    // Fuente 1: session.airbnbData en memoria (más preciso — incluye noches y comisión real)
+    if (session?.airbnbData?.payouts?.length > 0) {
+      const payouts = session.airbnbData.payouts;
       noches = payouts.reduce(
         (sum, p) =>
           sum + (p.reservations || []).reduce((s, r) => s + (parseInt(r.nights, 10) || 0), 0),
@@ -120,7 +124,7 @@ async function saveReport(req, res) {
           sum + (p.reservations || []).reduce((s, r) => s + (parseFloat(r.serviceFee) || 0), 0),
         0
       );
-      dataSource = 'store';
+      dataSource = 'session';
     }
 
     // Fuente 2: tables.matched en el body (fallback — comisión si estaba guardada en el JSON)
@@ -180,6 +184,11 @@ async function saveReport(req, res) {
     logger.info(
       `[reports] Reporte guardado: usuario=${userId}, propiedad=${propertyId}, mes=${monthKey}`
     );
+
+    // Limpiar la sesión temporal tras guardar — los archivos ya no son necesarios
+    if (sessionId) {
+      SessionStore.destroy(userId, sessionId);
+    }
 
     // ── Detectar reporte del año siguiente que referencia este mes ─
     const [savedYear, savedMonthNum] = monthKey.split('-').map(Number);
