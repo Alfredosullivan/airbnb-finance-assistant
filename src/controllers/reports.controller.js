@@ -127,23 +127,23 @@ async function saveReport(req, res) {
       dataSource = 'session';
     }
 
-    // Fuente 2: tables.matched en el body (fallback — comisión si estaba guardada en el JSON)
-    if (comisionAirbnb === 0 && report.tables?.matched?.length > 0) {
-      comisionAirbnb = report.tables.matched.reduce(
-        (sum, m) => sum + (parseFloat(m.serviceFee) || parseFloat(m.comision) || 0),
-        0
-      );
-      if (dataSource === 'none') dataSource = 'tables';
-    }
+    // Fuente 2: reservations de tables.matched y tables.onlyInAirbnb del body.
+    // El formatter (formatter.js) preserva reservations[] con nights y serviceFee en cada
+    // entrada, por lo que el body ya incluye los datos necesarios sin modificar el flujo.
+    // Solo se activa cuando la sesión no estuvo disponible (dataSource !== 'session').
+    if (dataSource !== 'session' && report.tables) {
+      const todasReservations = [
+        ...(report.tables.matched || []),
+        ...(report.tables.onlyInAirbnb || []),
+      ].flatMap((entry) => entry.reservations || []);
 
-    // Fuente 3: rawAirbnb en el body (fallback para noches cuando el store no está disponible)
-    if (noches === 0 && Array.isArray(report.rawAirbnb?.payouts)) {
-      noches = report.rawAirbnb.payouts.reduce(
-        (sum, p) =>
-          sum + (p.reservations || []).reduce((s, r) => s + (parseInt(r.nights, 10) || 0), 0),
+      noches = todasReservations.reduce((sum, r) => sum + (parseInt(r.nights, 10) || 0), 0);
+      comisionAirbnb = todasReservations.reduce(
+        (sum, r) => sum + Math.abs(parseFloat(r.serviceFee) || 0),
         0
       );
-      dataSource = dataSource === 'tables' ? 'tables+rawAirbnb' : 'rawAirbnb';
+
+      if (noches > 0 || comisionAirbnb > 0) dataSource = 'tables';
     }
 
     // IVA (8%) e ISR (4%) calculados desde el neto pagado del reporte
