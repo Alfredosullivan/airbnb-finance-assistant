@@ -44,6 +44,11 @@ FROM node:22-alpine
 # Este paso asegura que librerías del OS tengan los últimos parches.
 RUN apk upgrade --no-cache
 
+# Actualizar npm bundled de node:22-alpine a npm@11.x para corregir CVE-2026-9496
+# (pacote@19/20 → 21.5.1). Solo afecta la herramienta npm, nunca al runtime de la app.
+# --ignore-scripts evita lifecycle scripts innecesarios en la imagen de producción.
+RUN npm install -g npm@11.19.1 --ignore-scripts
+
 WORKDIR /app
 
 # dist/       — código compilado por tsc (entry point: dist/index.js)
