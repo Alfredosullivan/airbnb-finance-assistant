@@ -15,8 +15,7 @@ function formatMXN(n) {
 }
 
 export default function ReportResults() {
-  const { currentReport, currentProperty, user, setCurrentReport, sessionId, setSessionId } =
-    useAppContext();
+  const { currentReport, currentProperty, sessionId } = useAppContext();
 
   const [activeTab, setActiveTab] = useState('matched');
   const [saving, setSaving] = useState(false);
@@ -56,8 +55,6 @@ export default function ReportResults() {
         throw new Error(data.error || 'Error al guardar');
       }
       setSaved(true);
-      // El servidor destruye la sesión al guardar — limpiar el estado del contexto
-      setSessionId(null);
     } catch (err) {
       console.error('[ReportResults] Error al guardar:', err.message);
     } finally {
