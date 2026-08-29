@@ -1,10 +1,14 @@
 // upload.controller.js — Controlador de uploads de PDFs y CSVs
-// Recibe los archivos subidos por multer, los valida y guarda sus rutas en memoria
+// Recibe los archivos subidos por multer, los valida y los registra en la sesión del usuario.
+// Cada usuario tiene su propia sesión identificada por userId:sessionId.
+
+'use strict';
 
 const logger = require('../config/logger');
 const fs = require('fs');
 const path = require('path');
 const { validatePDF } = require('../utils/validator');
+const SessionStore = require('../store/SessionStore');
 
 /** Elimina un archivo del disco sin lanzar excepción si no existe */
 function tryUnlink(filePath) {
@@ -13,15 +17,6 @@ function tryUnlink(filePath) {
     fs.unlinkSync(filePath);
   } catch (_) {}
 }
-
-// Almacén en memoria de las rutas de los PDFs y el último reporte generado.
-// En una versión con múltiples usuarios se reemplazaría por sesiones o una BD.
-const store = {
-  airbnbPath: null,
-  airbnbFileType: null, // 'csv' | 'pdf' — detectado por extensión al subir
-  bankPaths: [], // Acepta 1 o 2 PDFs bancarios
-  reportData: null, // Último reporte generado; se limpia con resetReport()
-};
 
 /**
  * detectFileType — Determina el tipo de archivo por su extensión
@@ -36,8 +31,10 @@ function detectFileType(originalname) {
 }
 
 /**
- * uploadAirbnb — Procesa el PDF o CSV del reporte de Airbnb
- * multer ya guardó el archivo en disco; aquí detectamos el tipo y registramos la ruta
+ * uploadAirbnb — Procesa el PDF o CSV del reporte de Airbnb.
+ * Si el request trae X-Session-Id y la sesión existe, la reutiliza (re-upload).
+ * Si no, crea una sesión nueva y devuelve el sessionId al cliente.
+ * El sessionId es el punto de entrada de toda la sesión de procesamiento.
  */
 async function uploadAirbnb(req, res) {
   try {
@@ -47,36 +44,57 @@ async function uploadAirbnb(req, res) {
 
     const fileType = detectFileType(req.file.originalname);
 
-    // Validar PDF si corresponde (CSV no tiene validación de mimetype estricta)
     if (fileType === 'pdf') {
       const validationError = validatePDF(req.file);
       if (validationError) {
+        tryUnlink(req.file.path);
         return res.status(400).json({ error: validationError });
       }
     } else if (fileType === 'unknown') {
+      tryUnlink(req.file.path);
       return res.status(400).json({ error: 'Formato no soportado. Usa PDF o CSV.' });
     }
 
-    // Eliminar archivo anterior de Airbnb si existe
-    tryUnlink(store.airbnbPath);
+    const userId = req.user.userId;
 
-    store.airbnbPath = req.file.path;
-    store.airbnbFileType = fileType;
+    // Intentar reutilizar sesión existente; si no existe o expiró, crear una nueva
+    let sessionId = req.headers['x-session-id'];
+    let session = SessionStore.get(userId, sessionId);
 
-    res.json({
+    if (!session) {
+      sessionId = SessionStore.create(userId);
+      session = SessionStore.get(userId, sessionId);
+    }
+
+    // Reemplazar archivo Airbnb anterior si existía
+    tryUnlink(session.airbnbPath);
+    session.airbnbPath = req.file.path;
+    session.airbnbFileType = fileType;
+    // Invalidar resultados de procesamiento previo al cambiar el archivo fuente
+    session.reportData = null;
+    session.airbnbData = null;
+    session.compareResult = null;
+
+    logger.info(`[upload] Airbnb (user=${userId}, session=${sessionId}, tipo=${fileType})`);
+
+    return res.json({
       message: `Reporte Airbnb recibido correctamente (${fileType.toUpperCase()})`,
       filename: req.file.originalname,
       fileType,
+      sessionId,
     });
   } catch (err) {
-    res.status(500).json({ error: `Error al procesar el archivo de Airbnb: ${err.message}` });
+    if (req.file) tryUnlink(req.file.path);
+    return res
+      .status(500)
+      .json({ error: `Error al procesar el archivo de Airbnb: ${err.message}` });
   }
 }
 
 /**
- * uploadBank — Procesa uno o dos PDFs del estado de cuenta bancario
- * Recibe un slot (1 o 2) para saber en qué posición del arreglo guardar la ruta.
- * req.files contiene el array de archivos subidos por multer (.array)
+ * uploadBank — Procesa uno o dos PDFs del estado de cuenta bancario.
+ * Requiere que la sesión ya exista (creada por uploadAirbnb).
+ * El slot (1 o 2) indica qué posición del arreglo ocupa este PDF.
  */
 async function uploadBank(req, res) {
   try {
@@ -86,58 +104,68 @@ async function uploadBank(req, res) {
       return res.status(400).json({ error: 'No se recibió ningún archivo' });
     }
 
-    // Validar todos los archivos recibidos
     for (const file of files) {
       const validationError = validatePDF(file);
       if (validationError) {
+        files.forEach((f) => tryUnlink(f.path));
         return res.status(400).json({ error: validationError });
       }
     }
 
-    // slot indica qué posición del arreglo ocupa este archivo (1-based desde el cliente)
+    const userId = req.user.userId;
+    const sessionId = req.headers['x-session-id'];
+    const session = SessionStore.get(userId, sessionId);
+
+    if (!session) {
+      // Limpiar archivos que multer ya guardó en disco
+      files.forEach((f) => tryUnlink(f.path));
+      return res.status(400).json({
+        error:
+          'Sesión no encontrada o expirada. Sube primero el reporte de Airbnb para iniciar una sesión.',
+      });
+    }
+
     const slot = parseInt(req.body.slot, 10) || 1;
-    const index = slot - 1; // Convertir a 0-based
+    const index = slot - 1;
 
-    // Eliminar archivo bancario anterior del mismo slot si existe
-    tryUnlink(store.bankPaths[index]);
+    // Reemplazar archivo bancario anterior del mismo slot si existe
+    tryUnlink(session.bankPaths[index]);
+    session.bankPaths[index] = files[0].path;
+    // Invalidar resultados de procesamiento previo al cambiar el archivo fuente
+    session.reportData = null;
+    session.airbnbData = null;
+    session.compareResult = null;
 
-    store.bankPaths[index] = files[0].path;
+    logger.info(`[upload] Banco (user=${userId}, session=${sessionId}, slot=${slot})`);
 
-    res.json({
+    return res.json({
       success: true,
       filesReceived: files.length,
       slot,
       filename: files[0].originalname,
     });
   } catch (err) {
-    res.status(500).json({ error: `Error al procesar el archivo bancario: ${err.message}` });
+    if (req.files) req.files.forEach((f) => tryUnlink(f.path));
+    return res.status(500).json({ error: `Error al procesar el archivo bancario: ${err.message}` });
   }
 }
 
 /**
- * resetReport — Limpia el reporte en memoria y elimina los archivos subidos del disco.
- * Tras el reset el usuario debe subir nuevos archivos para generar un reporte.
+ * resetReport — Destruye la sesión del usuario y elimina sus archivos temporales.
+ * POST /api/reset
  */
 async function resetReport(req, res) {
   try {
-    // Eliminar archivos físicos del disco
-    const pathsToDelete = [store.airbnbPath, ...store.bankPaths].filter(Boolean);
-    pathsToDelete.forEach(tryUnlink);
-    logger.info(`[uploads] ${pathsToDelete.length} archivo(s) eliminados al hacer reset`);
+    const userId = req.user.userId;
+    const sessionId = req.headers['x-session-id'];
 
-    // Limpiar todo el store
-    store.reportData = null;
-    store.airbnbData = null;
-    store.compareResult = null;
-    store.airbnbPath = null;
-    store.airbnbFileType = null;
-    store.bankPaths = [];
+    SessionStore.destroy(userId, sessionId);
+    logger.info(`[upload] Reset completado (user=${userId}, session=${sessionId})`);
 
-    res.json({ success: true, message: 'Resultados limpiados' });
+    return res.json({ success: true, message: 'Sesión limpiada' });
   } catch (err) {
-    res.status(500).json({ error: `Error al limpiar el reporte: ${err.message}` });
+    return res.status(500).json({ error: `Error al limpiar la sesión: ${err.message}` });
   }
 }
 
-// Exportar también el store para que el report controller pueda leer las rutas
-module.exports = { uploadAirbnb, uploadBank, resetReport, store };
+module.exports = { uploadAirbnb, uploadBank, resetReport };

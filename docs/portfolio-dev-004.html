@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DEV-004 — Normalización de Signo: comisionAirbnb</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0d1117;
+        --surface: #161b22;
+        --card: #1c2128;
+        --border: #30363d;
+        --primary: #1f6feb;
+        --accent: #00b4d8;
+        --success: #3fb950;
+        --warning: #d29922;
+        --danger: #f85149;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --code-bg: #0d1117;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.7;
+      }
+
+      /* ── Header ── */
+      header {
+        background: linear-gradient(135deg, #0d1117 0%, #1a2332 50%, #0d1b2a 100%);
+        border-bottom: 1px solid var(--border);
+        padding: 56px 40px 48px;
+        position: relative;
+        overflow: hidden;
+      }
+      header::before {
+        content: '';
+        position: absolute;
+        top: -80px;
+        right: -80px;
+        width: 320px;
+        height: 320px;
+        background: radial-gradient(circle, rgba(0, 180, 216, 0.12) 0%, transparent 70%);
+        border-radius: 50%;
+      }
+      .badge {
+        display: inline-block;
+        background: rgba(0, 180, 216, 0.15);
+        color: var(--accent);
+        border: 1px solid rgba(0, 180, 216, 0.3);
+        border-radius: 20px;
+        padding: 4px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+      }
+      h1 {
+        font-size: clamp(24px, 4vw, 38px);
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        line-height: 1.2;
+        margin-bottom: 12px;
+      }
+      h1 span {
+        color: var(--accent);
+      }
+      .subtitle {
+        color: var(--muted);
+        font-size: 16px;
+        max-width: 640px;
+      }
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        margin-top: 32px;
+      }
+      .meta-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .meta-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--muted);
+      }
+      .meta-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        font-family: 'SFMono-Regular', Consolas, monospace;
+      }
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(63, 185, 80, 0.15);
+        color: var(--success);
+        border: 1px solid rgba(63, 185, 80, 0.3);
+        border-radius: 12px;
+        padding: 2px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .status-badge::before {
+        content: '●';
+        font-size: 8px;
+      }
+
+      /* ── Layout ── */
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 40px;
+      }
+      section {
+        margin-bottom: 56px;
+      }
+      h2 {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      h2 .icon {
+        width: 28px;
+        height: 28px;
+        background: rgba(0, 180, 216, 0.15);
+        border: 1px solid rgba(0, 180, 216, 0.25);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      h3 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 10px;
+        margin-top: 20px;
+      }
+
+      /* ── Cards ── */
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px 24px;
+        margin-bottom: 16px;
+      }
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .stat-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px 24px;
+        text-align: center;
+      }
+      .stat-number {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--accent);
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+
+      /* ── Code ── */
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px 20px;
+        font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-x: auto;
+        margin: 12px 0;
+      }
+      code {
+        background: rgba(0, 180, 216, 0.08);
+        border: 1px solid rgba(0, 180, 216, 0.15);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-size: 13px;
+        color: var(--accent);
+      }
+
+      /* ── Tables ── */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th {
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        font-weight: 600;
+        padding: 10px 14px;
+        text-align: left;
+        border: 1px solid var(--border);
+      }
+      td {
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        vertical-align: top;
+      }
+      tr:nth-child(even) td {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .pill {
+        display: inline-block;
+        border-radius: 12px;
+        padding: 2px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .pill-new {
+        background: rgba(63, 185, 80, 0.15);
+        color: var(--success);
+        border: 1px solid rgba(63, 185, 80, 0.3);
+      }
+      .pill-mod {
+        background: rgba(31, 111, 235, 0.15);
+        color: #58a6ff;
+        border: 1px solid rgba(31, 111, 235, 0.3);
+      }
+      .pill-fix {
+        background: rgba(210, 153, 34, 0.15);
+        color: var(--warning);
+        border: 1px solid rgba(210, 153, 34, 0.3);
+      }
+
+      /* ── Lists ── */
+      ul,
+      ol {
+        padding-left: 22px;
+      }
+      li {
+        margin-bottom: 6px;
+      }
+      .check-list {
+        list-style: none;
+        padding-left: 0;
+      }
+      .check-list li {
+        padding: 6px 0;
+        padding-left: 26px;
+        position: relative;
+      }
+      .check-list li::before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: var(--success);
+        font-weight: 700;
+      }
+
+      /* ── Interview blocks ── */
+      .qa-block {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+      }
+      .qa-q {
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+      .qa-a {
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      /* ── Callout ── */
+      .callout {
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-bottom: 16px;
+        font-size: 14px;
+      }
+      .callout-info {
+        background: rgba(31, 111, 235, 0.08);
+        border: 1px solid rgba(31, 111, 235, 0.25);
+        border-left: 3px solid var(--primary);
+      }
+      .callout-success {
+        background: rgba(63, 185, 80, 0.08);
+        border: 1px solid rgba(63, 185, 80, 0.25);
+        border-left: 3px solid var(--success);
+      }
+      .callout-warning {
+        background: rgba(210, 153, 34, 0.08);
+        border: 1px solid rgba(210, 153, 34, 0.25);
+        border-left: 3px solid var(--warning);
+      }
+
+      /* ── Flow diagram ── */
+      .flow {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 16px 0;
+      }
+      .flow-box {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-family: monospace;
+      }
+      .flow-box.highlight {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .flow-arrow {
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      /* ── Footer ── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 32px 40px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 640px) {
+        header,
+        main {
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+        .meta-row {
+          gap: 16px;
+        }
+        .card-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="badge">Bug Fix · Lógica de Negocio</div>
+      <h1>DEV-004 — <span>Normalización de Signo</span><br />comisionAirbnb</h1>
+      <p class="subtitle">
+        Corrección del signo incorrecto en comisionAirbnb causado por la deducción contable del CSV
+        de Airbnb. Introducción del helper canónico calcularComisionDesdeReservaciones.
+      </p>
+      <div class="meta-row">
+        <div class="meta-item">
+          <span class="meta-label">Commit</span><span class="meta-value">434eba3</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Mensaje</span
+          ><span class="meta-value">fix: normalize Airbnb commission sign</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Fecha</span><span class="meta-value">2026-08-28</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Autor</span
+          ><span class="meta-value">Carlos Alfredo Febles Gutierrez</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Estado</span><span class="status-badge">CLOSED</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- ── Métricas del commit ── -->
+      <section>
+        <h2><span class="icon">📊</span>Métricas del Commit</h2>
+        <div class="card-grid">
+          <div class="stat-card">
+            <div class="stat-number">7</div>
+            <div class="stat-label">Archivos tocados</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">333</div>
+            <div class="stat-label">Líneas insertadas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">49</div>
+            <div class="stat-label">Líneas eliminadas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">13</div>
+            <div class="stat-label">Tests nuevos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">110</div>
+            <div class="stat-label">Tests totales (suite)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">3</div>
+            <div class="stat-label">Sitios corregidos</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Problema original ── -->
+      <section>
+        <h2><span class="icon">🐛</span>Problema Original</h2>
+        <div class="callout callout-warning">
+          <strong>Bug:</strong> <code>excelData.comisionAirbnb</code> se guardaba con valor negativo
+          en la base de datos cuando el CSV de Airbnb reportaba <code>serviceFee</code> como
+          deducción contable (ej. <code>−200</code>). El campo debía ser siempre una magnitud
+          positiva que representa el costo de comisión.
+        </div>
+        <div class="card">
+          <h3>Causa Raíz</h3>
+          <p>
+            El CSV de Airbnb reporta <code>serviceFee</code> con signo negativo porque en su
+            contabilidad interna es una deducción del pago al anfitrión. Ninguno de los tres sitios
+            que calculaban <code>comisionAirbnb</code> aplicaba <code>Math.abs()</code> antes de
+            persistir el valor. El valor se guardaba con el signo original del CSV.
+          </p>
+
+          <h3>Impacto</h3>
+          <ul>
+            <li>
+              Los reportes Excel generados mostraban comisión negativa, confundiendo la
+              interpretación financiera.
+            </li>
+            <li>El análisis IA (Hoja 4) recibía datos incorrectos para el cálculo de métricas.</li>
+            <li>
+              Los reportes guardados desde sesión activa (Fuente 1) eran los únicos afectados con
+              datos persistidos incorrectamente.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ── Contexto técnico ── -->
+      <section>
+        <h2><span class="icon">🏗</span>Contexto Técnico</h2>
+        <div class="card">
+          <h3>Flujo de datos de comisionAirbnb</h3>
+          <div class="flow">
+            <div class="flow-box">
+              CSV Airbnb<br /><small style="color: #8b949e">serviceFee: -200</small>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box">
+              parseMonto()<br /><small style="color: #8b949e">preserva signo</small>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box highlight">
+              3 sitios de cálculo<br /><small>sin Math.abs()</small>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-box">
+              DB / Excel<br /><small style="color: #f85149">comisionAirbnb: -200 ❌</small>
+            </div>
+          </div>
+
+          <h3>Los tres sitios afectados (antes de DEV-004)</h3>
+          <ol>
+            <li>
+              <strong>Fuente 1</strong> — <code>src/controllers/reports.controller.js</code>:
+              cálculo desde <code>session.airbnbData.payouts</code> al guardar reporte con sesión
+              activa.
+            </li>
+            <li>
+              <strong>buildAnalysisData</strong> —
+              <code>src/controllers/report.controller.js</code>: construcción del payload para el
+              análisis IA y el Excel.
+            </li>
+            <li>
+              <strong>migrate-excel-data.js</strong> — script de migración histórica: cálculo desde
+              <code>tables[].reservations[]</code> al retroalimentar reportes antiguos.
+            </li>
+          </ol>
+
+          <h3>Por qué parseMonto() no era el lugar del fix</h3>
+          <p>
+            El parser CSV es correcto por diseño: preserva el signo del dato fuente para fidelidad
+            de los datos brutos. La transformación semántica (deducción contable → costo positivo de
+            dominio) pertenece a la capa de lógica de negocio, no al parser.
+          </p>
+        </div>
+      </section>
+
+      <!-- ── Decisiones de diseño ── -->
+      <section>
+        <h2><span class="icon">⚙️</span>Decisiones de Diseño</h2>
+
+        <div class="card">
+          <h3>
+            Decisión 1 — Crear helper canónico en utils/ en lugar de repetir Math.abs() en 3 sitios
+          </h3>
+          <p>
+            <strong>Razón:</strong> Tres sitios independientes calculaban la misma transformación de
+            forma duplicada. Un helper centralizado garantiza que cualquier futuro consumidor herede
+            el comportamiento correcto sin necesidad de recordar aplicar <code>Math.abs()</code>.
+          </p>
+          <p>
+            <strong>Alternativa descartada:</strong> Aplicar <code>Math.abs()</code> directamente en
+            cada sitio. Viola DRY y deja la regla de dominio implícita en tres lugares distintos.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Decisión 2 — No modificar csvParser.js</h3>
+          <p>
+            <strong>Razón:</strong> El parser es correcto. La fidelidad del dato fuente es una
+            responsabilidad diferente a la transformación de dominio. Separar estas capas es SOLID /
+            Single Responsibility.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>
+            Decisión 3 — Firma del helper: <code>calcularComisionDesdeReservaciones(entries)</code>
+          </h3>
+          <p>
+            <strong>Razón:</strong> Recibe el array de entries completo (no una reservación
+            individual) para poder acumular <code>noches</code> y <code>comisionAirbnb</code> en un
+            solo recorrido. Retorna ambos valores juntos porque siempre se necesitan en par.
+            Inmutable: no muta los objetos de entrada.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Decisión 4 — Fallback en migrate-excel-data.js con guard mutually exclusive</h3>
+          <p>
+            <strong>Razón:</strong> Datos históricos (pre-DEV-003) tenían <code>nights</code> y
+            <code>serviceFee</code> en nivel raíz, sin array <code>reservations[]</code>. El helper
+            solo procesa entradas con <code>reservations[]</code> válido; el fallback cubre el caso
+            histórico. El guard
+            <code>!Array.isArray(item.reservations) || item.reservations.length === 0</code> hace
+            las dos ramas mutuamente excluyentes: no hay double-counting.
+          </p>
+        </div>
+      </section>
+
+      <!-- ── Implementación ── -->
+      <section>
+        <h2><span class="icon">💻</span>Implementación</h2>
+
+        <h3>Helper canónico — src/utils/airbnbMetrics.js (CREADO)</h3>
+        <pre><code>function calcularComisionDesdeReservaciones(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return { noches: 0, comisionAirbnb: 0 };
+  }
+  let noches = 0;
+  let comisionAirbnb = 0;
+  for (const entry of entries) {
+    const reservations = Array.isArray(entry?.reservations) ? entry.reservations : [];
+    for (const r of reservations) {
+      noches += parseInt(r?.nights, 10) || 0;
+      comisionAirbnb += Math.abs(parseFloat(r?.serviceFee) || 0);  // ← fix
+    }
+  }
+  return { noches, comisionAirbnb };
+}
+module.exports = { calcularComisionDesdeReservaciones };</code></pre>
+
+        <h3>Sustitución en los tres sitios</h3>
+        <pre><code>// Fuente 1 — reports.controller.js (antes: ~10 líneas sin Math.abs)
+({ noches, comisionAirbnb } = calcularComisionDesdeReservaciones(session.airbnbData.payouts));
+
+// buildAnalysisData — report.controller.js (antes: 8 líneas)
+const { noches, comisionAirbnb: comision } = calcularComisionDesdeReservaciones(payouts);
+
+// migrate-excel-data.js (antes: bucle manual sin Math.abs en helper)
+let { noches, comisionAirbnb } = calcularComisionDesdeReservaciones(allItems);</code></pre>
+      </section>
+
+      <!-- ── Archivos modificados ── -->
+      <section>
+        <h2><span class="icon">📁</span>Archivos en el Commit 434eba3</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Archivo</th>
+              <th>Tipo</th>
+              <th>Cambio</th>
+              <th>Rol</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>src/utils/airbnbMetrics.js</code></td>
+              <td><span class="pill pill-new">CREADO</span></td>
+              <td>+37 líneas</td>
+              <td>Helper canónico — única fuente de verdad para el cálculo</td>
+            </tr>
+            <tr>
+              <td><code>tests/unit/airbnbMetrics.test.js</code></td>
+              <td><span class="pill pill-new">CREADO</span></td>
+              <td>+130 líneas</td>
+              <td>11 casos unitarios del helper</td>
+            </tr>
+            <tr>
+              <td><code>scripts/fix-negative-comision.js</code></td>
+              <td><span class="pill pill-new">CREADO</span></td>
+              <td>+86 líneas</td>
+              <td>
+                Script de corrección de datos históricos (Fase 1 SQLite — reemplazado en DEV-005)
+              </td>
+            </tr>
+            <tr>
+              <td><code>src/controllers/reports.controller.js</code></td>
+              <td><span class="pill pill-mod">MODIFICADO</span></td>
+              <td>−26 líneas</td>
+              <td>Fuente 1: reemplaza cálculo inline por helper</td>
+            </tr>
+            <tr>
+              <td><code>src/controllers/report.controller.js</code></td>
+              <td><span class="pill pill-mod">MODIFICADO</span></td>
+              <td>−10 líneas</td>
+              <td>buildAnalysisData: reemplaza cálculo inline por helper</td>
+            </tr>
+            <tr>
+              <td><code>scripts/migrate-excel-data.js</code></td>
+              <td><span class="pill pill-mod">MODIFICADO</span></td>
+              <td>−21 líneas</td>
+              <td>Bucle de migración: usa helper + fallback histórico</td>
+            </tr>
+            <tr>
+              <td><code>tests/integration/reports.save.test.js</code></td>
+              <td><span class="pill pill-mod">MODIFICADO</span></td>
+              <td>+72 líneas</td>
+              <td>
+                +2 casos nuevos, 1 assertion actualizada (Fuente 1 ahora produce valor exacto)
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ── Tests ── -->
+      <section>
+        <h2><span class="icon">🧪</span>Tests y Validaciones</h2>
+
+        <div class="card">
+          <h3>Tests unitarios — tests/unit/airbnbMetrics.test.js (11 casos)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Caso</th>
+                <th>Cobertura</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>serviceFee negativo → comisionAirbnb positiva</td>
+                <td>Caso principal del bug</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>serviceFee positivo → permanece positivo</td>
+                <td>Idempotencia para datos correctos</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>Múltiples entries y reservaciones</td>
+                <td>Acumulación correcta</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>serviceFee null → 0</td>
+                <td>Robustez con datos ausentes</td>
+              </tr>
+              <tr>
+                <td>5</td>
+                <td>serviceFee undefined → 0</td>
+                <td>Campo opcional ausente</td>
+              </tr>
+              <tr>
+                <td>6</td>
+                <td>serviceFee string no numérico → 0</td>
+                <td>Tipo inválido</td>
+              </tr>
+              <tr>
+                <td>7</td>
+                <td>Entry sin campo reservations → 0</td>
+                <td>Estructura inesperada</td>
+              </tr>
+              <tr>
+                <td>8</td>
+                <td>reservations: null → 0</td>
+                <td>Null en campo esperado</td>
+              </tr>
+              <tr>
+                <td>9</td>
+                <td>entries array vacío → {noches:0, comisionAirbnb:0}</td>
+                <td>Caso base</td>
+              </tr>
+              <tr>
+                <td>10</td>
+                <td>entries null → {noches:0, comisionAirbnb:0}</td>
+                <td>Null safety en raíz</td>
+              </tr>
+              <tr>
+                <td>11</td>
+                <td>No muta objetos originales</td>
+                <td>Inmutabilidad</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Tests de integración — tests/integration/reports.save.test.js (15 casos totales)</h3>
+          <p style="color: var(--muted); font-size: 13px; margin-bottom: 12px">
+            El archivo tenía 13 casos antes de DEV-004. DEV-004 agregó 2 nuevos y actualizó 1
+            assertion existente.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Grupo</th>
+                <th>Casos</th>
+                <th>Cambio</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Autenticación y validación básica</td>
+                <td>3</td>
+                <td>Sin cambios</td>
+              </tr>
+              <tr>
+                <td>DEV-003: noches desde tables</td>
+                <td>3</td>
+                <td>Sin cambios</td>
+              </tr>
+              <tr>
+                <td>DEV-003: comisionAirbnb desde tables</td>
+                <td>3</td>
+                <td>Sin cambios</td>
+              </tr>
+              <tr>
+                <td>DEV-003: reservations null/undefined/vacío</td>
+                <td>3</td>
+                <td>Sin cambios</td>
+              </tr>
+              <tr>
+                <td>Fuente 1 (sesión) &gt; Fuente 2 (tables)</td>
+                <td>3</td>
+                <td><span class="pill pill-fix">1 assertion actualizada + 2 nuevos</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="margin-top: 12px; font-size: 13px; color: var(--muted)">
+            Casos nuevos en DEV-004:
+            <em>"Fuente 1 con serviceFee=-200 produce exactamente comisionAirbnb=200"</em> y
+            <em>"Fuente 1 y Fuente 2 con los mismos datos producen el mismo comisionAirbnb"</em>.
+          </p>
+        </div>
+
+        <div class="callout callout-success">
+          <strong>Suite completa post-DEV-004: 110/110 tests passing.</strong> Suma verificada:
+          auth(19) + properties(14) + reports.save(15) + upload(4) + airbnbMetrics(11) +
+          comparator(22) + formatter(17) + sessionStore(8) = 110.
+        </div>
+      </section>
+
+      <!-- ── Code Review ── -->
+      <section>
+        <h2><span class="icon">🔍</span>Evidencia de Code Review</h2>
+        <div class="card">
+          <h3>Pre-commit checklist verificada</h3>
+          <ul class="check-list">
+            <li>
+              Helper <code>calcularComisionDesdeReservaciones</code> aplica
+              <code>Math.abs()</code> y retorna valores no negativos
+            </li>
+            <li>
+              Fuente 1 en <code>reports.controller.js</code> usa el helper — sin lógica inline
+              residual
+            </li>
+            <li>
+              <code>buildAnalysisData</code> en <code>report.controller.js</code> usa el helper —
+              comision nunca negativa
+            </li>
+            <li>
+              <code>migrate-excel-data.js</code>: helper + fallback histórico son mutuamente
+              excluyentes (guard <code>Array.isArray</code>)
+            </li>
+            <li>
+              Assertion del test de prioridad fortalecida:
+              <code>.not.toBe(500)</code> (negativa/débil) → <code>.toBe(75)</code> (exacta) — ahora
+              verifica la magnitud positiva correcta, no solo la ausencia del valor incorrecto
+            </li>
+            <li>ESLint: 0 errores, 0 warnings</li>
+            <li>Todos los imports existentes preservados sin breaking changes</li>
+            <li>No se tocan: csvParser.js, formatter.js, schema, rutas, middleware</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ── Riesgos y mitigaciones ── -->
+      <section>
+        <h2><span class="icon">🛡</span>Riesgos Identificados y Mitigaciones</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Riesgo</th>
+              <th>Probabilidad</th>
+              <th>Mitigación aplicada</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Double-counting en migrate-excel-data.js (helper + fallback)</td>
+              <td>Media</td>
+              <td>
+                Guard
+                <code>!Array.isArray(item.reservations) || item.reservations.length === 0</code>
+                hace las ramas mutuamente excluyentes. Verificado en code review.
+              </td>
+            </tr>
+            <tr>
+              <td>Regresión en Fuente 2/3 de saveReport</td>
+              <td>Baja</td>
+              <td>
+                13 tests de integración preexistentes (DEV-003) cubren todos los escenarios de
+                Fuente 2. Suite completa corrió sin regresiones.
+              </td>
+            </tr>
+            <tr>
+              <td>serviceFee positivo modificado incorrectamente</td>
+              <td>Baja</td>
+              <td>
+                Test caso #2: serviceFee positivo permanece sin cambio.
+                <code>Math.abs(150) === 150</code>.
+              </td>
+            </tr>
+            <tr>
+              <td>Mutación de objetos originales</td>
+              <td>Baja</td>
+              <td>
+                Test caso #11: inmutabilidad verificada — el helper solo lee, no escribe sobre los
+                objetos de entrada.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ── Resultado final ── -->
+      <section>
+        <h2><span class="icon">✅</span>Resultado Final</h2>
+        <div class="callout callout-success">
+          <strong>comisionAirbnb es siempre una magnitud positiva</strong> en todos los puntos de la
+          aplicación donde se calcula: guardado de reporte (sesión activa y sin sesión), generación
+          de Excel, análisis IA, y migración histórica.
+        </div>
+        <div class="card">
+          <ul class="check-list">
+            <li>
+              Regla de dominio centralizada en un único helper — un solo lugar para modificar si
+              cambia la lógica
+            </li>
+            <li>Tres sitios de cálculo reducidos a una sola llamada cada uno</li>
+            <li>110 tests passing, 0 regresiones</li>
+            <li>
+              Datos de producción sin reportes afectados por el bug (confirmado en DEV-005 Fase 3)
+            </li>
+            <li>Script de corrección de datos históricos incluido en el mismo commit</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ── Engineering Takeaways ── -->
+      <section>
+        <h2><span class="icon">🎓</span>Engineering Takeaways</h2>
+
+        <div class="qa-block">
+          <div class="qa-q">¿Qué patrón de diseño demuestra DEV-004?</div>
+          <div class="qa-a">
+            <strong>Extracción de regla de dominio a helper canónico.</strong> Cuando la misma
+            transformación aparece en 3+ lugares, el fix correcto no es añadir
+            <code>Math.abs()</code> en cada sitio sino crear una función con nombre significativo
+            que exprese la intención del dominio (<em
+              >comisión = magnitud positiva del serviceFee</em
+            >). Esto aplica Open/Closed: nuevos consumidores del helper heredan el comportamiento
+            sin modificación.
+          </div>
+        </div>
+
+        <div class="qa-block">
+          <div class="qa-q">¿Por qué no se corrigió en el parser del CSV?</div>
+          <div class="qa-a">
+            El parser tiene una responsabilidad: leer el dato fuente con fidelidad. Transformar la
+            semántica del dato (deducción contable → costo de dominio positivo) es responsabilidad
+            de la capa de negocio. Mezclarlas viola Single Responsibility y hace el parser menos
+            reutilizable para otros consumidores que sí necesiten el signo original.
+          </div>
+        </div>
+
+        <div class="qa-block">
+          <div class="qa-q">¿Qué técnica de testing se usó para cubrir el helper?</div>
+          <div class="qa-a">
+            Testing unitario con cobertura de valores límite: null, undefined, string inválido,
+            array vacío, null en raíz, e inmutabilidad. Más testing de integración end-to-end vía
+            HTTP para verificar que el valor llega correctamente a la base de datos (no solo que el
+            helper lo calcula bien en aislamiento).
+          </div>
+        </div>
+
+        <div class="qa-block">
+          <div class="qa-q">
+            ¿Por qué se cambió <code>.not.toBe(500)</code> a <code>.toBe(75)</code> en el test de
+            prioridad?
+          </div>
+          <div class="qa-a">
+            <strong
+              >Una assertion negativa nunca prueba que el valor correcto está presente, solo que el
+              valor incorrecto no está.</strong
+            >
+            <code>expect(x).not.toBe(500)</code> pasa con <code>x = -75</code>, <code>x = 0</code> o
+            <code>x = null</code> — todos valores incorrectos. <code>expect(x).toBe(75)</code> solo
+            pasa con el resultado exacto esperado. DEV-004 requería verificar tanto que el signo era
+            positivo como que la magnitud era correcta; la assertion negativa de DEV-003 no era
+            suficiente para eso. La regla general: en tests de corrección de bugs, preferir
+            assertions exactas sobre el valor esperado.
+          </div>
+        </div>
+
+        <div class="qa-block">
+          <div class="qa-q">
+            ¿Cómo se garantizó que el fallback en migrate-excel-data.js no hace double-counting?
+          </div>
+          <div class="qa-a">
+            El guard
+            <code>!Array.isArray(item.reservations) || item.reservations.length === 0</code> es
+            mutuamente excluyente con la condición del helper (que solo procesa entries con
+            <code>Array.isArray(entry.reservations)</code> verdadero y longitud mayor a 0). Un entry
+            procesado por el helper nunca entra al fallback, y viceversa. Es el mismo patrón de
+            guard clause que se usa en validaciones: cada rama tiene su condición clara y
+            exhaustiva.
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>airbnb-finance-assistant · DEV-004 · Commit <code>434eba3</code> · 2026-08-28</p>
+      <p style="margin-top: 6px">
+        Carlos Alfredo Febles Gutierrez · Documentación técnica generada post-implementación
+      </p>
+    </footer>
+  </body>
+</html>

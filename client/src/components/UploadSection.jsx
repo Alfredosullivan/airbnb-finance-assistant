@@ -7,7 +7,7 @@ import { useState, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 
 export default function UploadSection() {
-  const { user, setCurrentReport } = useAppContext();
+  const { user, setCurrentReport, sessionId, setSessionId } = useAppContext();
 
   const [uploads, setUploads] = useState({ airbnb: false, bank1: false, bank2: false });
   const [statuses, setStatuses] = useState({ airbnb: '', bank1: '', bank2: '' });
@@ -53,9 +53,19 @@ export default function UploadSection() {
         url = '/api/upload/bank';
       }
 
-      const res = await fetch(url, { method: 'POST', body: formData });
+      // Enviar X-Session-Id si ya tenemos sesión activa.
+      // Para airbnb: permite reutilizar la sesión si el usuario re-sube el archivo.
+      // Para bank: el servidor requiere que la sesión exista (creada por airbnb).
+      // No incluir Content-Type — el browser lo establece automáticamente con el boundary de FormData.
+      const headers = sessionId ? { 'X-Session-Id': sessionId } : {};
+      const res = await fetch(url, { method: 'POST', headers, body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al subir el archivo');
+
+      // El primer upload de Airbnb crea la sesión en el servidor y devuelve el sessionId
+      if (type === 'airbnb' && data.sessionId) {
+        setSessionId(data.sessionId);
+      }
 
       setUploads((prev) => ({ ...prev, [key]: true }));
       setStatuses((prev) => ({ ...prev, [key]: `✓ ${file.name}` }));
@@ -65,12 +75,13 @@ export default function UploadSection() {
   };
 
   // ── Generar reporte ────────────────────────────────────────────────
-  // GET /api/report — el servidor combina los archivos ya subidos en sesión
+  // GET /api/report — el servidor combina los archivos de la sesión activa
   // y devuelve el resultado de la conciliación Airbnb vs banco
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      const res = await fetch('/api/report');
+      const headers = sessionId ? { 'X-Session-Id': sessionId } : {};
+      const res = await fetch('/api/report', { headers });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al generar el reporte');
       setCurrentReport(data); // guarda en Context — ReportResults lo leerá desde ahí
@@ -85,8 +96,11 @@ export default function UploadSection() {
   // ── Reiniciar todo ─────────────────────────────────────────────────
   const handleReset = async () => {
     try {
-      await fetch('/api/upload/reset', { method: 'POST' });
+      // Ruta corregida: /api/reset (no /api/upload/reset — ese endpoint no existe)
+      const headers = sessionId ? { 'X-Session-Id': sessionId } : {};
+      await fetch('/api/reset', { method: 'POST', headers });
     } catch (_) {}
+    setSessionId(null);
     setUploads({ airbnb: false, bank1: false, bank2: false });
     setStatuses({ airbnb: '', bank1: '', bank2: '' });
     setGenerated(false);
