@@ -6,6 +6,7 @@ const SessionStore = require('../store/SessionStore');
 const annualExcelGenerator = require('../services/annualExcelGenerator');
 const PropRepo = require('../repositories/PropertyRepository');
 const ReportRepo = require('../repositories/ReportRepository');
+const { calcularComisionDesdeReservaciones } = require('../utils/airbnbMetrics');
 
 const MESES_ES = [
   '',
@@ -113,17 +114,7 @@ async function saveReport(req, res) {
 
     // Fuente 1: session.airbnbData en memoria (más preciso — incluye noches y comisión real)
     if (session?.airbnbData?.payouts?.length > 0) {
-      const payouts = session.airbnbData.payouts;
-      noches = payouts.reduce(
-        (sum, p) =>
-          sum + (p.reservations || []).reduce((s, r) => s + (parseInt(r.nights, 10) || 0), 0),
-        0
-      );
-      comisionAirbnb = payouts.reduce(
-        (sum, p) =>
-          sum + (p.reservations || []).reduce((s, r) => s + (parseFloat(r.serviceFee) || 0), 0),
-        0
-      );
+      ({ noches, comisionAirbnb } = calcularComisionDesdeReservaciones(session.airbnbData.payouts));
       dataSource = 'session';
     }
 
@@ -132,17 +123,8 @@ async function saveReport(req, res) {
     // entrada, por lo que el body ya incluye los datos necesarios sin modificar el flujo.
     // Solo se activa cuando la sesión no estuvo disponible (dataSource !== 'session').
     if (dataSource !== 'session' && report.tables) {
-      const todasReservations = [
-        ...(report.tables.matched || []),
-        ...(report.tables.onlyInAirbnb || []),
-      ].flatMap((entry) => entry.reservations || []);
-
-      noches = todasReservations.reduce((sum, r) => sum + (parseInt(r.nights, 10) || 0), 0);
-      comisionAirbnb = todasReservations.reduce(
-        (sum, r) => sum + Math.abs(parseFloat(r.serviceFee) || 0),
-        0
-      );
-
+      const entries = [...(report.tables.matched || []), ...(report.tables.onlyInAirbnb || [])];
+      ({ noches, comisionAirbnb } = calcularComisionDesdeReservaciones(entries));
       if (noches > 0 || comisionAirbnb > 0) dataSource = 'tables';
     }
 

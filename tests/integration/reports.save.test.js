@@ -344,8 +344,8 @@ describe('POST /api/reports/save — DEV-003: reservations null, undefined o vac
 
 describe('POST /api/reports/save — Fuente 1 (sesión) tiene prioridad sobre Fuente 2 (tables)', () => {
   test('cuando la sesión está activa, usa airbnbData.payouts y no lee tables.reservations', async () => {
-    // Sesión activa con 3 noches. Tables tienen 10 noches distintas.
-    // El resultado debe ser 3 (Fuente 1), no 10 (Fuente 2).
+    // Sesión activa con 3 noches y serviceFee=-75. Tables tienen 10 noches y fee=-500.
+    // El resultado debe ser noches=3 y comisionAirbnb=75 (Fuente 1), no 10/500 (Fuente 2).
     SessionStore.get.mockReturnValueOnce({
       airbnbData: {
         payouts: [{ reservations: [{ nights: 3, serviceFee: -75 }] }],
@@ -371,9 +371,71 @@ describe('POST /api/reports/save — Fuente 1 (sesión) tiene prioridad sobre Fu
 
     expect(res.status).toBe(200);
     const excelData = await getSavedExcelData();
-    // Fuente 1 gana: noches = 3, no 10
+    // Fuente 1 gana: noches=3 (no 10 de tables)
     expect(excelData.noches).toBe(3);
-    // comisionAirbnb viene de Fuente 1 (no 500 de tables)
-    expect(excelData.comisionAirbnb).not.toBe(500);
+    // DEV-004: comisionAirbnb = Math.abs(-75) = 75, no negativa ni 500 de tables
+    expect(excelData.comisionAirbnb).toBe(75);
+  });
+
+  test('Fuente 1 con serviceFee=-200 produce exactamente comisionAirbnb=200', async () => {
+    SessionStore.get.mockReturnValueOnce({
+      airbnbData: {
+        payouts: [{ reservations: [{ nights: 5, serviceFee: -200 }] }],
+      },
+    });
+
+    const res = await request(app)
+      .post('/api/reports/save')
+      .set('Cookie', authCookie)
+      .set('X-Session-Id', 'fake-session-id')
+      .send(buildReport());
+
+    expect(res.status).toBe(200);
+    const excelData = await getSavedExcelData();
+    expect(excelData.comisionAirbnb).toBe(200);
+  });
+
+  test('Fuente 1 y Fuente 2 con los mismos datos producen el mismo comisionAirbnb', async () => {
+    // Fuente 1: sesión con serviceFee=-300
+    SessionStore.get.mockReturnValueOnce({
+      airbnbData: {
+        payouts: [{ reservations: [{ nights: 4, serviceFee: -300 }] }],
+      },
+    });
+
+    const resFuente1 = await request(app)
+      .post('/api/reports/save')
+      .set('Cookie', authCookie)
+      .set('X-Session-Id', 'fake-session-id')
+      .send(buildReport());
+
+    expect(resFuente1.status).toBe(200);
+    const excelDataFuente1 = await getSavedExcelData();
+
+    // Limpiar y repetir sin sesión — Fuente 2 con los mismos datos de negocio
+    await pool.query('DELETE FROM reports');
+
+    const resFuente2 = await request(app)
+      .post('/api/reports/save')
+      .set('Cookie', authCookie)
+      .send(
+        buildReport({
+          tables: {
+            matched: [buildMatchedEntry([buildReservation({ nights: 4, serviceFee: -300 })])],
+            onlyInAirbnb: [],
+            onlyInBank: [],
+            differences: [],
+          },
+        })
+      );
+
+    expect(resFuente2.status).toBe(200);
+    const excelDataFuente2 = await getSavedExcelData();
+
+    // Ambas fuentes deben producir el mismo comisionAirbnb y noches
+    expect(excelDataFuente1.noches).toBe(excelDataFuente2.noches);
+    expect(excelDataFuente1.comisionAirbnb).toBe(excelDataFuente2.comisionAirbnb);
+    // Y el valor debe ser positivo (magnitud del serviceFee)
+    expect(excelDataFuente1.comisionAirbnb).toBe(300);
   });
 });
