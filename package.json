@@ -55,6 +55,9 @@
     "setupFiles": [
       "<rootDir>/tests/helpers/setup.js"
     ],
+    "moduleNameMapper": {
+      "^uuid$": "<rootDir>/tests/helpers/uuidMock.js"
+    },
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },

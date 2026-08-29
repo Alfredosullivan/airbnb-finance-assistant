@@ -12,7 +12,10 @@
 jest.mock('express-rate-limit', () => () => (_req, _res, next) => next());
 
 const request = require('supertest');
+const jwt = require('jsonwebtoken');
 const { pool } = require('../../src/database/client');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_local';
 
 // ── Fixtures ───────────────────────────────────────────────────
 const VALID_USER = {
@@ -221,7 +224,9 @@ describe('GET /api/auth/me', () => {
     expect(res.status).toBe(200);
     expect(res.body.user.email).toBe(VALID_USER.email);
     expect(res.body.user.username).toBe(VALID_USER.username);
+    // Verificar que nunca se exponen campos de contraseña
     expect(res.body.user.password_hash).toBeUndefined();
+    expect(res.body.user.password).toBeUndefined();
   });
 
   test('returns a boolean needsPropertyName flag', async () => {
@@ -229,5 +234,41 @@ describe('GET /api/auth/me', () => {
 
     expect(res.status).toBe(200);
     expect(typeof res.body.needsPropertyName).toBe('boolean');
+  });
+
+  test('returns 401 when the JWT is signed with an incorrect secret', async () => {
+    const fakeToken = jwt.sign({ userId: 9999, username: 'hacker' }, 'wrong-secret-key', {
+      expiresIn: '1d',
+    });
+    const res = await request(app).get('/api/auth/me').set('Cookie', `token=${fakeToken}`);
+    expect(res.status).toBe(401);
+  });
+
+  test('returns 401 when the JWT is expired', async () => {
+    // exp en el pasado — jwt.verify lanza TokenExpiredError
+    const expiredToken = jwt.sign(
+      { userId: 9999, username: 'testuser', exp: Math.floor(Date.now() / 1000) - 60 },
+      JWT_SECRET
+    );
+    const res = await request(app).get('/api/auth/me').set('Cookie', `token=${expiredToken}`);
+    expect(res.status).toBe(401);
+  });
+
+  test('returns 401 and clears the cookie when the user no longer exists in DB', async () => {
+    // authCookie tiene un JWT válido del usuario registrado en beforeEach.
+    // Eliminamos el usuario de la DB para simular cuenta eliminada post-login.
+    await pool.query('DELETE FROM reports');
+    await pool.query('DELETE FROM properties');
+    await pool.query('DELETE FROM users');
+
+    const res = await request(app).get('/api/auth/me').set('Cookie', authCookie);
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/no encontrado/i);
+
+    // El servidor debe limpiar la cookie huérfana
+    const setCookieHeader = res.headers['set-cookie'];
+    expect(setCookieHeader).toBeDefined();
+    expect(setCookieHeader[0]).toMatch(/token=;|token=\s*;/);
   });
 });

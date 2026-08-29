@@ -12,6 +12,9 @@ export function AppProvider({ children, user, onLogout }) {
   const [currentProperty, setCurrentProperty] = useState(null);
   const [loadingProperties, setLoadingProperties] = useState(false);
   const [currentReport, setCurrentReport] = useState(null);
+  // sessionId identifica la sesión de procesamiento activa (Upload → Report → Save).
+  // Se crea en el backend al subir el primer archivo Airbnb y se limpia al guardar o resetear.
+  const [sessionId, setSessionId] = useState(null);
 
   // Cargar propiedades cuando hay usuario autenticado.
   // ¿Por qué user como dependencia? Cuando user cambia de null a un objeto
@@ -21,6 +24,7 @@ export function AppProvider({ children, user, onLogout }) {
     if (!user) {
       setProperties([]);
       setCurrentProperty(null);
+      setSessionId(null);
       return;
     }
     const load = async () => {
@@ -53,6 +57,8 @@ export function AppProvider({ children, user, onLogout }) {
     loadingProperties,
     currentReport,
     setCurrentReport,
+    sessionId,
+    setSessionId,
     user,
     onLogout,
   };

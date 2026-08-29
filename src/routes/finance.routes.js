@@ -82,20 +82,21 @@ const uploadBankMiddleware = multer({
 // ── Endpoints ──────────────────────────────────────────────────
 
 // POST /api/upload/airbnb — Recibe el PDF o CSV del reporte de Airbnb (campo: "pdf")
-router.post('/upload/airbnb', uploadAirbnbMiddleware.single('pdf'), uploadAirbnb);
+// requireAuth ANTES de multer: si no hay token, rechazamos sin procesar el archivo
+router.post('/upload/airbnb', requireAuth, uploadAirbnbMiddleware.single('pdf'), uploadAirbnb);
 
 // POST /api/upload/bank — Recibe 1 o 2 PDFs del estado de cuenta bancario
 // Campo esperado: "bankPdf" (maxCount: 2); el body puede incluir "slot" (1 o 2)
-router.post('/upload/bank', uploadBankMiddleware.array('bankPdf', 2), uploadBank);
+router.post('/upload/bank', requireAuth, uploadBankMiddleware.array('bankPdf', 2), uploadBank);
 
-// GET /api/report — Genera y devuelve el reporte comparativo
-router.get('/report', getReport);
+// GET /api/report — Genera y devuelve el reporte comparativo (requiere sesión activa)
+router.get('/report', requireAuth, getReport);
 
 // GET /api/report/excel — Descarga el reporte mensual en formato .xlsx (requiere auth)
 router.get('/report/excel', requireAuth, generateExcel);
 
-// POST /api/reset — Limpia el reporte en memoria (no elimina los PDFs subidos)
-router.post('/reset', resetReport);
+// POST /api/reset — Destruye la sesión activa y sus archivos temporales
+router.post('/reset', requireAuth, resetReport);
 
 // POST /api/analysis/monthly     — Genera análisis IA del reporte actual (requiere auth)
 router.post('/analysis/monthly', requireAuth, getMonthlyAnalysis);

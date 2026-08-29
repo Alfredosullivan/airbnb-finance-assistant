@@ -18,6 +18,7 @@
 
 const Database = require('better-sqlite3');
 const path = require('path');
+const { calcularComisionDesdeReservaciones } = require('../src/utils/airbnbMetrics');
 
 const DB_PATH = path.join(__dirname, '../data/finance.db');
 
@@ -57,28 +58,20 @@ for (const report of reports) {
   }
 
   // ── Extraer noches y comisión desde reservaciones ─────────────
-  let noches = 0;
-  let comisionAirbnb = 0;
-
   // Combinar matched + onlyInAirbnb (ambos pueden tener reservaciones con noches)
   const allItems = [
     ...(s.tables?.matched || s.matched || []),
     ...(s.tables?.onlyInAirbnb || s.onlyInAirbnb || []),
   ];
 
-  for (const item of allItems) {
-    const reservations = item.reservations || [];
+  // Calcular desde reservations[] usando el helper canónico (comisionAirbnb siempre positiva)
+  let { noches, comisionAirbnb } = calcularComisionDesdeReservaciones(allItems);
 
-    if (reservations.length > 0) {
-      // Payout con array de reservaciones (estructura principal)
-      for (const res of reservations) {
-        noches += parseInt(res.nights, 10) || 0;
-        comisionAirbnb += parseFloat(res.serviceFee) || 0;
-      }
-    } else {
-      // onlyInAirbnb items a veces tienen nights/serviceFee en el nivel raíz
+  // Fallback: datos históricos con nights/serviceFee en nivel raíz (sin reservations[])
+  for (const item of allItems) {
+    if (!Array.isArray(item.reservations) || item.reservations.length === 0) {
       noches += parseInt(item.nights, 10) || 0;
-      comisionAirbnb += parseFloat(item.serviceFee) || 0;
+      comisionAirbnb += Math.abs(parseFloat(item.serviceFee) || 0);
     }
   }
 
