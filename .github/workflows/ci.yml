@@ -34,7 +34,7 @@ jobs:
         run: npm audit --audit-level=high
 
   test:
-    name: Tests (69)
+    name: Tests
     runs-on: ubuntu-latest
 
     steps:
