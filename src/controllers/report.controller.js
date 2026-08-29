@@ -14,6 +14,7 @@ const { generateMonthlyReport } = require('../services/excelGenerator');
 const { generateMonthlyAnalysis } = require('../services/analysisGenerator');
 const ReportRepo = require('../repositories/ReportRepository');
 const queue = require('../queue/MemoryQueue');
+const { calcularComisionDesdeReservaciones } = require('../utils/airbnbMetrics');
 
 // ── Helper privado ─────────────────────────────────────────────
 
@@ -37,14 +38,7 @@ function getSessionId(req) {
  */
 function buildAnalysisData(compareResult, airbnbData) {
   const payouts = airbnbData.payouts || [];
-  const noches = payouts.reduce(
-    (s, p) => s + (p.reservations || []).reduce((ss, r) => ss + (parseInt(r.nights, 10) || 0), 0),
-    0
-  );
-  const comision = payouts.reduce(
-    (s, p) => s + (p.reservations || []).reduce((ss, r) => ss + (parseFloat(r.serviceFee) || 0), 0),
-    0
-  );
+  const { noches, comisionAirbnb: comision } = calcularComisionDesdeReservaciones(payouts);
   const airbnbTotal = parseFloat(
     compareResult?.totals?.totalAirbnbPayouts ||
       compareResult?.summary?.totalAirbnbPayouts ||
