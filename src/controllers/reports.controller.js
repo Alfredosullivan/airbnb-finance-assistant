@@ -185,11 +185,6 @@ async function saveReport(req, res) {
       `[reports] Reporte guardado: usuario=${userId}, propiedad=${propertyId}, mes=${monthKey}`
     );
 
-    // Limpiar la sesión temporal tras guardar — los archivos ya no son necesarios
-    if (sessionId) {
-      SessionStore.destroy(userId, sessionId);
-    }
-
     // ── Detectar reporte del año siguiente que referencia este mes ─
     const [savedYear, savedMonthNum] = monthKey.split('-').map(Number);
     const nextYearMonth = `${savedYear + 1}-${String(savedMonthNum).padStart(2, '0')}`;
