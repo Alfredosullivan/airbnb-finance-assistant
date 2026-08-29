@@ -57,6 +57,36 @@ function extraerMonthKey(report) {
   return { monthKey, year: now.getFullYear(), label: monthKey };
 }
 
+/**
+ * _resolverComisionAirbnb — Calcula comisionAirbnb con tres fuentes de prioridad
+ * y normaliza el signo en cada una.
+ *
+ * El CSV de Airbnb reporta serviceFee como deducción negativa. Datos históricos
+ * guardados antes de DEV-004 pueden contener comisionAirbnb negativa en DB.
+ * Esta función garantiza que el valor devuelto sea siempre una magnitud positiva.
+ *
+ * Prioridad:
+ *   1. excelData guardado en DB — Math.abs para neutralizar datos históricos negativos
+ *   2. serviceFee/comision de matchedRows — Math.abs para el signo del CSV de Airbnb
+ *   3. Estimado del 3.5% sobre airbnbTotal — siempre positivo
+ *
+ * @param {Object} excel        Objeto excelData del reporte (puede ser {})
+ * @param {Array}  matchedRows  Array de matched rows con serviceFee o comision
+ * @param {number} airbnbTotal  Total de payouts de Airbnb del mes
+ * @returns {number}
+ */
+function _resolverComisionAirbnb(excel, matchedRows, airbnbTotal) {
+  if (excel.comisionAirbnb != null) {
+    return Math.abs(excel.comisionAirbnb);
+  }
+  const desdeRows = matchedRows.reduce(
+    (sum, m) => sum + Math.abs(m.serviceFee || m.comision || 0),
+    0
+  );
+  if (desdeRows > 0) return desdeRows;
+  return airbnbTotal > 0 ? parseFloat((airbnbTotal * 0.035).toFixed(2)) : 0;
+}
+
 // ── Controllers ────────────────────────────────────────────────
 
 /**
@@ -326,15 +356,12 @@ async function generateAnnualReport(req, res) {
         excel.ivaRetenido != null ? excel.ivaRetenido : parseFloat((airbnbTotal * 0.08).toFixed(2));
       const isrRetenido =
         excel.isrRetenido != null ? excel.isrRetenido : parseFloat((airbnbTotal * 0.04).toFixed(2));
-      // Comisión Airbnb: 1) excelData guardado, 2) serviceFee de reservaciones en matched, 3) aprox 3.5%
-      let comisionAirbnb = excel.comisionAirbnb || 0;
-      if (!comisionAirbnb) {
-        const matchedRows = tables.matched || s.matched || [];
-        comisionAirbnb = matchedRows.reduce((sum, m) => sum + (m.serviceFee || m.comision || 0), 0);
-      }
-      if (!comisionAirbnb && airbnbTotal > 0) {
-        comisionAirbnb = parseFloat((airbnbTotal * 0.035).toFixed(2));
-      }
+      // Comisión Airbnb: 1) excelData guardado, 2) serviceFee de matched rows, 3) aprox 3.5%
+      const comisionAirbnb = _resolverComisionAirbnb(
+        excel,
+        tables.matched || s.matched || [],
+        airbnbTotal
+      );
 
       const noches = excel.noches != null ? excel.noches : null; // null = sin datos
 
@@ -596,7 +623,10 @@ function _buildAnalysisData(reportData) {
     },
     excelData: {
       noches: excelData.noches || 0,
-      comisionAirbnb: excelData.comisionAirbnb || parseFloat((airbnbTotal * 0.035).toFixed(2)),
+      comisionAirbnb:
+        excelData.comisionAirbnb != null
+          ? Math.abs(excelData.comisionAirbnb)
+          : parseFloat((airbnbTotal * 0.035).toFixed(2)),
       ivaRetenido: excelData.ivaRetenido || parseFloat((airbnbTotal * 0.08).toFixed(2)),
       isrRetenido: excelData.isrRetenido || parseFloat((airbnbTotal * 0.04).toFixed(2)),
     },
@@ -1288,4 +1318,7 @@ module.exports = {
   getAnalysisPDFFromSaved,
   getDashboard,
   getExecutivePDF,
+  // Exportadas para testing — no usar desde rutas
+  _resolverComisionAirbnb,
+  _buildAnalysisData,
 };

@@ -1,349 +1,907 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DEV-005 — Migración del Script de Corrección a PostgreSQL</title>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DEV-005 — Migración del Script de Corrección a PostgreSQL</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-  :root {
-    --bg:        #1a1a1a;
-    --surface:   #222222;
-    --card:      #2a2a2a;
-    --border:    #3a3a3a;
-    --accent:    #f4a261;
-    --accent2:   #e76f51;
-    --success:   #57cc99;
-    --warning:   #ffd166;
-    --danger:    #ef476f;
-    --info:      #118ab2;
-    --text:      #e0e0e0;
-    --muted:     #888888;
-    --code-bg:   #141414;
-  }
+      :root {
+        --bg: #1a1a1a;
+        --surface: #222222;
+        --card: #2a2a2a;
+        --border: #3a3a3a;
+        --accent: #f4a261;
+        --accent2: #e76f51;
+        --success: #57cc99;
+        --warning: #ffd166;
+        --danger: #ef476f;
+        --info: #118ab2;
+        --text: #e0e0e0;
+        --muted: #888888;
+        --code-bg: #141414;
+      }
 
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.7;
+      }
 
-  /* ── Header ── */
-  header { background: linear-gradient(135deg, #1a1212 0%, #2a1a10 50%, #1a1a1a 100%); border-bottom: 1px solid var(--border); padding: 56px 40px 48px; position: relative; overflow: hidden; }
-  header::before { content: ''; position: absolute; top: -60px; right: -60px; width: 280px; height: 280px; background: radial-gradient(circle, rgba(244,162,97,0.1) 0%, transparent 70%); border-radius: 50%; }
-  .badge { display: inline-block; background: rgba(244,162,97,0.12); color: var(--accent); border: 1px solid rgba(244,162,97,0.3); border-radius: 20px; padding: 4px 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 16px; }
-  h1 { font-size: clamp(24px, 4vw, 38px); font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; margin-bottom: 12px; }
-  h1 span { color: var(--accent); }
-  .subtitle { color: var(--muted); font-size: 16px; max-width: 660px; }
-  .meta-row { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 32px; }
-  .meta-item { display: flex; flex-direction: column; gap: 2px; }
-  .meta-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
-  .meta-value { font-size: 14px; font-weight: 600; color: var(--text); font-family: 'SFMono-Regular', Consolas, monospace; }
-  .status-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(87,204,153,0.12); color: var(--success); border: 1px solid rgba(87,204,153,0.3); border-radius: 12px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
-  .status-badge::before { content: '●'; font-size: 8px; }
+      /* ── Header ── */
+      header {
+        background: linear-gradient(135deg, #1a1212 0%, #2a1a10 50%, #1a1a1a 100%);
+        border-bottom: 1px solid var(--border);
+        padding: 56px 40px 48px;
+        position: relative;
+        overflow: hidden;
+      }
+      header::before {
+        content: '';
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 280px;
+        height: 280px;
+        background: radial-gradient(circle, rgba(244, 162, 97, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+      }
+      .badge {
+        display: inline-block;
+        background: rgba(244, 162, 97, 0.12);
+        color: var(--accent);
+        border: 1px solid rgba(244, 162, 97, 0.3);
+        border-radius: 20px;
+        padding: 4px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+      }
+      h1 {
+        font-size: clamp(24px, 4vw, 38px);
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        line-height: 1.2;
+        margin-bottom: 12px;
+      }
+      h1 span {
+        color: var(--accent);
+      }
+      .subtitle {
+        color: var(--muted);
+        font-size: 16px;
+        max-width: 660px;
+      }
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        margin-top: 32px;
+      }
+      .meta-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .meta-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--muted);
+      }
+      .meta-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        font-family: 'SFMono-Regular', Consolas, monospace;
+      }
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(87, 204, 153, 0.12);
+        color: var(--success);
+        border: 1px solid rgba(87, 204, 153, 0.3);
+        border-radius: 12px;
+        padding: 2px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .status-badge::before {
+        content: '●';
+        font-size: 8px;
+      }
 
-  /* ── Layout ── */
-  main { max-width: 1100px; margin: 0 auto; padding: 48px 40px; }
-  section { margin-bottom: 56px; }
-  h2 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-  h2 .icon { width: 28px; height: 28px; background: rgba(244,162,97,0.12); border: 1px solid rgba(244,162,97,0.25); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-  h3 { font-size: 15px; font-weight: 600; color: var(--accent); margin-bottom: 10px; margin-top: 20px; }
+      /* ── Layout ── */
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 40px;
+      }
+      section {
+        margin-bottom: 56px;
+      }
+      h2 {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      h2 .icon {
+        width: 28px;
+        height: 28px;
+        background: rgba(244, 162, 97, 0.12);
+        border: 1px solid rgba(244, 162, 97, 0.25);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      h3 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 10px;
+        margin-top: 20px;
+      }
 
-  /* ── Cards ── */
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; }
-  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 16px; }
-  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; text-align: center; }
-  .stat-number { font-size: 36px; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 4px; }
-  .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
-  .stat-number.green { color: var(--success); }
-  .stat-number.gray  { color: var(--muted); }
+      /* ── Cards ── */
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px 24px;
+        margin-bottom: 16px;
+      }
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .stat-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px 24px;
+        text-align: center;
+      }
+      .stat-number {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--accent);
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      .stat-number.green {
+        color: var(--success);
+      }
+      .stat-number.gray {
+        color: var(--muted);
+      }
 
-  /* ── Code ── */
-  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; margin: 12px 0; }
-  code { background: rgba(244,162,97,0.08); border: 1px solid rgba(244,162,97,0.15); border-radius: 4px; padding: 1px 6px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; color: var(--accent); }
-  .code-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+      /* ── Code ── */
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px 20px;
+        font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-x: auto;
+        margin: 12px 0;
+      }
+      code {
+        background: rgba(244, 162, 97, 0.08);
+        border: 1px solid rgba(244, 162, 97, 0.15);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-size: 13px;
+        color: var(--accent);
+      }
+      .code-label {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 4px;
+      }
 
-  /* ── Tables ── */
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { background: var(--surface); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; padding: 10px 14px; text-align: left; border: 1px solid var(--border); }
-  td { padding: 10px 14px; border: 1px solid var(--border); vertical-align: top; }
-  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
-  .pill { display: inline-block; border-radius: 12px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
-  .pill-before { background: rgba(239,71,111,0.12);  color: var(--danger);   border: 1px solid rgba(239,71,111,0.3); }
-  .pill-after  { background: rgba(87,204,153,0.12); color: var(--success);  border: 1px solid rgba(87,204,153,0.3); }
-  .pill-warn   { background: rgba(255,209,102,0.12); color: var(--warning);  border: 1px solid rgba(255,209,102,0.3); }
+      /* ── Tables ── */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th {
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        font-weight: 600;
+        padding: 10px 14px;
+        text-align: left;
+        border: 1px solid var(--border);
+      }
+      td {
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        vertical-align: top;
+      }
+      tr:nth-child(even) td {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .pill {
+        display: inline-block;
+        border-radius: 12px;
+        padding: 2px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .pill-before {
+        background: rgba(239, 71, 111, 0.12);
+        color: var(--danger);
+        border: 1px solid rgba(239, 71, 111, 0.3);
+      }
+      .pill-after {
+        background: rgba(87, 204, 153, 0.12);
+        color: var(--success);
+        border: 1px solid rgba(87, 204, 153, 0.3);
+      }
+      .pill-warn {
+        background: rgba(255, 209, 102, 0.12);
+        color: var(--warning);
+        border: 1px solid rgba(255, 209, 102, 0.3);
+      }
 
-  /* ── Lists ── */
-  ul, ol { padding-left: 22px; }
-  li { margin-bottom: 6px; }
-  .check-list { list-style: none; padding-left: 0; }
-  .check-list li { padding: 6px 0; padding-left: 26px; position: relative; }
-  .check-list li::before { content: '✓'; position: absolute; left: 0; color: var(--success); font-weight: 700; }
-  .x-list { list-style: none; padding-left: 0; }
-  .x-list li { padding: 6px 0; padding-left: 26px; position: relative; }
-  .x-list li::before { content: '✗'; position: absolute; left: 0; color: var(--danger); font-weight: 700; }
+      /* ── Lists ── */
+      ul,
+      ol {
+        padding-left: 22px;
+      }
+      li {
+        margin-bottom: 6px;
+      }
+      .check-list {
+        list-style: none;
+        padding-left: 0;
+      }
+      .check-list li {
+        padding: 6px 0;
+        padding-left: 26px;
+        position: relative;
+      }
+      .check-list li::before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: var(--success);
+        font-weight: 700;
+      }
+      .x-list {
+        list-style: none;
+        padding-left: 0;
+      }
+      .x-list li {
+        padding: 6px 0;
+        padding-left: 26px;
+        position: relative;
+      }
+      .x-list li::before {
+        content: '✗';
+        position: absolute;
+        left: 0;
+        color: var(--danger);
+        font-weight: 700;
+      }
 
-  /* ── Callouts ── */
-  .callout { border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; font-size: 14px; }
-  .callout-danger  { background: rgba(239,71,111,0.08);   border: 1px solid rgba(239,71,111,0.25);  border-left: 3px solid var(--danger); }
-  .callout-success { background: rgba(87,204,153,0.08);  border: 1px solid rgba(87,204,153,0.25);  border-left: 3px solid var(--success); }
-  .callout-warning { background: rgba(255,209,102,0.08);  border: 1px solid rgba(255,209,102,0.25); border-left: 3px solid var(--warning); }
-  .callout-info    { background: rgba(17,138,178,0.08);   border: 1px solid rgba(17,138,178,0.25);  border-left: 3px solid var(--info); }
+      /* ── Callouts ── */
+      .callout {
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-bottom: 16px;
+        font-size: 14px;
+      }
+      .callout-danger {
+        background: rgba(239, 71, 111, 0.08);
+        border: 1px solid rgba(239, 71, 111, 0.25);
+        border-left: 3px solid var(--danger);
+      }
+      .callout-success {
+        background: rgba(87, 204, 153, 0.08);
+        border: 1px solid rgba(87, 204, 153, 0.25);
+        border-left: 3px solid var(--success);
+      }
+      .callout-warning {
+        background: rgba(255, 209, 102, 0.08);
+        border: 1px solid rgba(255, 209, 102, 0.25);
+        border-left: 3px solid var(--warning);
+      }
+      .callout-info {
+        background: rgba(17, 138, 178, 0.08);
+        border: 1px solid rgba(17, 138, 178, 0.25);
+        border-left: 3px solid var(--info);
+      }
 
-  /* ── Migration comparison ── */
-  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
-  .compare-box { border-radius: 8px; padding: 16px 18px; }
-  .compare-before { background: rgba(239,71,111,0.06); border: 1px solid rgba(239,71,111,0.2); }
-  .compare-after  { background: rgba(87,204,153,0.06); border: 1px solid rgba(87,204,153,0.2); }
-  .compare-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
-  .compare-before .compare-title { color: var(--danger); }
-  .compare-after  .compare-title { color: var(--success); }
-  .compare-box ul { padding-left: 16px; font-size: 13px; }
-  .compare-box li { margin-bottom: 5px; }
+      /* ── Migration comparison ── */
+      .compare-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin: 16px 0;
+      }
+      .compare-box {
+        border-radius: 8px;
+        padding: 16px 18px;
+      }
+      .compare-before {
+        background: rgba(239, 71, 111, 0.06);
+        border: 1px solid rgba(239, 71, 111, 0.2);
+      }
+      .compare-after {
+        background: rgba(87, 204, 153, 0.06);
+        border: 1px solid rgba(87, 204, 153, 0.2);
+      }
+      .compare-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 10px;
+      }
+      .compare-before .compare-title {
+        color: var(--danger);
+      }
+      .compare-after .compare-title {
+        color: var(--success);
+      }
+      .compare-box ul {
+        padding-left: 16px;
+        font-size: 13px;
+      }
+      .compare-box li {
+        margin-bottom: 5px;
+      }
 
-  /* ── Phases timeline ── */
-  .timeline { position: relative; padding-left: 28px; }
-  .timeline::before { content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: var(--border); }
-  .phase { position: relative; margin-bottom: 28px; }
-  .phase-dot { width: 18px; height: 18px; border-radius: 50%; position: absolute; left: -24px; top: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
-  .phase-dot.done    { background: var(--success); color: #000; }
-  .phase-dot.blocked { background: var(--danger);  color: #fff; }
-  .phase-dot.na      { background: var(--muted);   color: #fff; }
-  .phase-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; color: var(--text); }
-  .phase-desc  { font-size: 14px; color: var(--muted); }
+      /* ── Phases timeline ── */
+      .timeline {
+        position: relative;
+        padding-left: 28px;
+      }
+      .timeline::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 6px;
+        bottom: 6px;
+        width: 2px;
+        background: var(--border);
+      }
+      .phase {
+        position: relative;
+        margin-bottom: 28px;
+      }
+      .phase-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        position: absolute;
+        left: -24px;
+        top: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+      }
+      .phase-dot.done {
+        background: var(--success);
+        color: #000;
+      }
+      .phase-dot.blocked {
+        background: var(--danger);
+        color: #fff;
+      }
+      .phase-dot.na {
+        background: var(--muted);
+        color: #fff;
+      }
+      .phase-title {
+        font-weight: 700;
+        font-size: 15px;
+        margin-bottom: 6px;
+        color: var(--text);
+      }
+      .phase-desc {
+        font-size: 14px;
+        color: var(--muted);
+      }
 
-  /* ── Interview blocks ── */
-  .qa-block { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 12px; }
-  .qa-q { font-weight: 700; color: var(--accent); margin-bottom: 8px; font-size: 14px; }
-  .qa-a { color: var(--text); font-size: 14px; line-height: 1.65; }
+      /* ── Interview blocks ── */
+      .qa-block {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+      }
+      .qa-q {
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+      .qa-a {
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.65;
+      }
 
-  /* ── Dry-run output ── */
-  .terminal { background: #0d0d0d; border: 1px solid #333; border-radius: 8px; padding: 16px 20px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; line-height: 1.7; }
-  .t-dim    { color: #555; }
-  .t-ok     { color: var(--success); }
-  .t-skip   { color: var(--muted); }
-  .t-head   { color: var(--accent); font-weight: 700; }
+      /* ── Dry-run output ── */
+      .terminal {
+        background: #0d0d0d;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 16px 20px;
+        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .t-dim {
+        color: #555;
+      }
+      .t-ok {
+        color: var(--success);
+      }
+      .t-skip {
+        color: var(--muted);
+      }
+      .t-head {
+        color: var(--accent);
+        font-weight: 700;
+      }
 
-  /* ── Footer ── */
-  footer { border-top: 1px solid var(--border); padding: 32px 40px; text-align: center; color: var(--muted); font-size: 13px; }
+      /* ── Footer ── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 32px 40px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
 
-  @media (max-width: 640px) {
-    header, main { padding-left: 20px; padding-right: 20px; }
-    .compare-grid { grid-template-columns: 1fr; }
-    .card-grid { grid-template-columns: 1fr 1fr; }
-  }
-</style>
-</head>
-<body>
-
-<header>
-  <div class="badge">Migración · Infraestructura de Scripts</div>
-  <h1>DEV-005 — <span>Migración del Script</span><br>de Corrección a PostgreSQL</h1>
-  <p class="subtitle">Auditoría y reemplazo del script fix-negative-comision.js: de SQLite legacy (base de datos equivocada) a PostgreSQL de producción con transacción, 5 protecciones de datos y audit log.</p>
-  <div class="meta-row">
-    <div class="meta-item"><span class="meta-label">Commit</span><span class="meta-value">d7efd6a</span></div>
-    <div class="meta-item"><span class="meta-label">Mensaje</span><span class="meta-value">fix: migrate commission correction script to PostgreSQL</span></div>
-    <div class="meta-item"><span class="meta-label">Fecha</span><span class="meta-value">2026-08-29</span></div>
-    <div class="meta-item"><span class="meta-label">Autor</span><span class="meta-value">Carlos Alfredo Febles Gutierrez</span></div>
-    <div class="meta-item"><span class="meta-label">Estado</span><span class="status-badge">CLOSED</span></div>
-  </div>
-</header>
-
-<main>
-
-  <!-- ── Métricas ── -->
-  <section>
-    <h2><span class="icon">📊</span>Métricas del Ticket</h2>
-    <div class="card-grid">
-      <div class="stat-card"><div class="stat-number">1</div><div class="stat-label">Archivo modificado</div></div>
-      <div class="stat-card"><div class="stat-number">210</div><div class="stat-label">Líneas insertadas</div></div>
-      <div class="stat-card"><div class="stat-number">56</div><div class="stat-label">Líneas eliminadas</div></div>
-      <div class="stat-card"><div class="stat-number">5</div><div class="stat-label">Protecciones de datos</div></div>
-      <div class="stat-card"><div class="stat-number green">6</div><div class="stat-label">Reportes examinados (prod)</div></div>
-      <div class="stat-card"><div class="stat-number gray">0</div><div class="stat-label">Afectados en producción</div></div>
-    </div>
-  </section>
-
-  <!-- ── Problema original ── -->
-  <section>
-    <h2><span class="icon">🐛</span>Problema Original</h2>
-    <div class="callout callout-danger">
-      <strong>Descubrimiento crítico:</strong> El script <code>fix-negative-comision.js</code> creado en DEV-004 apuntaba a <code>data/finance.db</code> mediante <code>better-sqlite3</code>. Esa es la base de datos SQLite del stack legacy, no la base de datos de producción de la aplicación. La aplicación migró a PostgreSQL meses antes. El script era inoperante contra los datos reales.
-    </div>
-    <div class="card">
-      <h3>Contexto del descubrimiento</h3>
-      <p>Al intentar ejecutar el dry-run original, el proceso falló con error de native bindings:</p>
-      <pre><code>Error: Cannot find module '../build/Release/node_sqlite3.node'</code></pre>
-      <p style="margin-top:10px;">La investigación reveló que:</p>
-      <ul>
-        <li><code>data/finance.db</code> existe en el repositorio pero es un artefacto del stack legacy, no la base de datos de producción.</li>
-        <li><code>src/database/db.js</code> (SQLite) no es importado por ningún módulo de la aplicación — verificado con <code>grep -r "require.*database/db" src/</code> → 0 coincidencias.</li>
-        <li>Toda la aplicación usa PostgreSQL vía <code>src/database/client.js</code> y <code>DATABASE_URL</code>.</li>
-        <li><code>better-sqlite3</code> requiere bindings nativos compilados por versión de Node.js y arquitectura — no disponibles para Node.js v20.20.2 en Windows x64.</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- ── Auditoría SQLite vs PostgreSQL ── -->
-  <section>
-    <h2><span class="icon">🔎</span>Auditoría: SQLite Legacy vs. PostgreSQL de Producción</h2>
-    <div class="compare-grid">
-      <div class="compare-box compare-before">
-        <div class="compare-title">❌ Script original (DEV-004)</div>
-        <ul>
-          <li>Driver: <code>better-sqlite3</code></li>
-          <li>Target: <code>data/finance.db</code></li>
-          <li>Stack: SQLite (legacy, abandonado)</li>
-          <li>Estado real: código muerto</li>
-          <li>Bindings: no compilados para Node 20 / Win x64</li>
-          <li>Transacción: ninguna</li>
-          <li>Protecciones: 2 (null/undefined y ≥0)</li>
-          <li>Audit log: no</li>
-        </ul>
+      @media (max-width: 640px) {
+        header,
+        main {
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+        .compare-grid {
+          grid-template-columns: 1fr;
+        }
+        .card-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="badge">Migración · Infraestructura de Scripts</div>
+      <h1>DEV-005 — <span>Migración del Script</span><br />de Corrección a PostgreSQL</h1>
+      <p class="subtitle">
+        Auditoría y reemplazo del script fix-negative-comision.js: de SQLite legacy (base de datos
+        equivocada) a PostgreSQL de producción con transacción, 5 protecciones de datos y audit log.
+      </p>
+      <div class="meta-row">
+        <div class="meta-item">
+          <span class="meta-label">Commit</span><span class="meta-value">d7efd6a</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Mensaje</span
+          ><span class="meta-value">fix: migrate commission correction script to PostgreSQL</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Fecha</span><span class="meta-value">2026-08-29</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Autor</span
+          ><span class="meta-value">Carlos Alfredo Febles Gutierrez</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Estado</span><span class="status-badge">CLOSED</span>
+        </div>
       </div>
-      <div class="compare-box compare-after">
-        <div class="compare-title">✓ Script reemplazado (DEV-005)</div>
-        <ul>
-          <li>Driver: <code>pg</code> (ya en producción)</li>
-          <li>Target: <code>DATABASE_URL</code> (Railway PostgreSQL)</li>
-          <li>Stack: PostgreSQL — la DB real</li>
-          <li>Estado real: operativo</li>
-          <li>Sin bindings nativos: usa el driver pg en uso</li>
-          <li>Transacción: BEGIN / COMMIT / ROLLBACK</li>
-          <li>Protecciones: 5</li>
-          <li>Audit log: JSON en <code>data/</code></li>
-        </ul>
-      </div>
-    </div>
+    </header>
 
-    <div class="card">
-      <h3>Verificación de que src/database/db.js es código muerto</h3>
-      <p>Búsqueda en el código fuente: <code>grep -r "require.*database/db" src/</code> → <strong>0 coincidencias.</strong> El módulo SQLite no es importado en ninguna ruta de código de la aplicación. La única referencia es en el propio archivo.</p>
-    </div>
-  </section>
+    <main>
+      <!-- ── Métricas ── -->
+      <section>
+        <h2><span class="icon">📊</span>Métricas del Ticket</h2>
+        <div class="card-grid">
+          <div class="stat-card">
+            <div class="stat-number">1</div>
+            <div class="stat-label">Archivo modificado</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">210</div>
+            <div class="stat-label">Líneas insertadas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">56</div>
+            <div class="stat-label">Líneas eliminadas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">5</div>
+            <div class="stat-label">Protecciones de datos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number green">6</div>
+            <div class="stat-label">Reportes examinados (prod)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number gray">0</div>
+            <div class="stat-label">Afectados en producción</div>
+          </div>
+        </div>
+      </section>
 
-  <!-- ── Decisiones de diseño ── -->
-  <section>
-    <h2><span class="icon">⚙️</span>Decisiones de Diseño</h2>
+      <!-- ── Problema original ── -->
+      <section>
+        <h2><span class="icon">🐛</span>Problema Original</h2>
+        <div class="callout callout-danger">
+          <strong>Descubrimiento crítico:</strong> El script
+          <code>fix-negative-comision.js</code> creado en DEV-004 apuntaba a
+          <code>data/finance.db</code> mediante <code>better-sqlite3</code>. Esa es la base de datos
+          SQLite del stack legacy, no la base de datos de producción de la aplicación. La aplicación
+          migró a PostgreSQL meses antes. El script era inoperante contra los datos reales.
+        </div>
+        <div class="card">
+          <h3>Contexto del descubrimiento</h3>
+          <p>
+            Al intentar ejecutar el dry-run original, el proceso falló con error de native bindings:
+          </p>
+          <pre><code>Error: Cannot find module '../build/Release/node_sqlite3.node'</code></pre>
+          <p style="margin-top: 10px">La investigación reveló que:</p>
+          <ul>
+            <li>
+              <code>data/finance.db</code> existe en el repositorio pero es un artefacto del stack
+              legacy, no la base de datos de producción.
+            </li>
+            <li>
+              <code>src/database/db.js</code> (SQLite) no es importado por ningún módulo de la
+              aplicación — verificado con <code>grep -r "require.*database/db" src/</code> → 0
+              coincidencias.
+            </li>
+            <li>
+              Toda la aplicación usa PostgreSQL vía <code>src/database/client.js</code> y
+              <code>DATABASE_URL</code>.
+            </li>
+            <li>
+              <code>better-sqlite3</code> requiere bindings nativos compilados por versión de
+              Node.js y arquitectura — no disponibles para Node.js v20.20.2 en Windows x64.
+            </li>
+          </ul>
+        </div>
+      </section>
 
-    <div class="card">
-      <h3>Decisión 1 — Usar pg directamente con Pool propio, no reutilizar src/database/client.js</h3>
-      <p><strong>Razón:</strong> <code>client.js</code> es un singleton diseñado para el servidor Express: no llama <code>dotenv.config()</code> (el servidor ya lo hizo) y nunca llama <code>pool.end()</code> (el proceso del servidor no termina). Un script de Node.js sí debe llamar <code>pool.end()</code> en <code>finally</code> para que el proceso pueda salir limpiamente. Reutilizar el singleton haría el proceso colgar indefinidamente.</p>
-      <p><strong>Patrón de referencia:</strong> <code>scripts/migrate.js</code> establece el mismo patrón: <code>require('dotenv').config()</code> → validar <code>DATABASE_URL</code> → <code>new Pool()</code> propio → <code>client.release()</code> + <code>pool.end()</code> en <code>finally</code>.</p>
-    </div>
-
-    <div class="card">
-      <h3>Decisión 2 — Filtrar en JavaScript, no con SQL JSONB casting</h3>
-      <p><strong>Razón:</strong> La columna <code>summary</code> es <code>TEXT NOT NULL</code>, no <code>JSONB</code>. Usar <code>summary::jsonb</code> en SQL fallaría toda la query si cualquier fila tiene JSON inválido. El filtro en JavaScript con <code>try/catch</code> individual por fila aísla errores: un JSON inválido solo incrementa el contador <code>totalErrores</code> y continúa con los demás registros.</p>
-    </div>
-
-    <div class="card">
-      <h3>Decisión 3 — Transacción solo en modo real, no en dry-run</h3>
-      <p><strong>Razón:</strong> En dry-run el script nunca emite <code>UPDATE</code>, por lo que abrir una transacción sería innecesario y podría dejar conexiones idle en producción si el proceso se interrumpe. La flag <code>dryRun</code> controla qué bloques se ejecutan: <code>BEGIN/COMMIT/ROLLBACK</code> solo existen en el branch real.</p>
-    </div>
-
-    <div class="card">
-      <h3>Decisión 4 — rowCount === 1 como guardia post-UPDATE</h3>
-      <p><strong>Razón:</strong> Un UPDATE que devuelve <code>rowCount !== 1</code> indica que el registro desapareció entre el SELECT y el UPDATE (lo cual no debería ocurrir, pero el script actúa sobre producción). Lanzar un error en ese caso activa el ROLLBACK automáticamente: ningún cambio parcial queda en la base de datos.</p>
-    </div>
-
-    <div class="card">
-      <h3>Decisión 5 — No usar FOR UPDATE en el SELECT</h3>
-      <p><strong>Razón:</strong> La operación es idempotente: <code>Math.abs(comision)</code> de un valor ya positivo da el mismo valor positivo. No hay riesgo de corrupción por ejecuciones concurrentes del script. <code>FOR UPDATE</code> añadiría bloqueos innecesarios y latencia en producción sin beneficio real.</p>
-    </div>
-  </section>
-
-  <!-- ── Las 5 protecciones ── -->
-  <section>
-    <h2><span class="icon">🛡</span>Las 5 Protecciones del Script</h2>
-    <div class="card">
-      <table>
-        <thead><tr><th>#</th><th>Protección</th><th>Condición</th><th>Acción</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>JSON inválido</td><td><code>JSON.parse()</code> lanza excepción</td><td>Incrementa <code>totalErrores</code>, continúa con siguiente fila</td></tr>
-          <tr><td>2</td><td>excelData ausente</td><td><code>!s.excelData</code></td><td>Incrementa <code>totalOmitidos</code>, continúa</td></tr>
-          <tr><td>3</td><td>comisionAirbnb null o undefined</td><td><code>comision === undefined || comision === null</code></td><td>Incrementa <code>totalOmitidos</code>, continúa</td></tr>
-          <tr><td>4</td><td>Tipo no numérico o NaN/Infinity</td><td><code>typeof comision !== 'number' || !isFinite(comision)</code></td><td>Incrementa <code>totalOmitidos</code>, continúa</td></tr>
-          <tr><td>5</td><td>Ya positiva o cero (idempotencia)</td><td><code>comision >= 0</code></td><td>Incrementa <code>totalOmitidos</code>, continúa — no hay doble corrección</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ── Fases del ticket ── -->
-  <section>
-    <h2><span class="icon">📋</span>Fases del Ticket</h2>
-    <div class="card">
-      <div class="timeline">
-
-        <div class="phase">
-          <div class="phase-dot done">1</div>
-          <div class="phase-title">Fase 1 — Auditoría</div>
-          <div class="phase-desc">Identificación del script original, su target (SQLite legacy), incompatibilidad con Node.js v20.20.2 en Windows, y confirmación de que la DB de producción es PostgreSQL. <strong>Resultado: migración bloqueada — script apuntaba a la base de datos incorrecta.</strong></div>
+      <!-- ── Auditoría SQLite vs PostgreSQL ── -->
+      <section>
+        <h2><span class="icon">🔎</span>Auditoría: SQLite Legacy vs. PostgreSQL de Producción</h2>
+        <div class="compare-grid">
+          <div class="compare-box compare-before">
+            <div class="compare-title">❌ Script original (DEV-004)</div>
+            <ul>
+              <li>Driver: <code>better-sqlite3</code></li>
+              <li>Target: <code>data/finance.db</code></li>
+              <li>Stack: SQLite (legacy, abandonado)</li>
+              <li>Estado real: código muerto</li>
+              <li>Bindings: no compilados para Node 20 / Win x64</li>
+              <li>Transacción: ninguna</li>
+              <li>Protecciones: 2 (null/undefined y ≥0)</li>
+              <li>Audit log: no</li>
+            </ul>
+          </div>
+          <div class="compare-box compare-after">
+            <div class="compare-title">✓ Script reemplazado (DEV-005)</div>
+            <ul>
+              <li>Driver: <code>pg</code> (ya en producción)</li>
+              <li>Target: <code>DATABASE_URL</code> (Railway PostgreSQL)</li>
+              <li>Stack: PostgreSQL — la DB real</li>
+              <li>Estado real: operativo</li>
+              <li>Sin bindings nativos: usa el driver pg en uso</li>
+              <li>Transacción: BEGIN / COMMIT / ROLLBACK</li>
+              <li>Protecciones: 5</li>
+              <li>Audit log: JSON en <code>data/</code></li>
+            </ul>
+          </div>
         </div>
 
-        <div class="phase">
-          <div class="phase-dot done">2</div>
-          <div class="phase-title">Fase 2A — Diseño e implementación</div>
-          <div class="phase-desc">Reemplazo completo de <code>scripts/fix-negative-comision.js</code>: de <code>better-sqlite3</code> a <code>pg</code>. Diseño aprobado antes de codificar. Post-implementación: ESLint 0 errores (corrección de <code>no-useless-assignment</code>), commit <code>d7efd6a</code>.</div>
+        <div class="card">
+          <h3>Verificación de que src/database/db.js es código muerto</h3>
+          <p>
+            Búsqueda en el código fuente: <code>grep -r "require.*database/db" src/</code> →
+            <strong>0 coincidencias.</strong> El módulo SQLite no es importado en ninguna ruta de
+            código de la aplicación. La única referencia es en el propio archivo.
+          </p>
+        </div>
+      </section>
+
+      <!-- ── Decisiones de diseño ── -->
+      <section>
+        <h2><span class="icon">⚙️</span>Decisiones de Diseño</h2>
+
+        <div class="card">
+          <h3>
+            Decisión 1 — Usar pg directamente con Pool propio, no reutilizar src/database/client.js
+          </h3>
+          <p>
+            <strong>Razón:</strong> <code>client.js</code> es un singleton diseñado para el servidor
+            Express: no llama <code>dotenv.config()</code> (el servidor ya lo hizo) y nunca llama
+            <code>pool.end()</code> (el proceso del servidor no termina). Un script de Node.js sí
+            debe llamar <code>pool.end()</code> en <code>finally</code> para que el proceso pueda
+            salir limpiamente. Reutilizar el singleton haría el proceso colgar indefinidamente.
+          </p>
+          <p>
+            <strong>Patrón de referencia:</strong> <code>scripts/migrate.js</code> establece el
+            mismo patrón: <code>require('dotenv').config()</code> → validar
+            <code>DATABASE_URL</code> → <code>new Pool()</code> propio →
+            <code>client.release()</code> + <code>pool.end()</code> en <code>finally</code>.
+          </p>
         </div>
 
-        <div class="phase">
-          <div class="phase-dot done">3</div>
-          <div class="phase-title">Fase 2B — Validación local con datos sintéticos</div>
-          <div class="phase-desc">Se insertó un reporte sintético con <code>comisionAirbnb: -200</code> en la DB Docker local. El dry-run detectó exactamente 1 afectado (<code>-200 → 200</code>), 0 errores, 0 UPDATEs. Audit log generado correctamente. Registro sintético eliminado mediante cascada (<code>DELETE FROM users</code>). DB local devuelta a estado original.</div>
+        <div class="card">
+          <h3>Decisión 2 — Filtrar en JavaScript, no con SQL JSONB casting</h3>
+          <p>
+            <strong>Razón:</strong> La columna <code>summary</code> es <code>TEXT NOT NULL</code>,
+            no <code>JSONB</code>. Usar <code>summary::jsonb</code> en SQL fallaría toda la query si
+            cualquier fila tiene JSON inválido. El filtro en JavaScript con
+            <code>try/catch</code> individual por fila aísla errores: un JSON inválido solo
+            incrementa el contador <code>totalErrores</code> y continúa con los demás registros.
+          </p>
         </div>
 
-        <div class="phase">
-          <div class="phase-dot done">4</div>
-          <div class="phase-title">Fase 3 — Dry-run contra producción (Railway)</div>
-          <div class="phase-desc">Ejecución vía Railway CLI (<code>railway run --service Postgres</code>) con <code>DATABASE_PUBLIC_URL</code> inyectado. 6 reportes examinados, 0 afectados, 0 errores, 0 UPDATEs. La migración real no era necesaria.</div>
+        <div class="card">
+          <h3>Decisión 3 — Transacción solo en modo real, no en dry-run</h3>
+          <p>
+            <strong>Razón:</strong> En dry-run el script nunca emite <code>UPDATE</code>, por lo que
+            abrir una transacción sería innecesario y podría dejar conexiones idle en producción si
+            el proceso se interrumpe. La flag <code>dryRun</code> controla qué bloques se ejecutan:
+            <code>BEGIN/COMMIT/ROLLBACK</code> solo existen en el branch real.
+          </p>
         </div>
 
-        <div class="phase">
-          <div class="phase-dot na">—</div>
-          <div class="phase-title">Fase 4 — Migración real en producción</div>
-          <div class="phase-desc"><strong>No ejecutada.</strong> El dry-run de producción confirmó que ningún reporte tiene <code>comisionAirbnb &lt; 0</code>. No había datos que corregir. El script queda disponible para ejecución futura si se detectaran reportes con el valor incorrecto.</div>
+        <div class="card">
+          <h3>Decisión 4 — rowCount === 1 como guardia post-UPDATE</h3>
+          <p>
+            <strong>Razón:</strong> Un UPDATE que devuelve <code>rowCount !== 1</code> indica que el
+            registro desapareció entre el SELECT y el UPDATE (lo cual no debería ocurrir, pero el
+            script actúa sobre producción). Lanzar un error en ese caso activa el ROLLBACK
+            automáticamente: ningún cambio parcial queda en la base de datos.
+          </p>
         </div>
 
-      </div>
-    </div>
-  </section>
+        <div class="card">
+          <h3>Decisión 5 — No usar FOR UPDATE en el SELECT</h3>
+          <p>
+            <strong>Razón:</strong> La operación es idempotente: <code>Math.abs(comision)</code> de
+            un valor ya positivo da el mismo valor positivo. No hay riesgo de corrupción por
+            ejecuciones concurrentes del script. <code>FOR UPDATE</code> añadiría bloqueos
+            innecesarios y latencia en producción sin beneficio real.
+          </p>
+        </div>
+      </section>
 
-  <!-- ── Validación local con datos sintéticos ── -->
-  <section>
-    <h2><span class="icon">🧪</span>Validación Local con Datos Sintéticos</h2>
+      <!-- ── Las 5 protecciones ── -->
+      <section>
+        <h2><span class="icon">🛡</span>Las 5 Protecciones del Script</h2>
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Protección</th>
+                <th>Condición</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>JSON inválido</td>
+                <td><code>JSON.parse()</code> lanza excepción</td>
+                <td>Incrementa <code>totalErrores</code>, continúa con siguiente fila</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>excelData ausente</td>
+                <td><code>!s.excelData</code></td>
+                <td>Incrementa <code>totalOmitidos</code>, continúa</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>comisionAirbnb null o undefined</td>
+                <td><code>comision === undefined || comision === null</code></td>
+                <td>Incrementa <code>totalOmitidos</code>, continúa</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>Tipo no numérico o NaN/Infinity</td>
+                <td><code>typeof comision !== 'number' || !isFinite(comision)</code></td>
+                <td>Incrementa <code>totalOmitidos</code>, continúa</td>
+              </tr>
+              <tr>
+                <td>5</td>
+                <td>Ya positiva o cero (idempotencia)</td>
+                <td><code>comision >= 0</code></td>
+                <td>Incrementa <code>totalOmitidos</code>, continúa — no hay doble corrección</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-    <div class="card">
-      <h3>Setup</h3>
-      <p>Base de datos: Docker PostgreSQL local (<code>db:5432</code>, red interna <code>finance_net</code>). El script se copió al contenedor en ejecución vía <code>docker compose cp</code> para evitar reconstruir la imagen.</p>
+      <!-- ── Fases del ticket ── -->
+      <section>
+        <h2><span class="icon">📋</span>Fases del Ticket</h2>
+        <div class="card">
+          <div class="timeline">
+            <div class="phase">
+              <div class="phase-dot done">1</div>
+              <div class="phase-title">Fase 1 — Auditoría</div>
+              <div class="phase-desc">
+                Identificación del script original, su target (SQLite legacy), incompatibilidad con
+                Node.js v20.20.2 en Windows, y confirmación de que la DB de producción es
+                PostgreSQL.
+                <strong
+                  >Resultado: migración bloqueada — script apuntaba a la base de datos
+                  incorrecta.</strong
+                >
+              </div>
+            </div>
 
-      <h3>Datos insertados</h3>
-      <table>
-        <thead><tr><th>Tabla</th><th>ID</th><th>Valores clave</th></tr></thead>
-        <tbody>
-          <tr><td><code>users</code></td><td>1</td><td>username: <code>dev005_test</code></td></tr>
-          <tr><td><code>properties</code></td><td>1</td><td>name: <code>Propiedad DEV-005</code></td></tr>
-          <tr><td><code>reports</code></td><td>1</td><td>month: <code>2025-01</code>, <code>comisionAirbnb: -200</code></td></tr>
-        </tbody>
-      </table>
+            <div class="phase">
+              <div class="phase-dot done">2</div>
+              <div class="phase-title">Fase 2A — Diseño e implementación</div>
+              <div class="phase-desc">
+                Reemplazo completo de <code>scripts/fix-negative-comision.js</code>: de
+                <code>better-sqlite3</code> a <code>pg</code>. Diseño aprobado antes de codificar.
+                Post-implementación: ESLint 0 errores (corrección de
+                <code>no-useless-assignment</code>), commit <code>d7efd6a</code>.
+              </div>
+            </div>
 
-      <h3>Salida del dry-run local</h3>
-      <div class="terminal">
-        <span class="t-head">[fix-comision]</span> <span class="t-dim">2026-08-29T05:59:24.944Z — inicio (dry-run: true)</span><br><br>
-        <span class="t-dim">[fix-comision] 1 reporte(s) a examinar</span><br><br>
-        <span class="t-ok">[dry-run]</span>  id=1 | 2025-01 — comisionAirbnb: -200.00 → 200.00<br><br>
-        <span class="t-head">[fix-comision]</span> Simulación (sin cambios) — 2026-08-29T05:59:25.013Z<br>
-        &nbsp;&nbsp;Total examinados: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1<br>
-        &nbsp;&nbsp;Afectados (comisionAirbnb &lt; 0): 1<br>
-        &nbsp;&nbsp;Omitidos: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br>
-        &nbsp;&nbsp;Errores (JSON/datos): &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br><br>
-        <span class="t-ok">[fix-comision]</span> Audit log guardado en: data/fix-comision-audit-2026-08-29T05-59-24-944Z.json
-      </div>
+            <div class="phase">
+              <div class="phase-dot done">3</div>
+              <div class="phase-title">Fase 2B — Validación local con datos sintéticos</div>
+              <div class="phase-desc">
+                Se insertó un reporte sintético con <code>comisionAirbnb: -200</code> en la DB
+                Docker local. El dry-run detectó exactamente 1 afectado (<code>-200 → 200</code>), 0
+                errores, 0 UPDATEs. Audit log generado correctamente. Registro sintético eliminado
+                mediante cascada (<code>DELETE FROM users</code>). DB local devuelta a estado
+                original.
+              </div>
+            </div>
 
-      <h3>Verificación post dry-run</h3>
-      <pre><code>SELECT id, month, summary::json->'excelData' AS excel_data FROM reports WHERE id = 1;
+            <div class="phase">
+              <div class="phase-dot done">4</div>
+              <div class="phase-title">Fase 3 — Dry-run contra producción (Railway)</div>
+              <div class="phase-desc">
+                Ejecución vía Railway CLI (<code>railway run --service Postgres</code>) con
+                <code>DATABASE_PUBLIC_URL</code> inyectado. 6 reportes examinados, 0 afectados, 0
+                errores, 0 UPDATEs. La migración real no era necesaria.
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-dot na">—</div>
+              <div class="phase-title">Fase 4 — Migración real en producción</div>
+              <div class="phase-desc">
+                <strong>No ejecutada.</strong> El dry-run de producción confirmó que ningún reporte
+                tiene <code>comisionAirbnb &lt; 0</code>. No había datos que corregir. El script
+                queda disponible para ejecución futura si se detectaran reportes con el valor
+                incorrecto.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Validación local con datos sintéticos ── -->
+      <section>
+        <h2><span class="icon">🧪</span>Validación Local con Datos Sintéticos</h2>
+
+        <div class="card">
+          <h3>Setup</h3>
+          <p>
+            Base de datos: Docker PostgreSQL local (<code>db:5432</code>, red interna
+            <code>finance_net</code>). El script se copió al contenedor en ejecución vía
+            <code>docker compose cp</code> para evitar reconstruir la imagen.
+          </p>
+
+          <h3>Datos insertados</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Tabla</th>
+                <th>ID</th>
+                <th>Valores clave</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>users</code></td>
+                <td>1</td>
+                <td>username: <code>dev005_test</code></td>
+              </tr>
+              <tr>
+                <td><code>properties</code></td>
+                <td>1</td>
+                <td>name: <code>Propiedad DEV-005</code></td>
+              </tr>
+              <tr>
+                <td><code>reports</code></td>
+                <td>1</td>
+                <td>month: <code>2025-01</code>, <code>comisionAirbnb: -200</code></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Salida del dry-run local</h3>
+          <div class="terminal">
+            <span class="t-head">[fix-comision]</span>
+            <span class="t-dim">2026-08-29T05:59:24.944Z — inicio (dry-run: true)</span><br /><br />
+            <span class="t-dim">[fix-comision] 1 reporte(s) a examinar</span><br /><br />
+            <span class="t-ok">[dry-run]</span> id=1 | 2025-01 — comisionAirbnb: -200.00 → 200.00<br /><br />
+            <span class="t-head">[fix-comision]</span> Simulación (sin cambios) —
+            2026-08-29T05:59:25.013Z<br />
+            &nbsp;&nbsp;Total examinados:
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            1<br />
+            &nbsp;&nbsp;Afectados (comisionAirbnb &lt; 0): 1<br />
+            &nbsp;&nbsp;Omitidos:
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            0<br />
+            &nbsp;&nbsp;Errores (JSON/datos): &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            0<br /><br />
+            <span class="t-ok">[fix-comision]</span> Audit log guardado en:
+            data/fix-comision-audit-2026-08-29T05-59-24-944Z.json
+          </div>
+
+          <h3>Verificación post dry-run</h3>
+          <pre><code>SELECT id, month, summary::json->'excelData' AS excel_data FROM reports WHERE id = 1;
 -- Resultado: comisionAirbnb: -200  ← sin cambios, dry-run confirmado</code></pre>
 
-      <h3>Audit log generado</h3>
-      <pre><code>{
+          <h3>Audit log generado</h3>
+          <pre><code>{
   "executedAt": "2026-08-29T05:59:24.944Z",
   "finishedAt": "2026-08-29T05:59:25.013Z",
   "dryRun": true,
@@ -353,148 +911,310 @@
   ]
 }</code></pre>
 
-      <h3>Limpieza</h3>
-      <p><code>DELETE FROM users WHERE username = 'dev005_test'</code> eliminó en cascada el usuario, la propiedad y el reporte. DB local devuelta a estado original: <strong>0 usuarios, 0 propiedades, 0 reportes</strong>.</p>
-    </div>
-  </section>
+          <h3>Limpieza</h3>
+          <p>
+            <code>DELETE FROM users WHERE username = 'dev005_test'</code> eliminó en cascada el
+            usuario, la propiedad y el reporte. DB local devuelta a estado original:
+            <strong>0 usuarios, 0 propiedades, 0 reportes</strong>.
+          </p>
+        </div>
+      </section>
 
-  <!-- ── Dry-run producción ── -->
-  <section>
-    <h2><span class="icon">🚀</span>Dry-run Contra Producción (Railway)</h2>
+      <!-- ── Dry-run producción ── -->
+      <section>
+        <h2><span class="icon">🚀</span>Dry-run Contra Producción (Railway)</h2>
 
-    <div class="card">
-      <h3>Infraestructura de conexión</h3>
-      <table>
-        <thead><tr><th>Variable</th><th>Valor confirmado</th></tr></thead>
-        <tbody>
-          <tr><td>Proyecto Railway</td><td><code>vigilant-enjoyment</code></td></tr>
-          <tr><td>Servicio</td><td><code>Postgres</code></td></tr>
-          <tr><td>Entorno</td><td><code>production</code> (<code>RAILWAY_ENVIRONMENT_NAME</code>)</td></tr>
-          <tr><td>URL usada</td><td><code>DATABASE_PUBLIC_URL</code> del servicio Postgres — inyectado por <code>railway run</code></td></tr>
-          <tr><td>Host local Docker</td><td><strong>No usado</strong> — <code>db:5432</code> excluido</td></tr>
-        </tbody>
-      </table>
+        <div class="card">
+          <h3>Infraestructura de conexión</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Variable</th>
+                <th>Valor confirmado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Proyecto Railway</td>
+                <td><code>vigilant-enjoyment</code></td>
+              </tr>
+              <tr>
+                <td>Servicio</td>
+                <td><code>Postgres</code></td>
+              </tr>
+              <tr>
+                <td>Entorno</td>
+                <td><code>production</code> (<code>RAILWAY_ENVIRONMENT_NAME</code>)</td>
+              </tr>
+              <tr>
+                <td>URL usada</td>
+                <td>
+                  <code>DATABASE_PUBLIC_URL</code> del servicio Postgres — inyectado por
+                  <code>railway run</code>
+                </td>
+              </tr>
+              <tr>
+                <td>Host local Docker</td>
+                <td><strong>No usado</strong> — <code>db:5432</code> excluido</td>
+              </tr>
+            </tbody>
+          </table>
 
-      <h3>Comando ejecutado</h3>
-      <pre><code>railway run --service Postgres bash -c \
+          <h3>Comando ejecutado</h3>
+          <pre><code>railway run --service Postgres bash -c \
   'DATABASE_URL="$DATABASE_PUBLIC_URL" node scripts/fix-negative-comision.js --dry-run'</code></pre>
 
-      <h3>Salida completa del dry-run de producción</h3>
-      <div class="terminal">
-        <span class="t-head">[fix-comision]</span> <span class="t-dim">2026-08-29T06:18:25.708Z — inicio (dry-run: true)</span><br><br>
-        <span class="t-dim">[fix-comision] 6 reporte(s) a examinar</span><br><br>
-        <span class="t-skip">[omitido]</span>  id=1  | 2026-01 — comisionAirbnb=967.51 (ya no negativa)<br>
-        <span class="t-skip">[omitido]</span>  id=3  | 2026-01 — comisionAirbnb=967.51 (ya no negativa)<br>
-        <span class="t-skip">[omitido]</span>  id=37 | 2026-01 — comisionAirbnb=967.51 (ya no negativa)<br>
-        <span class="t-skip">[omitido]</span>  id=2  | 2026-02 — comisionAirbnb=827.29 (ya no negativa)<br>
-        <span class="t-skip">[omitido]</span>  id=4  | 2026-02 — comisionAirbnb=827.29 (ya no negativa)<br>
-        <span class="t-skip">[omitido]</span>  id=70 | 2026-02 — comisionAirbnb=827.29 (ya no negativa)<br><br>
-        <span class="t-head">[fix-comision]</span> Simulación (sin cambios) — 2026-08-29T06:18:32.032Z<br>
-        &nbsp;&nbsp;Total examinados: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6<br>
-        &nbsp;&nbsp;Afectados (comisionAirbnb &lt; 0): 0<br>
-        &nbsp;&nbsp;Omitidos: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6<br>
-        &nbsp;&nbsp;Errores (JSON/datos): &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0
-      </div>
+          <h3>Salida completa del dry-run de producción</h3>
+          <div class="terminal">
+            <span class="t-head">[fix-comision]</span>
+            <span class="t-dim">2026-08-29T06:18:25.708Z — inicio (dry-run: true)</span><br /><br />
+            <span class="t-dim">[fix-comision] 6 reporte(s) a examinar</span><br /><br />
+            <span class="t-skip">[omitido]</span> id=1 | 2026-01 — comisionAirbnb=967.51 (ya no
+            negativa)<br />
+            <span class="t-skip">[omitido]</span> id=3 | 2026-01 — comisionAirbnb=967.51 (ya no
+            negativa)<br />
+            <span class="t-skip">[omitido]</span> id=37 | 2026-01 — comisionAirbnb=967.51 (ya no
+            negativa)<br />
+            <span class="t-skip">[omitido]</span> id=2 | 2026-02 — comisionAirbnb=827.29 (ya no
+            negativa)<br />
+            <span class="t-skip">[omitido]</span> id=4 | 2026-02 — comisionAirbnb=827.29 (ya no
+            negativa)<br />
+            <span class="t-skip">[omitido]</span> id=70 | 2026-02 — comisionAirbnb=827.29 (ya no
+            negativa)<br /><br />
+            <span class="t-head">[fix-comision]</span> Simulación (sin cambios) —
+            2026-08-29T06:18:32.032Z<br />
+            &nbsp;&nbsp;Total examinados:
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            6<br />
+            &nbsp;&nbsp;Afectados (comisionAirbnb &lt; 0): 0<br />
+            &nbsp;&nbsp;Omitidos:
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            6<br />
+            &nbsp;&nbsp;Errores (JSON/datos): &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            0
+          </div>
 
-      <h3>Registro de reportes examinados en producción</h3>
-      <table>
-        <thead><tr><th>id</th><th>month</th><th>comisionAirbnb actual</th><th>Acción del script</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>2026-01</td><td>967.51</td><td><span class="pill pill-warn">omitido — ya positiva</span></td></tr>
-          <tr><td>3</td><td>2026-01</td><td>967.51</td><td><span class="pill pill-warn">omitido — ya positiva</span></td></tr>
-          <tr><td>37</td><td>2026-01</td><td>967.51</td><td><span class="pill pill-warn">omitido — ya positiva</span></td></tr>
-          <tr><td>2</td><td>2026-02</td><td>827.29</td><td><span class="pill pill-warn">omitido — ya positiva</span></td></tr>
-          <tr><td>4</td><td>2026-02</td><td>827.29</td><td><span class="pill pill-warn">omitido — ya positiva</span></td></tr>
-          <tr><td>70</td><td>2026-02</td><td>827.29</td><td><span class="pill pill-warn">omitido — ya positiva</span></td></tr>
-        </tbody>
-      </table>
-    </div>
+          <h3>Registro de reportes examinados en producción</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>id</th>
+                <th>month</th>
+                <th>comisionAirbnb actual</th>
+                <th>Acción del script</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>2026-01</td>
+                <td>967.51</td>
+                <td><span class="pill pill-warn">omitido — ya positiva</span></td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>2026-01</td>
+                <td>967.51</td>
+                <td><span class="pill pill-warn">omitido — ya positiva</span></td>
+              </tr>
+              <tr>
+                <td>37</td>
+                <td>2026-01</td>
+                <td>967.51</td>
+                <td><span class="pill pill-warn">omitido — ya positiva</span></td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>2026-02</td>
+                <td>827.29</td>
+                <td><span class="pill pill-warn">omitido — ya positiva</span></td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>2026-02</td>
+                <td>827.29</td>
+                <td><span class="pill pill-warn">omitido — ya positiva</span></td>
+              </tr>
+              <tr>
+                <td>70</td>
+                <td>2026-02</td>
+                <td>827.29</td>
+                <td><span class="pill pill-warn">omitido — ya positiva</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-    <div class="callout callout-success">
-      <strong>Conclusión del dry-run:</strong> 6 reportes examinados, 0 afectados, 0 errores, 0 UPDATEs ejecutados. Todos los reportes existentes en producción tienen <code>comisionAirbnb</code> con valor positivo. La migración real no fue necesaria y no se ejecutó.
-    </div>
-    <div class="callout callout-info">
-      <strong>Nota de integridad:</strong> El script no registra audit log cuando <code>afectados === 0</code>, por diseño. La confirmación de ausencia de datos afectados es la salida del terminal reproducida arriba, no la ausencia del archivo de audit log.
-    </div>
-  </section>
+        <div class="callout callout-success">
+          <strong>Conclusión del dry-run:</strong> 6 reportes examinados, 0 afectados, 0 errores, 0
+          UPDATEs ejecutados. Todos los reportes existentes en producción tienen
+          <code>comisionAirbnb</code> con valor positivo. La migración real no fue necesaria y no se
+          ejecutó.
+        </div>
+        <div class="callout callout-info">
+          <strong>Nota de integridad:</strong> El script no registra audit log cuando
+          <code>afectados === 0</code>, por diseño. La confirmación de ausencia de datos afectados
+          es la salida del terminal reproducida arriba, no la ausencia del archivo de audit log.
+        </div>
+      </section>
 
-  <!-- ── Archivos del commit ── -->
-  <section>
-    <h2><span class="icon">📁</span>Archivo en el Commit d7efd6a</h2>
-    <table>
-      <thead><tr><th>Archivo</th><th>Tipo</th><th>Cambio neto</th><th>Descripción</th></tr></thead>
-      <tbody>
-        <tr><td><code>scripts/fix-negative-comision.js</code></td><td><span class="pill pill-after">REEMPLAZADO</span></td><td>+210 / −56 líneas</td><td>De <code>better-sqlite3</code> / SQLite a <code>pg</code> / PostgreSQL. Husky aplicó Prettier en el commit (reformateó argumentos de array en una llamada a <code>client.query</code>).</td></tr>
-      </tbody>
-    </table>
-  </section>
+      <!-- ── Archivos del commit ── -->
+      <section>
+        <h2><span class="icon">📁</span>Archivo en el Commit d7efd6a</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Archivo</th>
+              <th>Tipo</th>
+              <th>Cambio neto</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>scripts/fix-negative-comision.js</code></td>
+              <td><span class="pill pill-after">REEMPLAZADO</span></td>
+              <td>+210 / −56 líneas</td>
+              <td>
+                De <code>better-sqlite3</code> / SQLite a <code>pg</code> / PostgreSQL. Husky aplicó
+                Prettier en el commit (reformateó argumentos de array en una llamada a
+                <code>client.query</code>).
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
 
-  <!-- ── Riesgos y mitigaciones ── -->
-  <section>
-    <h2><span class="icon">🛡</span>Riesgos Identificados y Mitigaciones</h2>
-    <table>
-      <thead><tr><th>Riesgo</th><th>Prob.</th><th>Mitigación</th></tr></thead>
-      <tbody>
-        <tr>
-          <td>El script modifica más campos que <code>comisionAirbnb</code></td>
-          <td>Media</td>
-          <td>El código modifica <em>únicamente</em> <code>s.excelData.comisionAirbnb</code> antes del <code>JSON.stringify</code>. Todos los demás campos del objeto <code>s</code> se preservan en el roundtrip <code>JSON.parse → modificación → JSON.stringify</code>.</td>
-        </tr>
-        <tr>
-          <td>Cambio parcial si el proceso se interrumpe en mitad del loop</td>
-          <td>Media</td>
-          <td>Todos los UPDATEs están dentro de una sola transacción (<code>BEGIN…COMMIT</code>). Si el proceso falla, el <code>catch</code> ejecuta <code>ROLLBACK</code> — ningún cambio parcial queda en la DB.</td>
-        </tr>
-        <tr>
-          <td>JSON inválido en <code>summary</code> rompe toda la operación</td>
-          <td>Baja</td>
-          <td>El <code>JSON.parse</code> está dentro de un <code>try/catch</code> individual. Un fila con JSON inválido solo incrementa <code>totalErrores</code> y el loop continúa.</td>
-        </tr>
-        <tr>
-          <td>El script se ejecuta contra Docker local en lugar de Railway</td>
-          <td>Alta (sin procedimiento)</td>
-          <td>Procedimiento formalizado: usar <code>railway run --service Postgres</code> para inyectar <code>DATABASE_PUBLIC_URL</code>. El script valida que <code>DATABASE_URL</code> esté definido y falla con <code>process.exit(1)</code> si no lo está.</td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
+      <!-- ── Riesgos y mitigaciones ── -->
+      <section>
+        <h2><span class="icon">🛡</span>Riesgos Identificados y Mitigaciones</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Riesgo</th>
+              <th>Prob.</th>
+              <th>Mitigación</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>El script modifica más campos que <code>comisionAirbnb</code></td>
+              <td>Media</td>
+              <td>
+                El código modifica <em>únicamente</em> <code>s.excelData.comisionAirbnb</code> antes
+                del <code>JSON.stringify</code>. Todos los demás campos del objeto <code>s</code> se
+                preservan en el roundtrip <code>JSON.parse → modificación → JSON.stringify</code>.
+              </td>
+            </tr>
+            <tr>
+              <td>Cambio parcial si el proceso se interrumpe en mitad del loop</td>
+              <td>Media</td>
+              <td>
+                Todos los UPDATEs están dentro de una sola transacción (<code>BEGIN…COMMIT</code>).
+                Si el proceso falla, el <code>catch</code> ejecuta <code>ROLLBACK</code> — ningún
+                cambio parcial queda en la DB.
+              </td>
+            </tr>
+            <tr>
+              <td>JSON inválido en <code>summary</code> rompe toda la operación</td>
+              <td>Baja</td>
+              <td>
+                El <code>JSON.parse</code> está dentro de un <code>try/catch</code> individual. Un
+                fila con JSON inválido solo incrementa <code>totalErrores</code> y el loop continúa.
+              </td>
+            </tr>
+            <tr>
+              <td>El script se ejecuta contra Docker local en lugar de Railway</td>
+              <td>Alta (sin procedimiento)</td>
+              <td>
+                Procedimiento formalizado: usar <code>railway run --service Postgres</code> para
+                inyectar <code>DATABASE_PUBLIC_URL</code>. El script valida que
+                <code>DATABASE_URL</code> esté definido y falla con <code>process.exit(1)</code> si
+                no lo está.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
 
-  <!-- ── Engineering Takeaways ── -->
-  <section>
-    <h2><span class="icon">🎓</span>Engineering Takeaways</h2>
+      <!-- ── Engineering Takeaways ── -->
+      <section>
+        <h2><span class="icon">🎓</span>Engineering Takeaways</h2>
 
-    <div class="qa-block">
-      <div class="qa-q">¿Qué lección de arquitectura demuestra DEV-005?</div>
-      <div class="qa-a"><strong>Un script que apunta a la base de datos equivocada es técnicamente inoperante sin importar qué tan correcto sea su código.</strong> El diagnóstico de "no funciona" nunca debe empezar por el código — debe empezar por verificar las dependencias del entorno: ¿qué base de datos usa la aplicación real? ¿coincide con lo que el script asume?</div>
-    </div>
+        <div class="qa-block">
+          <div class="qa-q">¿Qué lección de arquitectura demuestra DEV-005?</div>
+          <div class="qa-a">
+            <strong
+              >Un script que apunta a la base de datos equivocada es técnicamente inoperante sin
+              importar qué tan correcto sea su código.</strong
+            >
+            El diagnóstico de "no funciona" nunca debe empezar por el código — debe empezar por
+            verificar las dependencias del entorno: ¿qué base de datos usa la aplicación real?
+            ¿coincide con lo que el script asume?
+          </div>
+        </div>
 
-    <div class="qa-block">
-      <div class="qa-q">¿Por qué el script crea su propio Pool en lugar de importar el de la aplicación?</div>
-      <div class="qa-a">El singleton <code>src/database/client.js</code> está diseñado para procesos de larga duración (el servidor Express). No llama <code>pool.end()</code> porque el servidor no termina. Un script de Node.js necesita cerrar el pool explícitamente en <code>finally</code> para que el proceso pueda salir. Reutilizar el singleton dejaría el proceso colgado esperando conexiones abiertas.</div>
-    </div>
+        <div class="qa-block">
+          <div class="qa-q">
+            ¿Por qué el script crea su propio Pool en lugar de importar el de la aplicación?
+          </div>
+          <div class="qa-a">
+            El singleton <code>src/database/client.js</code> está diseñado para procesos de larga
+            duración (el servidor Express). No llama <code>pool.end()</code> porque el servidor no
+            termina. Un script de Node.js necesita cerrar el pool explícitamente en
+            <code>finally</code> para que el proceso pueda salir. Reutilizar el singleton dejaría el
+            proceso colgado esperando conexiones abiertas.
+          </div>
+        </div>
 
-    <div class="qa-block">
-      <div class="qa-q">¿Cuál es el protocolo de seguridad para ejecutar scripts de corrección en producción?</div>
-      <div class="qa-a">El protocolo de tres capas aplicado: (1) <strong>dry-run local</strong> con datos sintéticos controlados para validar la lógica del script; (2) <strong>dry-run en producción</strong> para conocer el alcance real antes de cualquier cambio; (3) <strong>migración real solo con aprobación explícita</strong> posterior a la revisión del reporte de dry-run. En este caso el dry-run de producción mostró 0 afectados, por lo que la migración real nunca se ejecutó — lo que es también un resultado correcto.</div>
-    </div>
+        <div class="qa-block">
+          <div class="qa-q">
+            ¿Cuál es el protocolo de seguridad para ejecutar scripts de corrección en producción?
+          </div>
+          <div class="qa-a">
+            El protocolo de tres capas aplicado: (1) <strong>dry-run local</strong> con datos
+            sintéticos controlados para validar la lógica del script; (2)
+            <strong>dry-run en producción</strong> para conocer el alcance real antes de cualquier
+            cambio; (3) <strong>migración real solo con aprobación explícita</strong> posterior a la
+            revisión del reporte de dry-run. En este caso el dry-run de producción mostró 0
+            afectados, por lo que la migración real nunca se ejecutó — lo que es también un
+            resultado correcto.
+          </div>
+        </div>
 
-    <div class="qa-block">
-      <div class="qa-q">¿Por qué se filtra en JavaScript y no con SQL JSONB casting?</div>
-      <div class="qa-a">La columna <code>summary</code> es <code>TEXT NOT NULL</code>, no <code>JSONB</code>. Usar <code>WHERE summary::jsonb->>'excelData'</code> en SQL fallaría toda la query si alguna fila tiene JSON malformado. Filtrar en JavaScript con <code>try/catch</code> individual aísla el error a la fila afectada, permite contabilizarla como error, y continúa procesando el resto. Siempre hay que conocer el tipo real de la columna antes de hacer asunciones sobre operaciones SQL.</div>
-    </div>
+        <div class="qa-block">
+          <div class="qa-q">¿Por qué se filtra en JavaScript y no con SQL JSONB casting?</div>
+          <div class="qa-a">
+            La columna <code>summary</code> es <code>TEXT NOT NULL</code>, no <code>JSONB</code>.
+            Usar <code>WHERE summary::jsonb->>'excelData'</code> en SQL fallaría toda la query si
+            alguna fila tiene JSON malformado. Filtrar en JavaScript con
+            <code>try/catch</code> individual aísla el error a la fila afectada, permite
+            contabilizarla como error, y continúa procesando el resto. Siempre hay que conocer el
+            tipo real de la columna antes de hacer asunciones sobre operaciones SQL.
+          </div>
+        </div>
 
-    <div class="qa-block">
-      <div class="qa-q">¿Cómo se usó Railway CLI para conectar a producción sin exponer credenciales?</div>
-      <div class="qa-a"><code>railway run --service Postgres</code> inyecta las variables de entorno del servicio directamente en el proceso hijo — incluyendo <code>DATABASE_PUBLIC_URL</code> — sin que el valor aparezca en ningún archivo local ni en el historial de Git. El script lee <code>DATABASE_URL</code> de su entorno de proceso, no de un archivo. Este es el patrón correcto para cualquier script que necesite conectarse a servicios de producción desde una máquina local.</div>
-    </div>
-  </section>
+        <div class="qa-block">
+          <div class="qa-q">
+            ¿Cómo se usó Railway CLI para conectar a producción sin exponer credenciales?
+          </div>
+          <div class="qa-a">
+            <code>railway run --service Postgres</code> inyecta las variables de entorno del
+            servicio directamente en el proceso hijo — incluyendo <code>DATABASE_PUBLIC_URL</code> —
+            sin que el valor aparezca en ningún archivo local ni en el historial de Git. El script
+            lee <code>DATABASE_URL</code> de su entorno de proceso, no de un archivo. Este es el
+            patrón correcto para cualquier script que necesite conectarse a servicios de producción
+            desde una máquina local.
+          </div>
+        </div>
+      </section>
+    </main>
 
-</main>
-
-<footer>
-  <p>airbnb-finance-assistant · DEV-005 · Commit <code>d7efd6a</code> · 2026-08-29</p>
-  <p style="margin-top:6px;">Carlos Alfredo Febles Gutierrez · Documentación técnica generada post-implementación</p>
-</footer>
-
-</body>
+    <footer>
+      <p>airbnb-finance-assistant · DEV-005 · Commit <code>d7efd6a</code> · 2026-08-29</p>
+      <p style="margin-top: 6px">
+        Carlos Alfredo Febles Gutierrez · Documentación técnica generada post-implementación
+      </p>
+    </footer>
+  </body>
 </html>
