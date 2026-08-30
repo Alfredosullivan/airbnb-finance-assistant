@@ -12,6 +12,7 @@ const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 const { PORT } = require('./config');
 const { initSchema } = require('./src/database/schema');
+const { pool } = require('./src/database/client');
 const swaggerSpec = require('./src/config/swagger');
 const financeRoutes = require('./src/routes/finance.routes');
 const authRoutes = require('./src/routes/auth.routes');
@@ -104,13 +105,26 @@ app.use(
   })
 );
 
-// GET /health — Liveness / readiness probe (no auth, no API prefix)
-app.get('/health', (_req, res) => {
-  res.json({
+// GET /health — Liveness + readiness probe (no auth, no API prefix)
+// Verifica que la app esté viva Y que la DB acepte conexiones.
+// Railway usa healthcheckPath: "/health" — solo marca el deploy como exitoso si responde 200.
+app.get('/health', async (_req, res) => {
+  const health = {
     status: 'ok',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-  });
+    services: { database: 'ok' },
+  };
+
+  try {
+    await pool.query('SELECT 1');
+  } catch (err) {
+    logger.error('[health] DB check fallido:', { err: err.message });
+    health.status = 'degraded';
+    health.services.database = 'error';
+  }
+
+  res.status(health.status === 'ok' ? 200 : 503).json(health);
 });
 
 // Manejo de rutas no encontradas en la API
