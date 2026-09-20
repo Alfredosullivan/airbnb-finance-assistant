@@ -5,6 +5,7 @@ data/
 *.log
 dist/
 client/dist/
+coverage/
 
 # Instrucciones internas de AI — no pertenecen al repo público
 CLAUDE.md

@@ -6,7 +6,9 @@
 # y evita que credenciales o datos locales lleguen a la imagen.
 
 # Dependencias — se instalan dentro del contenedor con npm ci
-node_modules/
+# **/ excluye node_modules en CUALQUIER nivel (raíz y client/), no solo la raíz.
+# Sin esto, client/node_modules (binarios nativos de Windows) contamina la imagen Linux.
+**/node_modules/
 
 # Variables de entorno — NUNCA deben entrar a una imagen Docker
 .env
