@@ -17,6 +17,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('../../src/routes/auth.routes');
 const propertiesRoutes = require('../../src/routes/properties.routes');
+const configRoutes = require('../../src/routes/config.routes');
 const { errorHandler } = require('../../src/middleware/errorHandler');
 
 const app = express();
@@ -26,6 +27,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertiesRoutes);
+app.use('/api/config', configRoutes);
 
 // 404 handler for unknown API routes
 app.use('/api', (req, res) => {
