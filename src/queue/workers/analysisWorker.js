@@ -169,13 +169,23 @@ async function processJob(job) {
   // ── Paso 2: construir payload para generateMonthlyAnalysis ──────────────
   const analysisData = buildAnalysisPayload(airbnbData, compareResult, label || month);
 
-  // ── Paso 3: llamar a Claude API — la operación lenta (5–25 s) ────────────
-  const analysisText = await generateMonthlyAnalysis(analysisData);
+  // ── Paso 3: análisis IA opcional — solo si la key está configurada ────────
+  // Si no hay ANTHROPIC_API_KEY, el Excel se genera igual pero sin la Hoja 4.
+  // Mismo criterio de degradación con gracia que la ruta síncrona generateExcel().
+  let analysisText = null;
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      analysisText = await generateMonthlyAnalysis(analysisData);
+    } catch (analysisErr) {
+      logger.warn('[QUEUE] Análisis IA no disponible para el Excel:', analysisErr.message);
+    }
+  }
 
   // ── Paso 4: cachear el análisis en DB ────────────────────────────────────
   // Usamos findByMonthAny (no findSummaryByMonthAny) porque necesitamos el `id`
   // para updateSummary. findSummaryByMonthAny solo devuelve { summary }, sin id.
-  const currentRow = await ReportRepository.findByMonthAny(userId, month);
+  // Solo cacheamos si hubo análisis (sin key, analysisText es null → no hay nada que guardar).
+  const currentRow = analysisText ? await ReportRepository.findByMonthAny(userId, month) : null;
   if (currentRow?.id) {
     try {
       const currentSummary =
