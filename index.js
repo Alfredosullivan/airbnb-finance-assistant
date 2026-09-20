@@ -23,6 +23,7 @@ const { initScheduler } = require('./src/scheduler');
 const { initQueue } = require('./src/queue');
 const jobsRoutes = require('./src/routes/jobs.routes');
 const crawlerRoutes = require('./src/routes/crawler.routes');
+const configRoutes = require('./src/routes/config.routes');
 
 // Raíz del proyecto — resuelve correctamente tanto en dev como en prod.
 // Dev: "node index.js"       → __dirname = /proyecto       → PROJECT_ROOT = /proyecto
@@ -95,6 +96,9 @@ app.use('/api/properties', propertiesRoutes);
 
 // Rutas del crawler de precios de rentas en Mérida
 app.use('/api/crawler', crawlerRoutes);
+
+// Rutas de configuración pública (feature flags para el frontend)
+app.use('/api/config', configRoutes);
 
 // GET /api/docs — Swagger UI (interactive API reference, no auth required)
 app.use(

@@ -255,7 +255,7 @@ docker compose down -v   # detiene Y borra el volumen de PostgreSQL
 | `MAX_FILE_SIZE_MB`  | Tamaño máximo de archivos en MB     | No (default: `10`)                    |
 | `ANTHROPIC_API_KEY` | API key de Claude para análisis IA  | No                                    |
 
-> Si `ANTHROPIC_API_KEY` no está definida, la app funciona normalmente — los botones de análisis IA quedan deshabilitados.
+> Si `ANTHROPIC_API_KEY` no está definida, la app funciona normalmente. El endpoint `GET /api/config` expone `aiEnabled: false` y el frontend oculta los botones de análisis IA. Los reportes Excel/PDF se generan sin la hoja de análisis.
 
 ---
 
@@ -405,7 +405,8 @@ Documentación interactiva completa en `/api/docs` (Swagger UI).
 
 ### Sistema
 
-| Método | Endpoint    | Descripción                                      |
-| ------ | ----------- | ------------------------------------------------ |
-| GET    | `/health`   | Liveness probe — `{ status, uptime, timestamp }` |
-| GET    | `/api/docs` | Swagger UI — referencia interactiva              |
+| Método | Endpoint      | Descripción                                      |
+| ------ | ------------- | ------------------------------------------------ |
+| GET    | `/health`     | Liveness probe — `{ status, uptime, timestamp }` |
+| GET    | `/api/docs`   | Swagger UI — referencia interactiva              |
+| GET    | `/api/config` | Feature flags públicas — `{ aiEnabled }`         |
