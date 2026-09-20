@@ -14,7 +14,7 @@ import ReportResults from './ReportResults';
 import MarketSection from './MarketSection';
 
 export default function AppShell({ user, onLogout, onOpenAuth }) {
-  const { currentProperty, setCurrentReport } = useAppContext();
+  const { currentProperty, setCurrentReport, aiEnabled } = useAppContext();
 
   // Estado del drawer de historial — vive aquí y no en App.jsx porque
   // handleViewReport necesita setCurrentReport del Context, que solo
@@ -97,6 +97,7 @@ export default function AppShell({ user, onLogout, onOpenAuth }) {
         onClose={() => setHistoryOpen(false)}
         onViewReport={handleViewReport}
         onViewAnalysis={handleViewAnalysis}
+        aiEnabled={aiEnabled}
       />
 
       {/* ── Modal de análisis IA ── */}

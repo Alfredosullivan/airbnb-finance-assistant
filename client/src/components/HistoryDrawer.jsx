@@ -24,7 +24,13 @@ function formatMXN(n) {
   })}`;
 }
 
-export default function HistoryDrawer({ isOpen, onClose, onViewReport, onViewAnalysis }) {
+export default function HistoryDrawer({
+  isOpen,
+  onClose,
+  onViewReport,
+  onViewAnalysis,
+  aiEnabled,
+}) {
   const { currentProperty } = useAppContext();
 
   const downloadBlob = async (url, filename) => {
@@ -253,13 +259,15 @@ export default function HistoryDrawer({ isOpen, onClose, onViewReport, onViewAna
                               <button className="btn--ver" onClick={() => onViewReport(r.month)}>
                                 Ver
                               </button>
-                              <button
-                                className="btn--ia"
-                                onClick={() => onViewAnalysis(r.month, r.label)}
-                                title={`Análisis IA de ${r.label}`}
-                              >
-                                ✦
-                              </button>
+                              {aiEnabled && (
+                                <button
+                                  className="btn--ia"
+                                  onClick={() => onViewAnalysis(r.month, r.label)}
+                                  title={`Análisis IA de ${r.label}`}
+                                >
+                                  ✦
+                                </button>
+                              )}
                               <button
                                 className="btn--del"
                                 onClick={() => handleDelete(r.month, r.label)}

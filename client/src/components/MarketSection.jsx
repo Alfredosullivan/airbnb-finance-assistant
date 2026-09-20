@@ -149,7 +149,7 @@ function markdownToHtml(text) {
 
 // ── Componente ─────────────────────────────────────────────────────
 export default function MarketSection() {
-  const { user } = useAppContext();
+  const { user, aiEnabled } = useAppContext();
 
   const [listings, setListings] = useState([]);
   const [status, setStatus] = useState('idle'); // 'idle'|'loading'|'success'|'error'
@@ -367,8 +367,8 @@ export default function MarketSection() {
             ))}
           </div>
 
-          {/* Botón de análisis IA */}
-          {listings.length > 0 && (
+          {/* Botón de análisis IA — solo si la IA está habilitada (feature flag aiEnabled) */}
+          {listings.length > 0 && aiEnabled && (
             <div className="market-analyze-row">
               <button className="btn btn--primary" onClick={analyzeMarket} disabled={analyzing}>
                 {analyzing ? 'Analizando…' : '✦ Analizar con IA'}
