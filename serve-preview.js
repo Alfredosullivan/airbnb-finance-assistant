@@ -18,8 +18,8 @@ const MIME = {
 
 http
   .createServer((req, res) => {
-    // GET /app → sirve el dashboard; GET / → sirve la landing (index.html)
-    const urlPath = req.url === '/app' ? '/app.html' : req.url === '/' ? '/index.html' : req.url;
+    // GET / → sirve la landing (index.html)
+    const urlPath = req.url === '/' ? '/index.html' : req.url;
     let filePath = path.join(PUBLIC, urlPath);
     const ext = path.extname(filePath).toLowerCase();
 
