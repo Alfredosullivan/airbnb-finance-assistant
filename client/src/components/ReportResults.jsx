@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import LiveAnalysisModal from './LiveAnalysisModal';
 
 function formatMXN(n) {
   return new Intl.NumberFormat('es-MX', {
@@ -15,11 +16,12 @@ function formatMXN(n) {
 }
 
 export default function ReportResults() {
-  const { currentReport, currentProperty, sessionId } = useAppContext();
+  const { currentReport, currentProperty, sessionId, aiEnabled } = useAppContext();
 
   const [activeTab, setActiveTab] = useState('matched');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [liveAnalysisOpen, setLiveAnalysisOpen] = useState(false);
 
   // Guard: sin reporte, sin render
   if (!currentReport) return null;
@@ -85,8 +87,26 @@ export default function ReportResults() {
 
   return (
     <section className="results-section">
-      {/* ── Encabezado con label del mes ── */}
-      <h2 className="section-title">{reportLabel}</h2>
+      {/* ── Encabezado: label del mes + acción de análisis IA en vivo ── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <h2 className="section-title" style={{ margin: 0 }}>
+          {reportLabel}
+        </h2>
+        {/* Solo si la IA está habilitada (feature flag aiEnabled, DEV-007) */}
+        {aiEnabled && (
+          <button className="btn btn--primary" onClick={() => setLiveAnalysisOpen(true)}>
+            ✦ Analizar con IA
+          </button>
+        )}
+      </div>
 
       {/* ── 4 tarjetas de totales ── */}
       <div className="totals-grid">
@@ -285,6 +305,13 @@ export default function ReportResults() {
           </div>
         </div>
       </div>
+
+      {/* ── Modal de análisis IA en vivo (reporte recién generado) ── */}
+      <LiveAnalysisModal
+        isOpen={liveAnalysisOpen}
+        label={reportLabel}
+        onClose={() => setLiveAnalysisOpen(false)}
+      />
     </section>
   );
 }
