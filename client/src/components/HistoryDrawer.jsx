@@ -229,6 +229,21 @@ export default function HistoryDrawer({
                     ↓ PDF {year}
                   </button>
 
+                  {/* Reporte combinado: suma TODAS las propiedades del año (multi-propiedad).
+                      A diferencia de "Excel {year}", que es una sola propiedad vía propertyId. */}
+                  <button
+                    className="btn--annual-inline"
+                    onClick={() =>
+                      downloadBlob(
+                        `/api/properties/combined/${year}`,
+                        `Reporte_Combinado_${year}.xlsx`
+                      )
+                    }
+                    title={`Reporte combinado de todas las propiedades ${year}`}
+                  >
+                    ↓ Combinado {year}
+                  </button>
+
                   <button
                     className="history-year-chevron"
                     onClick={() => toggleYear(year)}
