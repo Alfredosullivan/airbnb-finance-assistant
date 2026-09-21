@@ -160,7 +160,7 @@ App web full stack para reconciliar automáticamente reportes de Airbnb contra e
 ## Características
 
 - **Reconciliación automática** de reportes Airbnb (CSV/PDF) contra estados de cuenta BBVA (PDF)
-- **Frontend React** — migración incremental desde Vanilla JS con Context API, useRef, useCallback
+- **Frontend React** — migración completa desde Vanilla JS (dashboard Vanilla retirado) con Context API, useRef, useCallback
 - **Soporte multi-propiedad** — gestiona varias propiedades por usuario
 - **Dashboard anual** con métricas KPI y gráfica comparativa año a año (Chart.js)
 - **Historial mensual** con drawer lateral animado y análisis IA por mes

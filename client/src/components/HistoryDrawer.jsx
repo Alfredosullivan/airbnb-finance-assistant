@@ -196,46 +196,66 @@ export default function HistoryDrawer({
           {!loading &&
             years.map((year) => (
               <div key={year} className="history-year">
-                {/* Header del año: toggle + botones de descarga */}
+                {/* Header del año: fila del año + chevron arriba, descargas abajo.
+                    El año NO se repite en cada botón porque ya está en este encabezado. */}
                 <div className="history-year-header">
-                  <button className="history-year-toggle" onClick={() => toggleYear(year)}>
-                    <span className="history-year-label">{year}</span>
-                    <span className="history-year-count">{byYear[year].length} meses</span>
-                  </button>
+                  {/* Fila 1: año (izq) + chevron (der) */}
+                  <div className="history-year-topline">
+                    <button className="history-year-toggle" onClick={() => toggleYear(year)}>
+                      <span className="history-year-label">{year}</span>
+                      <span className="history-year-count">{byYear[year].length} meses</span>
+                    </button>
+                    <button
+                      className="history-year-chevron"
+                      onClick={() => toggleYear(year)}
+                      aria-expanded={expandedYears.has(year)}
+                    >
+                      {expandedYears.has(year) ? '⌄' : '›'}
+                    </button>
+                  </div>
 
-                  <button
-                    className="btn--annual-inline"
-                    onClick={() =>
-                      downloadBlob(
-                        `/api/reports/annual/${year}?propertyId=${currentProperty?.id}`,
-                        `Reporte_Anual_${year}.xlsx`
-                      )
-                    }
-                    title={`Descargar reporte anual ${year}`}
-                  >
-                    ↓ Excel {year}
-                  </button>
+                  {/* Descargas: Excel, PDF y Combinado en una fila horizontal, mismo ancho */}
+                  <div className="history-year-downloads">
+                    <button
+                      className="btn--annual-inline"
+                      onClick={() =>
+                        downloadBlob(
+                          `/api/reports/annual/${year}?propertyId=${currentProperty?.id}`,
+                          `Reporte_Anual_${year}.xlsx`
+                        )
+                      }
+                      title={`Descargar reporte anual ${year}`}
+                    >
+                      ↓ Excel
+                    </button>
 
-                  <button
-                    className="btn--annual-inline btn--annual-pdf"
-                    onClick={() =>
-                      downloadBlob(
-                        `/api/reports/executive-pdf/${year}`,
-                        `Reporte_Ejecutivo_${year}.pdf`
-                      )
-                    }
-                    title={`Reporte ejecutivo PDF ${year}`}
-                  >
-                    ↓ PDF {year}
-                  </button>
+                    <button
+                      className="btn--annual-inline btn--annual-pdf"
+                      onClick={() =>
+                        downloadBlob(
+                          `/api/reports/executive-pdf/${year}`,
+                          `Reporte_Ejecutivo_${year}.pdf`
+                        )
+                      }
+                      title={`Reporte ejecutivo PDF ${year}`}
+                    >
+                      ↓ PDF
+                    </button>
 
-                  <button
-                    className="history-year-chevron"
-                    onClick={() => toggleYear(year)}
-                    aria-expanded={expandedYears.has(year)}
-                  >
-                    {expandedYears.has(year) ? '⌄' : '›'}
-                  </button>
+                    {/* Combinado en azul (btn--combined-inline) — multi-propiedad */}
+                    <button
+                      className="btn--combined-inline"
+                      onClick={() =>
+                        downloadBlob(
+                          `/api/properties/combined/${year}`,
+                          `Reporte_Combinado_${year}.xlsx`
+                        )
+                      }
+                      title={`Reporte combinado de todas las propiedades ${year}`}
+                    >
+                      ↓ Combinado
+                    </button>
+                  </div>
                 </div>
 
                 {/* Cards de meses — solo si el año está expandido */}

@@ -3,8 +3,9 @@
 // UploadSection llama setCurrentReport después de GET /api/report.
 // Nada de props: toda la data viene del Context.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
+import LiveAnalysisModal from './LiveAnalysisModal';
 
 function formatMXN(n) {
   return new Intl.NumberFormat('es-MX', {
@@ -15,16 +16,29 @@ function formatMXN(n) {
 }
 
 export default function ReportResults() {
-  const { currentReport, currentProperty, sessionId } = useAppContext();
+  const { currentReport, currentProperty, sessionId, aiEnabled } = useAppContext();
 
   const [activeTab, setActiveTab] = useState('matched');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [liveAnalysisOpen, setLiveAnalysisOpen] = useState(false);
+
+  // Mes del reporte activo. Se declara antes del guard para usarlo en el useEffect
+  // sin violar las Reglas de Hooks (todos los hooks van antes de cualquier return).
+  const reportMonth = currentReport?.reportMonth;
+
+  // Reinicia el estado "guardado" al cambiar de reporte. Sin esto, tras guardar un
+  // reporte el botón queda pegado en "✓ Guardado" (disabled) para los reportes
+  // generados después, hasta recargar la página.
+  useEffect(() => {
+    setSaved(false);
+    setSaving(false);
+  }, [reportMonth]);
 
   // Guard: sin reporte, sin render
   if (!currentReport) return null;
 
-  const { reportLabel, reportMonth, summary, tables } = currentReport;
+  const { reportLabel, summary, tables } = currentReport;
   const matched = tables?.matched || [];
   const onlyInAirbnb = tables?.onlyInAirbnb || [];
   const onlyInBank = tables?.onlyInBank || [];
@@ -50,11 +64,41 @@ export default function ReportResults() {
           tables,
         }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || 'Error al guardar');
       }
       setSaved(true);
+
+      // ── Auto-actualización del año siguiente ──────────────────────────
+      // Si ya existe guardado el mismo mes del año siguiente, saveReport lo indica
+      // en la respuesta. Ofrecemos inyectar estos datos como referencia del año
+      // anterior (prevYearData — Hoja 3 del Excel anual del año siguiente).
+      if (data.canUpdateNextYear) {
+        const confirmar = window.confirm(
+          `Ya tienes guardado ${data.nextYearLabel}. ¿Actualizarlo con los datos de ` +
+            `${reportLabel} como referencia del año anterior?`
+        );
+        if (confirmar) {
+          try {
+            const upRes = await fetch('/api/reports/update-prev-year-ref', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                targetMonth: data.nextYearMonth,
+                propertyId: currentProperty?.id,
+              }),
+            });
+            if (!upRes.ok) {
+              const upData = await upRes.json().catch(() => ({}));
+              throw new Error(upData.error || 'Error al actualizar el año siguiente');
+            }
+          } catch (err) {
+            // El guardado ya fue exitoso; un fallo aquí no lo revierte.
+            console.error('[ReportResults] Error al actualizar año siguiente:', err.message);
+          }
+        }
+      }
     } catch (err) {
       console.error('[ReportResults] Error al guardar:', err.message);
     } finally {
@@ -282,9 +326,25 @@ export default function ReportResults() {
             >
               Descargar Excel
             </button>
+
+            {/* Análisis IA en vivo — solo si aiEnabled (feature flag DEV-007).
+                Estilo ink + ✦ coral: distinto de Guardar (coral) y Descargar (contorno). */}
+            {aiEnabled && (
+              <button className="btn btn--ai" onClick={() => setLiveAnalysisOpen(true)}>
+                <span style={{ color: 'var(--coral)' }}>✦</span>
+                Analizar con IA
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* ── Modal de análisis IA en vivo (reporte recién generado) ── */}
+      <LiveAnalysisModal
+        isOpen={liveAnalysisOpen}
+        label={reportLabel}
+        onClose={() => setLiveAnalysisOpen(false)}
+      />
     </section>
   );
 }

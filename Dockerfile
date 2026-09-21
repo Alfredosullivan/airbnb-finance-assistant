@@ -53,7 +53,7 @@ WORKDIR /app
 
 # dist/       — código compilado por tsc (entry point: dist/index.js)
 # node_modules/ — solo dependencias de producción
-# public/     — frontend vanilla JS (landing + dashboard), servido por Express
+# public/     — landing page estática (index.html + favicon), servida por Express
 # client/dist/ — build de React, servido como catch-all por Express
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
