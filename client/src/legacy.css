@@ -475,11 +475,29 @@ nav {
 
 .history-year-header {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.875rem 1.25rem;
+  transition: background 0.15s;
+}
+
+/* Fila superior del año: etiqueta del año (izq) + chevron (der) */
+.history-year-topline {
+  display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.875rem 1.25rem;
-  cursor: pointer;
-  transition: background 0.15s;
+}
+
+/* Zona de descargas: Excel, PDF y Combinado en una sola fila horizontal */
+.history-year-downloads {
+  display: flex;
+  gap: 0.5rem;
+}
+/* Los 3 botones al mismo ancho (simétricos) y con el contenido centrado */
+.history-year-downloads > button {
+  flex: 1;
+  justify-content: center;
 }
 .history-year-header:hover {
   background: #faf9f7;
@@ -561,8 +579,8 @@ nav {
   gap: 0.3rem;
   padding: 0.3rem 0.75rem;
   background: transparent;
-  color: var(--green);
-  border: 1.5px solid var(--green);
+  color: var(--blue);
+  border: 1.5px solid var(--blue);
   border-radius: 100px;
   font-size: 0.72rem;
   font-weight: 600;
@@ -571,7 +589,7 @@ nav {
   transition: all 0.15s;
 }
 .btn--combined-inline:hover {
-  background: var(--green);
+  background: var(--blue);
   color: #fff;
 }
 
