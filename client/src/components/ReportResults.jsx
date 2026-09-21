@@ -52,11 +52,41 @@ export default function ReportResults() {
           tables,
         }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || 'Error al guardar');
       }
       setSaved(true);
+
+      // ── Auto-actualización del año siguiente ──────────────────────────
+      // Si ya existe guardado el mismo mes del año siguiente, saveReport lo indica
+      // en la respuesta. Ofrecemos inyectar estos datos como referencia del año
+      // anterior (prevYearData — Hoja 3 del Excel anual del año siguiente).
+      if (data.canUpdateNextYear) {
+        const confirmar = window.confirm(
+          `Ya tienes guardado ${data.nextYearLabel}. ¿Actualizarlo con los datos de ` +
+            `${reportLabel} como referencia del año anterior?`
+        );
+        if (confirmar) {
+          try {
+            const upRes = await fetch('/api/reports/update-prev-year-ref', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                targetMonth: data.nextYearMonth,
+                propertyId: currentProperty?.id,
+              }),
+            });
+            if (!upRes.ok) {
+              const upData = await upRes.json().catch(() => ({}));
+              throw new Error(upData.error || 'Error al actualizar el año siguiente');
+            }
+          } catch (err) {
+            // El guardado ya fue exitoso; un fallo aquí no lo revierte.
+            console.error('[ReportResults] Error al actualizar año siguiente:', err.message);
+          }
+        }
+      }
     } catch (err) {
       console.error('[ReportResults] Error al guardar:', err.message);
     } finally {
