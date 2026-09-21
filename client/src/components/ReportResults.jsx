@@ -3,7 +3,7 @@
 // UploadSection llama setCurrentReport después de GET /api/report.
 // Nada de props: toda la data viene del Context.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import LiveAnalysisModal from './LiveAnalysisModal';
 
@@ -23,10 +23,22 @@ export default function ReportResults() {
   const [saved, setSaved] = useState(false);
   const [liveAnalysisOpen, setLiveAnalysisOpen] = useState(false);
 
+  // Mes del reporte activo. Se declara antes del guard para usarlo en el useEffect
+  // sin violar las Reglas de Hooks (todos los hooks van antes de cualquier return).
+  const reportMonth = currentReport?.reportMonth;
+
+  // Reinicia el estado "guardado" al cambiar de reporte. Sin esto, tras guardar un
+  // reporte el botón queda pegado en "✓ Guardado" (disabled) para los reportes
+  // generados después, hasta recargar la página.
+  useEffect(() => {
+    setSaved(false);
+    setSaving(false);
+  }, [reportMonth]);
+
   // Guard: sin reporte, sin render
   if (!currentReport) return null;
 
-  const { reportLabel, reportMonth, summary, tables } = currentReport;
+  const { reportLabel, summary, tables } = currentReport;
   const matched = tables?.matched || [];
   const onlyInAirbnb = tables?.onlyInAirbnb || [];
   const onlyInBank = tables?.onlyInBank || [];
