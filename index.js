@@ -141,13 +141,8 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(PROJECT_ROOT, 'public', 'index.html'));
 });
 
-// GET /app — dashboard (login / upload / conciliación)
-app.get('/app', (req, res) => {
-  res.sendFile(path.join(PROJECT_ROOT, 'public', 'app.html'));
-});
-
-// Catch-all para React Router — sirve el shell de React para cualquier ruta no-API
-// Necesario si en el futuro se activan rutas del cliente React
+// Catch-all — sirve el shell de React para cualquier ruta no-API. Incluye /app,
+// que antes servía el dashboard Vanilla (retirado en DEV-008); ahora carga React.
 app.get('/{*path}', (req, res) => {
   res.sendFile(path.join(PROJECT_ROOT, 'client', 'dist', 'index.html'));
 });
