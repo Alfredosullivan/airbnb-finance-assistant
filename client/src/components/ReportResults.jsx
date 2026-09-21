@@ -129,26 +129,8 @@ export default function ReportResults() {
 
   return (
     <section className="results-section">
-      {/* ── Encabezado: label del mes + acción de análisis IA en vivo ── */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '1rem',
-          flexWrap: 'wrap',
-        }}
-      >
-        <h2 className="section-title" style={{ margin: 0 }}>
-          {reportLabel}
-        </h2>
-        {/* Solo si la IA está habilitada (feature flag aiEnabled, DEV-007) */}
-        {aiEnabled && (
-          <button className="btn btn--primary" onClick={() => setLiveAnalysisOpen(true)}>
-            ✦ Analizar con IA
-          </button>
-        )}
-      </div>
+      {/* ── Encabezado con label del mes ── */}
+      <h2 className="section-title">{reportLabel}</h2>
 
       {/* ── 4 tarjetas de totales ── */}
       <div className="totals-grid">
@@ -344,6 +326,15 @@ export default function ReportResults() {
             >
               Descargar Excel
             </button>
+
+            {/* Análisis IA en vivo — solo si aiEnabled (feature flag DEV-007).
+                Estilo ink + ✦ coral: distinto de Guardar (coral) y Descargar (contorno). */}
+            {aiEnabled && (
+              <button className="btn btn--ai" onClick={() => setLiveAnalysisOpen(true)}>
+                <span style={{ color: 'var(--coral)' }}>✦</span>
+                Analizar con IA
+              </button>
+            )}
           </div>
         </div>
       </div>

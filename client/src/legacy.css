@@ -848,6 +848,17 @@ nav {
   color: var(--ink);
 }
 
+/* IA — acción especial: fondo ink, texto blanco, símbolo ✦ coral (via <span> en el JSX) */
+.btn--ai {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+.btn--ai:hover:not(:disabled) {
+  background: #000;
+  border-color: #000;
+}
+
 /* Análisis — azul sólido */
 .btn--analysis {
   background: var(--blue);
