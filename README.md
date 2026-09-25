@@ -4,7 +4,7 @@ App web full stack para reconciliar automáticamente reportes de Airbnb contra e
 
 🔗 **Demo en vivo:** https://airbnb-finance-assistant-production.up.railway.app
 
-> Credenciales de demo: `demo@practice.com` / `Demo1234!`
+> Credenciales de demo: `demo@finanzas-airbnb.app` / `demohost2026`
 
 ---
 
